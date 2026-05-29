@@ -15,6 +15,204 @@ Format for each entry:
 
 ---
 
+## v3.8 — Phil feedback overhaul: per-game / age runway / comp-floor / retired-early flag
+
+**Date:** 2026-05-29
+
+Phil's 2026-05-29 brief identified eight specific players whose v3.7
+ranking didn't match his read of the underlying data. They all pointed
+at the same five root causes:
+
+> 1. "Puka Nacua > Nico Collins — Puka is 2 years younger with better stats."
+> 2. "Caleb Williams (24) > Justin Fields, Deshaun Watson — youth +
+>    remaining career > vet QBs with shorter runways."
+> 3. "Andrew Luck contaminating Caleb's comp. Luck retired at 29 due
+>    to concussions, not talent decline. His arc shouldn't bring down
+>    young QB projections."
+> 4. "Harold Fannin > Oronde Gadsden II — Fannin is younger and had
+>    better college stats."
+> 5. "Malik Nabers ranked too low — 2025 season was cut short by
+>    injury. Per-game stats are strong. Model is punishing him for
+>    missed games instead of rate-adjusting."
+> 6. "Omarion Hampton hurt by same injury problem."
+> 7. "Ashton Jeanty (22yo) projected 673 career FP — completely wrong.
+>    His top comp is LaDainian Tomlinson (3,277 career FP). If he's
+>    on that trajectory the projection should be a meaningful fraction
+>    of comp pool, not 20%."
+> 8. "Quinshon Judkins projected 486 FP — same comp-pool-collapse
+>    problem."
+
+Diagnosis (root causes):
+
+* **Heavy-injury penalty** — v3.7 scaled missed-season penalty
+  linearly with games played, but a 4-game / 9-game season is
+  *clearly* injury rather than benching. Punishment should be capped.
+* **Stats weighted too low vs similarity scores** — Phil verbatim:
+  "the actual stats should be weighted a bit higher than the
+   similarity scores and their projections...creating undue noise".
+  The v3.3 60/40 (comp/peak) blend was overweighting comp pool.
+* **Comp-pool collapse** — elite-comp rookies (Jeanty, Judkins,
+  Hampton) had their v3.6 baseline floor overwhelmed by the v2.2
+  survival multiplier. Without a comp-pool-anchored post-stack
+  floor, the projection collapsed below the comp pool's realised
+  arc.
+* **Age / runway not weighted strongly enough** — a 24-year-old QB
+  has materially more dynasty runway than a 30-year-old; v3.7's
+  projection horizon was driven by the comp pool's average snapshot
+  age, which compressed the age-runway gap.
+* **Retired-early players (Luck) contaminate arcs** — Luck retired
+  at 29 due to cumulative injuries while still elite; his truncated
+  realised career drags down projections of comps. No mechanism to
+  extrapolate his arc.
+
+What changed
+: **A. Heavy-injury / rate-aware partial-season penalty softening**
+  (`v2_2_penalties.compute_missed_recent_season`).
+  Two-layer softening on top of v3.7's linear scale:
+
+    * `INJURY_RATE_THRESHOLD` = 0.85 / `INJURY_RATE_SATURATION` = 1.05 —
+      when the partial season's fp/G was at-or-above 85% of the
+      player's PRIOR peak-3yr (i.e. producing when on the field),
+      dampen the penalty linearly toward 1.0 by up to
+      `INJURY_DAMPENING_MAX` = 0.85.
+    * `HEAVY_INJURY_GAMES_THRESHOLD` = 8 / `HEAVY_INJURY_FLOOR_MULTIPLIER`
+      = 0.85 — when games < 8, the absence is clearly injury (not a
+      coaching benching); floor the penalty at 0.85 regardless of
+      what the linear scale produced.
+
+  Worked examples:
+    * Malik Nabers (4G in 2025, fp/G ratio 0.79): heavy-injury floor
+      lifts 0.759 → 0.85. The +0.09 multiplier swing changes his
+      production_score from ~700 to ~885.
+    * Justin Fields (9G, fp/G ratio 0.89): rate-aware dampening lifts
+      0.832 → 0.861. Heavy-injury floor doesn't fire (>= 8G).
+    * Kyler Murray (5G, fp/G ratio < 0.85): heavy-injury floor lifts
+      0.788 → 0.85. v3.7 test expectations updated.
+
+  **B. Age-weighted remaining-career runway**
+  (`fantasy_arc_similarity.project_player` +
+  `rookie_nfl_fp_arc.project_rookie`).
+  Cumulative-arc engine: introduces `POSITION_TYPICAL_RETIREMENT_AGE`
+  (QB=36, RB=30, WR=32, TE=33) and a `RUNWAY_BLEND` = 0.70 floor on
+  the projection horizon: `effective_seasons = max(weighted_seasons,
+  RUNWAY_BLEND * (retirement_age - current_age))`. Young targets
+  whose comp-pool horizon is short (because comps include retired-
+  early arcs or still-active mid-career snapshots) get a longer
+  projection window.
+  Rookie engine: adds an `age_runway_bonus` of up to +3 years for
+  rookies younger than `TYPICAL_ROOKIE_AGE` (QB=23, RB/WR/TE=22).
+  Fannin (21) gets +1 extra year of peak-anchored horizon vs Gadsden
+  (22) — the missing piece for Phil's Fannin > Gadsden invariant.
+
+  **C. Stats vs similarity weight rebalance**
+  (`fantasy_arc_similarity.project_player`, `rookie_nfl_fp_arc.project_rookie`).
+  Both engines flip the v3.3 60% comp-weighted / 40% peak-anchored
+  blend to **40% comp / 60% peak-anchored** for elite-tier targets.
+  Peak-anchored cap loosened from 1.25× → 1.50× top-comp
+  projected_total so an exceptional rookie's own production rate
+  can carry the projection further. The soft-band fade-in for
+  below-elite-threshold targets is updated to the new 40/60 anchor.
+
+  **D. Comp-pool career-arc projection floor for rookies**
+  (`rookie_nfl_fp_arc.project_rookie` + `similarity_v1.run_engine`
+  post-stack pass).
+  Two-layer floor:
+
+    * **In-engine (pre-penalty)**: `base_projection` floored at
+      `COMP_POOL_FLOOR_FRACTION` (0.45) × mean of top-3 (by
+      post_rookie_total_fp) non-bust comps drawn from the
+      top-`COMP_POOL_FLOOR_TOPSIM_N` (10) most similar comps,
+      rate-scaled by
+      `min(1.0, target_rookie_rate / top3_median_rookie_rate)`,
+      capped at `peak_anchored_fp`. The two-stage filter
+      (top-sim subset → top-3 by post-rookie fp) is the principled
+      separator for elite-comp rookies vs bust-comp rookies whose
+      tail happens to include a high-career-fp outlier.
+    * **Post-stack** (`similarity_v1.run_engine`): same anchor at
+      `POST_STACK_COMP_POOL_FRACTION` = 0.40, but only fires when
+      `survival_multiplier < FLOOR_TRIGGER_SURVIVAL` = 0.60. Above
+      that threshold the v2.2 stack is in calibrated band and we
+      don't override its ordering with a comp-pool floor.
+
+  Worked examples:
+    * Ashton Jeanty: top-3 anchor = mean(LT, Marshawn, CJ) = 2175 fp.
+      Floor = 0.40 × 2175 × 0.967 (rate-scale) = 841. v3.7 was 673.
+    * Quinshon Judkins: top-3 anchor = mean(LT, Ricky Williams, Mark
+      Ingram) = 2135 fp. Floor = 854. v3.7 was 486.
+    * Omarion Hampton: top-3 anchor = mean(LT, Marshawn, Bernard) =
+      1965 fp. Floor = 786. v3.7 was 491.
+    * Shedeur Sanders: top-10 sim subset filters Matt Ryan / McNabb
+      tail. Top-3 anchor stays modest (~1424). Floor = 569.
+      Sanders stays deep (>100) per Phil's invariant.
+
+  **E. Retired-early flag**
+  (`fantasy_arc.CareerArc.retired_early` +
+  `data/retired_early_comps.yaml` +
+  `fantasy_arc_similarity.project_remaining` /
+  `rookie_nfl_fp_arc.project_year_2_plus`).
+  Sidecar YAML lists comps whose careers were truncated by
+  injury/health rather than talent decline. The projection extends
+  their realised arc with synthetic seasons at their final-3yr
+  fp/G rate, 17 games per season, up to `extrapolate_to_age`. The
+  synthetic seasons inherit the same time-discount as realised
+  seasons.
+
+  Initial entries:
+    * Andrew Luck (QB, pid 00-0029668, retired age 29, extrapolate to 35)
+    * Calvin Johnson (WR, pid 00-0025389, retired age 30, extrapolate to 32)
+
+  Worked example: Andrew Luck's post-snapshot projection in Caleb
+  Williams's comp list moves from 1,714 realised pts to 2,346 pts
+  (realised + extrapolated). Phil's Luck contamination concern
+  resolved.
+
+Expected output shift
+: * **Puka Nacua: #15 → #13.** Now ranks ahead of Nico Collins #14.
+     Driven by Fix B (more runway at 25) + Fix C (peak-anchored
+     weight 0.60 amplifies his 23.5 fp/G peak).
+   * **Caleb Williams: #44 → #38.** Ahead of Fields #45 and
+     Watson #50. Driven by Fix B (QB runway at 24 = 12 years vs
+     Watson's 6) + Fix E (Luck contamination removed) + Fix C.
+   * **Harold Fannin Jr.: #55 → #44.** Ahead of Gadsden #61.
+     Driven by Fix B (age-runway bonus +1 year for 21-yo rookie)
+     and the in-engine comp-pool floor scaling by rookie rate.
+   * **Malik Nabers: #60 → #52.** Heavy-injury floor lifts
+     multiplier 0.759 → 0.85.
+   * **Omarion Hampton: #106 → #67.** Comp-pool floor lifts
+     projection from 491 → 786 (60% gain).
+   * **Ashton Jeanty: #64 → #56.** Floor lifts 673 → 841.
+   * **Quinshon Judkins: #108 → #55.** Floor lifts 486 → 854.
+     Largest move in the cohort.
+   * **Shedeur Sanders: stays deep (>100).** Two-stage filter
+     correctly excludes Matt Ryan / McNabb low-sim outliers from
+     the floor anchor.
+
+Validation
+: * `tests/test_v3_8_phil_feedback_overhaul.py` — 9 invariants
+     covering the eight Phil-named players plus the
+     retired-early sidecar loader.
+   * Existing v3.7 / v3.6 / v3.5 / v3.4 / v3.3 / v3.2 / v3.1 / v3.0
+     test suites all pass (442 tests).
+   * v3.7 scaled-penalty tests updated to reflect the v3.8
+     heavy-injury floor at 5-7 games.
+
+Judgment calls (Phil's call to make on the rebalanced weights):
+: * 40/60 comp/peak elite-tier blend (was 60/40). The brief said
+     "actual stats should be weighted a bit higher". 40/60 is the
+     biggest shift that preserves Mahomes / Allen / Hurts top-5
+     and doesn't inflate borderline starters.
+   * Heavy-injury floor at 0.85. Calibrated to lift Nabers without
+     letting players who genuinely lost half a season to coaching
+     (vs injury) escape the penalty.
+   * COMP_POOL_FLOOR_TOPSIM_N = 10. Wide enough to include LT for
+     Hampton (sim 0.94) and exclude Matt Ryan for Shedeur (sim 0.72).
+   * Retired-early seed list of TWO players. Add more in subsequent
+     PRs as needed (Sterling Sharpe predates the 1999 corpus; Bo
+     Jackson predates the corpus; Patrick Willis is LB so out of
+     scope).
+
+---
+
 ## v3.7 — rookie engine retired-only comp pool + scaled missed-season penalty
 
 **Date:** 2026-05-28 (same day as v3.3 / v3.4 / v3.5 / v3.6, fifth pass)

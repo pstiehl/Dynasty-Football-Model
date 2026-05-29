@@ -80,13 +80,17 @@ def _make_arc(seasons):
 
 
 def test_scaled_partial_penalty_5_games():
-    """Kyler-style: 5 of 17 games in 2025 -> 0.788 (linear scale)."""
+    """v3.8 (Phil 2026-05-29): 5 of 17 games triggers the heavy-injury
+    floor (< 8 games = clear injury). v3.7 produced 0.774; v3.8 floors
+    at HEAVY_INJURY_FLOOR_MULTIPLIER = 0.85.
+    """
     arc = _make_arc([(2023, 17), (2024, 17), (2025, 5)])
     out = compute_missed_recent_season(arc, corpus_last_season=2025)
-    # multiplier = 0.70 + (5/17)*(0.95-0.70) = 0.70 + 0.0735 = 0.7735
-    assert abs(out.missed_season_multiplier - 0.774) < 0.01
+    # v3.8: heavy-injury floor at 0.85 (was 0.774 in v3.7).
+    assert abs(out.missed_season_multiplier - 0.85) < 0.01
     assert out.last_played_games == 5
     assert "5 of 17" in out.reason
+    assert "heavy-injury floor" in out.reason
 
 
 def test_scaled_partial_penalty_8_games():
@@ -130,17 +134,21 @@ def engine():
 
 
 def test_kyler_murray_penalty_scales_with_partial_season(engine):
-    """Phil's Kyler example: 5 games in 2025 should yield a ~0.77-0.78
-    missed-season multiplier (not 0.85 as in v3.6)."""
+    """v3.8: Kyler at 5 games in 2025 triggers the heavy-injury floor
+    (< 8 games = clear injury, not coaching/role). Floor at 0.85.
+    v3.7 produced 0.77; v3.8 lifts to 0.85 because the absence is
+    clearly injury-driven — the projection penalty shouldn't be as
+    deep as a benching of similar games count."""
     kyler = next((r for r in engine.rankings if r["name"] == "Kyler Murray"), None)
     if kyler is None:
         pytest.skip("Kyler not in rankings")
     mult = kyler.get("missed_season_multiplier")
     games = kyler.get("missed_season_last_played_games")
     assert games == 5, f"Kyler 2025 games = {games}"
-    assert mult is not None and 0.74 < mult < 0.82, (
-        f"Kyler missed_season_multiplier {mult} - v3.7 scaled penalty "
-        f"should be ~0.77 for 5/17 games"
+    # v3.8 heavy-injury floor: 5/17 games → 0.85.
+    assert mult is not None and 0.83 < mult < 0.87, (
+        f"Kyler missed_season_multiplier {mult} - v3.8 heavy-injury floor "
+        f"should be ~0.85 for 5/17 games"
     )
 
 

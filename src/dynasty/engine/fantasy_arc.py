@@ -122,6 +122,17 @@ class CareerArc:
     peak_3yr_fp_per_game: Dict[str, float] = field(default_factory=dict)
     career_avg_fp_per_game: Dict[str, float] = field(default_factory=dict)
 
+    # v3.8 (Phil 2026-05-29) — retired-early flag. When True, this comp
+    # left the NFL due to injury/health rather than talent decline. The
+    # projection engine treats their realised arc as TRUNCATED and
+    # extrapolates remaining years at their final-3yr fp/G rate so they
+    # don't drag down young targets that comp to them (Phil's Andrew
+    # Luck → Caleb Williams worked example).
+    retired_early: bool = False
+    # Position-typical retirement-age cap for the extrapolation. None
+    # if not flagged. Engine extends synthetic seasons up to this age.
+    retired_early_extrapolate_to_age: Optional[int] = None
+
     # ------------------------------------------------------------------
     def seasons_through_age(self, age_cap: int) -> List[SeasonArcPoint]:
         return [s for s in self.career_arc if s.age <= age_cap]
@@ -366,3 +377,78 @@ def era_pace_diagnostic(
             "era_adjusted": raw * mult,
         }
     return out
+
+
+# ---------------------------------------------------------------------------
+# v3.8 — retired-early flag (Phil 2026-05-29)
+# ---------------------------------------------------------------------------
+#
+# Some historical comps left the NFL while still at peak (Andrew Luck at 29,
+# Calvin Johnson at 30) due to injury/health rather than talent decline.
+# Their realised career_arc is truncated, so when they appear as comps for
+# young targets, the post-snapshot projection (project_remaining) only sums
+# the realised seasons and time-discounts to zero quickly. This drags down
+# the projection of young players whose talent profile is comparable.
+#
+# Fix: load a curated sidecar YAML of (player_id → extrapolate_to_age),
+# tag the matching CareerArc objects with ``retired_early=True``, and let
+# the projection code (project_remaining / project_year_2_plus) extend the
+# arc with SYNTHETIC seasons at the final-3yr fp/G rate up to the cap.
+# The synthetic seasons inherit the same time-discount as realised seasons
+# so they're not free — but they meaningfully change the answer for the
+# 1-2 comps in any given player's top-K that fit this profile.
+
+
+RETIRED_EARLY_PATH_DEFAULT = Path(__file__).resolve().parents[3] / "data" / "retired_early_comps.yaml"
+
+
+def load_retired_early_overrides(path: Optional[Path] = None) -> Dict[str, Dict]:
+    """Load the retired-early sidecar YAML.
+
+    Returns a dict keyed by player_id with at minimum:
+        {
+            "name": str,
+            "position": str,
+            "reason": str,                  # "injury" | "voluntary"
+            "extrapolate_to_age": int,
+        }
+
+    Returns empty dict if the file is missing or PyYAML is unavailable —
+    the engine continues to work in that case (no retired-early bonus).
+    """
+    path = path or RETIRED_EARLY_PATH_DEFAULT
+    try:
+        import yaml  # type: ignore
+    except Exception:
+        return {}
+    if not path.exists():
+        return {}
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    except Exception:
+        return {}
+    out: Dict[str, Dict] = {}
+    for entry in data.get("retired_early", []) or []:
+        pid = entry.get("player_id")
+        if not pid:
+            continue
+        out[str(pid)] = {
+            "name": entry.get("name"),
+            "position": entry.get("position"),
+            "reason": entry.get("reason", "injury"),
+            "extrapolate_to_age": int(entry.get("extrapolate_to_age", 0)) or None,
+            "notes": entry.get("notes"),
+        }
+    return out
+
+
+def apply_retired_early_flag(
+    arc: CareerArc,
+    overrides: Mapping[str, Dict],
+) -> None:
+    """Tag ``arc`` in place if its player_id appears in ``overrides``."""
+    ovr = overrides.get(arc.player_id)
+    if not ovr:
+        return
+    arc.retired_early = True
+    arc.retired_early_extrapolate_to_age = ovr.get("extrapolate_to_age")

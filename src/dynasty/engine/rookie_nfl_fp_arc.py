@@ -145,6 +145,16 @@ CONFIDENCE_FLOOR = 0.35
 # to anchor on the player's actual production. We do the same here, but
 # the player's only data point is the rookie season — so the rate is
 # rookie_fp/G and the horizon is position-based.
+# v3.8 (Phil 2026-05-29) — typical NFL rookie age by position. Used to
+# award an age-runway BONUS to younger-than-typical rookies (Phil's
+# Fannin-21 vs Gadsden-22 example).
+TYPICAL_ROOKIE_AGE: Dict[str, int] = {
+    "QB": 23,
+    "RB": 22,
+    "WR": 22,
+    "TE": 22,
+}
+
 EXPECTED_CAREER_SEASONS: Dict[str, float] = {
     "QB": 8.0,    # QB rookies historically: ~half are 8+ year starters, half
                   # wash out by year 4. The MIDDLE estimate is 7-8 post-rookie
@@ -295,6 +305,23 @@ RECENCY_SATURATION_SEASON = 2022      # boost saturates from this year on
 LIMITED_USAGE_GAMES_THRESHOLD = 10
 
 VECTOR_DIM = 11
+
+# v3.8 (Phil 2026-05-29) — comp-pool career-arc floor for rookie
+# projection. Applies the v3.6 baseline-floor mechanism more aggressively
+# for rookies whose top-5 NON-BUST comps have elite career fp totals.
+# A 45% fraction of the comp-pool median is conservative enough that
+# Jeanty (LT-tier comps, median ~1,800 fp) gets floored at ~810 instead
+# of collapsing to 673; Judkins (Knowshon-tier, median ~1,000) floors
+# at ~450 instead of 486 (no change — his comps aren't elite enough).
+COMP_POOL_FLOOR_FRACTION = 0.45
+COMP_POOL_FLOOR_TOPN = 5
+# Minimum non-bust comp count before the floor applies. A 1-non-bust
+# comp pool is too thin to anchor a floor on.
+COMP_POOL_FLOOR_MIN_NONBUST = 3
+# Two-stage filter: restrict to top-N similar comps before picking
+# top-3 by post-rookie career fp. Stops low-similarity outliers from
+# lifting bust-profile rookies' floors.
+COMP_POOL_FLOOR_TOPSIM_N = 10
 
 
 # ---------------------------------------------------------------------------
@@ -589,6 +616,32 @@ def build_rookie_corpus(
             for s in arc.career_arc
             if s.season > rookie.season
         )
+        # v3.8 — retired-early comps get their truncated career
+        # extrapolated for the breakout-bias score so they're not
+        # downranked vs healthy long-career comps in the top-K sort.
+        if (
+            getattr(arc, "retired_early", False)
+            and getattr(arc, "retired_early_extrapolate_to_age", None)
+        ):
+            actual_last_age = max(
+                (s.age for s in arc.career_arc
+                 if s.games >= MIN_ROOKIE_GAMES_CORPUS),
+                default=None,
+            )
+            cap = arc.retired_early_extrapolate_to_age or 0
+            if actual_last_age is not None and actual_last_age < cap:
+                tail = [
+                    s for s in arc.career_arc
+                    if s.games >= MIN_ROOKIE_GAMES_CORPUS
+                ][-3:]
+                g_tail = sum(s.games for s in tail)
+                if g_tail > 0:
+                    rate = sum(
+                        s.fp_per_game.get(league_format, 0.0) * s.games
+                        for s in tail
+                    ) / g_tail
+                    synth_years = cap - actual_last_age
+                    post_rookie_total_fp += rate * 17 * synth_years
         out.append(RookieProfile(
             player_id=arc.player_id,
             name=arc.name,
@@ -740,9 +793,15 @@ def project_year_2_plus(
 
     The comp's per-season fp values are already era-pace pre-adjusted at
     arc-corpus build time, so they're in modern-era-equivalent units.
+
+    v3.8 (Phil 2026-05-29) — if the comp is flagged ``retired_early``,
+    the realised arc is extended with synthetic seasons at the comp's
+    final-3yr fp/G rate up to ``retired_early_extrapolate_to_age``. Same
+    mechanism as the cumulative-arc engine's project_remaining.
     """
     total = 0.0
     n = 0
+    last_actual_age = None
     for s in comp_arc.career_arc:
         if s.season <= rookie_season:
             continue
@@ -755,6 +814,38 @@ def project_year_2_plus(
         season_pts *= (1.0 - discount_per_year) ** n
         total += season_pts
         n += 1
+        last_actual_age = s.age
+
+    # v3.8 retired-early extrapolation.
+    extrapolate_to = getattr(comp_arc, "retired_early_extrapolate_to_age", None)
+    if (
+        getattr(comp_arc, "retired_early", False)
+        and extrapolate_to is not None
+        and extrapolate_to > 0
+    ):
+        actual_last_age = max(
+            (s.age for s in comp_arc.career_arc
+             if s.games >= MIN_ROOKIE_GAMES_CORPUS),
+            default=None,
+        )
+        if actual_last_age is not None and actual_last_age < extrapolate_to:
+            tail = [
+                s for s in comp_arc.career_arc
+                if s.games >= MIN_ROOKIE_GAMES_CORPUS
+            ][-3:]
+            g_tail = sum(s.games for s in tail)
+            if g_tail > 0:
+                rate = sum(
+                    s.fp_per_game.get(league_format, 0.0) * s.games
+                    for s in tail
+                ) / g_tail
+                synth_pts_per_season = rate * 17
+                for age in range(actual_last_age + 1, extrapolate_to + 1):
+                    season_pts = synth_pts_per_season * (
+                        (1.0 - discount_per_year) ** n
+                    )
+                    total += season_pts
+                    n += 1
     return total, n
 
 
@@ -874,37 +965,103 @@ def project_rookie(
     peak_discount = PEAK_ANCHORED_DISCOUNT_BY_POS.get(
         target_arc.position, PEAK_ANCHORED_DISCOUNT_DEFAULT,
     )
+    # v3.8 (Phil 2026-05-29) — age-weighted runway boost. A 21-yo rookie
+    # (Fannin) has materially more career runway than a 23-yo rookie at
+    # the same position. EXPECTED_CAREER_SEASONS is position-only, so
+    # we add an extra (typical_rookie_age - actual_rookie_age) years
+    # of runway for younger-than-typical rookies (bounded at +3 years).
+    age_runway_bonus = max(
+        0.0,
+        min(3.0, float(TYPICAL_ROOKIE_AGE.get(target_arc.position, 22) - target_rookie_age))
+    )
+    effective_seasons = expected_seasons + age_runway_bonus
     peak_anchored_fp = (
         rookie_rate * PROJECTION_GAMES_PER_SEASON
-        * expected_seasons * peak_discount
+        * effective_seasons * peak_discount
     )
 
-    # v3.3 PROJECTION METHODOLOGY (Phil's brief, 2026-05-28):
-    # "The projected remaining fantasy points should be some sort of
-    #  weighted average of the comparable players applied to the player.
-    #  Apply the new methodology across the entire player base."
+    # v3.8 PROJECTION METHODOLOGY (Phil's brief, 2026-05-29):
+    # "the actual stats should be weighted a bit higher than the
+    #  similarity scores and their projections...creating undue noise"
     #
-    # Same change as fantasy_arc_similarity.project_player: comp-weighted
-    # is now PRIMARY for rookies too. The peak-anchored extrapolation
-    # of the rookie's own fp/g to an 8+ year career is exactly the
-    # kind of "this rookie is the next [comp]" extrapolation Phil
-    # wanted reined in. We BLEND 70% comp-weighted + 30% peak-anchored
-    # (capped at 1.25× the top single-comp projected total) so an
-    # exceptional rookie sample still gets recognised but doesn't
-    # dominate. For below-comp rookies (where peak_anchored < weighted),
-    # fall back to pure comp-weighted.
+    # Shift the blend from v3.3's 70% comp-weighted / 30% peak-anchored
+    # to 40% / 60% — the rookie's own production rate now drives the
+    # majority of the projection. peak_anchored is still capped at
+    # 1.50× the top single-comp projected total (loosened from v3.3's
+    # 1.25×) so an exceptional rookie like Jeanty (top comp = LT,
+    # 3,277 career fp) can project to a meaningful fraction of the
+    # comp pool rather than collapsing to <700.
+    #
+    # COMP-POOL FLOOR (v3.8 fix D): for rookies whose top-5 NON-BUST
+    # comps have a strong career fp distribution, floor the base
+    # projection at COMP_POOL_FLOOR_FRACTION × median(top-5 non-bust
+    # post_rookie_total_fp). This is the missing piece Phil identified
+    # for Ashton Jeanty (LT-tier comps but projecting 673 fp) and
+    # Quinshon Judkins (486 fp). Without the floor, the survival /
+    # confidence stack collapses elite-comp rookies arbitrarily.
     comp_projected_pts = [
         m.profile.post_rookie_total_fp for m in comps
     ]
     top_comp_proj = max(comp_projected_pts) if comp_projected_pts else 0.0
     peak_capped = (
-        min(peak_anchored_fp, 1.25 * top_comp_proj)
+        min(peak_anchored_fp, 1.50 * top_comp_proj)
         if top_comp_proj > 0 else peak_anchored_fp
     )
     if peak_capped > weighted_pts:
-        base_projection = 0.70 * weighted_pts + 0.30 * peak_capped
+        base_projection = 0.40 * weighted_pts + 0.60 * peak_capped
     else:
         base_projection = weighted_pts
+
+    # v3.8 — comp-pool career-arc floor. Use the MEAN of the top-3
+    # NON-BUST comps' realised post-rookie careers as the floor anchor.
+    # COMP_POOL_FLOOR_FRACTION is conservative (0.45) so it only bites
+    # when the comp pool is genuinely elite — Hampton (LT + Marshawn +
+    # Fournette = mean 1,639 fp) produces a 738 fp floor; Jeanty (LT +
+    # tier-1 RBs) clears 1,000 fp floor. Run-of-the-mill rookies whose
+    # top-3 averages sit at 400-600 don't get artificially inflated.
+    # Excluding busts ensures the anchor tracks the "if this rookie
+    # pans out" tier rather than the bust population.
+    # v3.8 — floor anchor uses TOP-3 by post-rookie-fp from the TOP-N
+    # most similar comps (two-stage filter). Excludes low-similarity
+    # outlier comps that would otherwise lift a bust-profile rookie.
+    top_sim_subset = sorted(
+        comps, key=lambda m: m.similarity, reverse=True,
+    )[:COMP_POOL_FLOOR_TOPSIM_N]
+    non_bust_in_subset = [
+        m for m in top_sim_subset if m.profile.post_rookie_total_fp > 0
+    ]
+    top3 = sorted(
+        non_bust_in_subset,
+        key=lambda m: m.profile.post_rookie_total_fp,
+        reverse=True,
+    )[:3]
+    if len(top3) >= 3:
+        comp_pool_anchor = sum(
+            m.profile.post_rookie_total_fp for m in top3
+        ) / 3
+        comp_rookie_rates = [m.profile.vector[0] for m in top3 if m.profile.vector]
+        if comp_rookie_rates and rookie_rate > 0:
+            comp_median_rate = sorted(comp_rookie_rates)[
+                len(comp_rookie_rates) // 2
+            ]
+            rate_scale = (
+                min(1.0, rookie_rate / comp_median_rate)
+                if comp_median_rate > 0 else 1.0
+            )
+        else:
+            rate_scale = 1.0
+        comp_pool_floor = (
+            COMP_POOL_FLOOR_FRACTION * comp_pool_anchor * rate_scale
+        )
+        # v3.8 — cap the floor at the rookie's own peak_anchored so a
+        # low-rate rookie with high-tier comps (Gadsden → Vernon Davis)
+        # doesn't get artificially inflated above what their own stats
+        # support. The floor is a protection mechanism, not a
+        # promotion mechanism.
+        if peak_anchored_fp > 0:
+            comp_pool_floor = min(comp_pool_floor, peak_anchored_fp)
+        if comp_pool_floor > base_projection:
+            base_projection = comp_pool_floor
 
     # Confidence shrinkage: a FULL_CONFIDENCE_GAMES+ rookie gets full
     # credit. Below that, linear shrink toward CONFIDENCE_FLOOR. This

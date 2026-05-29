@@ -648,9 +648,18 @@ def project_remaining(
     The comp's per-season fp values are ALREADY in modern-era-equivalent
     units (era-pace was applied at corpus build time), so no additional
     era-pace multiplier is needed here.
+
+    v3.8 (Phil 2026-05-29) — if the comp is flagged ``retired_early``,
+    the realised arc is extended with SYNTHETIC seasons at the comp's
+    final-3yr fp/G rate, 17 games per season, up to
+    ``retired_early_extrapolate_to_age``. Synthetic seasons inherit the
+    same time-discount as realised seasons. This stops Andrew Luck (who
+    walked away at 29 due to injuries) from dragging down Caleb Williams
+    just because his arc happens to be short.
     """
     total = 0.0
     n = 0
+    last_real_age: Optional[int] = None
     for s in comp.seasons_after_age(age_floor):
         if s.games < MIN_GAMES_PER_SEASON:
             continue
@@ -658,6 +667,50 @@ def project_remaining(
         season_pts *= (1.0 - discount_per_year) ** n
         total += season_pts
         n += 1
+        last_real_age = s.age
+
+    # v3.8 — retired-early extrapolation.
+    extrapolate_to = getattr(comp, "retired_early_extrapolate_to_age", None)
+    if (
+        getattr(comp, "retired_early", False)
+        and extrapolate_to is not None
+        and extrapolate_to > 0
+    ):
+        # Last actual age in the arc (whether or not it was post-snapshot).
+        last_actual_age = max(
+            (s.age for s in comp.career_arc if s.games >= MIN_GAMES_PER_SEASON),
+            default=None,
+        )
+        if last_actual_age is not None and last_actual_age < extrapolate_to:
+            # Final-3yr fp/G rate from the player's last 3 qualifying
+            # seasons. This is their "healthy at retirement" rate, NOT
+            # an all-time peak — we don't want to over-extrapolate.
+            tail = [
+                s for s in comp.career_arc if s.games >= MIN_GAMES_PER_SEASON
+            ][-3:]
+            g_tail = sum(s.games for s in tail)
+            if g_tail > 0:
+                rate = sum(
+                    s.fp_per_game.get(league_format, 0.0) * s.games
+                    for s in tail
+                ) / g_tail
+                # Synthesize one season at a time from
+                # (last_real_age + 1) [if we projected anything from
+                # the realised arc, else age_floor + 1] up to the cap.
+                start_age = (last_actual_age + 1)
+                # Each synthetic season counts as 17 games at ``rate``.
+                synth_pts_per_season = rate * 17
+                for age in range(start_age, extrapolate_to + 1):
+                    # Skip synthetic seasons that would occur AT OR
+                    # BEFORE the snapshot age — we only ever project
+                    # forward of the target's current age.
+                    if age <= age_floor:
+                        continue
+                    season_pts = synth_pts_per_season * (
+                        (1.0 - discount_per_year) ** n
+                    )
+                    total += season_pts
+                    n += 1
     return total, n
 
 
@@ -835,6 +888,49 @@ def _projection_rate(target: CareerArc, league_format: str) -> float:
 # whose only same-age comp is Brady-at-41) get the comp-weighted
 # projection instead.
 PEAK_ANCHOR_MIN_COMPS = 3
+
+
+# v3.8 (Phil 2026-05-29) — age-weighted remaining-career runway.
+#
+# Phil's Caleb Williams (24) > Justin Fields (27) > Deshaun Watson (30)
+# example: younger QBs with comparable production should rank materially
+# higher because their runway is longer. The pre-v3.8 comp-pool
+# weighted_seasons can be 7-9 for all three QBs because their comp pool
+# (Burrow/Manning/etc.) is dominated by mid-career snapshots. The runway
+# floor below ensures each player's projection horizon respects the
+# years they ACTUALLY have left to age out of the league.
+#
+# Calibration: typical position retirement ages from PFR /
+# pro-football-reference research. Conservatively low so we don't
+# inflate borderline-cut players.
+POSITION_TYPICAL_RETIREMENT_AGE: Dict[str, int] = {
+    "QB": 36,
+    "RB": 30,
+    "WR": 32,
+    "TE": 33,
+}
+# Minimum runway floor (years remaining at current age). Caps the
+# minimum so a hyper-aged player doesn't get zero.
+RUNWAY_FLOOR_MIN_YEARS = 1.0
+# Blend factor between comp-pool weighted_seasons and runway-floor. The
+# runway is a CEILING that we use as a soft floor: the engine blends the
+# higher of (weighted_seasons, RUNWAY_BLEND * runway_years). Below 1.0
+# this is conservative — we don't fully extend everyone's horizon to
+# retirement age, just close some of the gap.
+RUNWAY_BLEND = 0.70
+
+
+def _runway_floor_years(position: str, current_age: int) -> float:
+    """Position-typical remaining-career years at ``current_age``.
+
+    Returns ``max(RUNWAY_FLOOR_MIN_YEARS, retirement_age - current_age)
+    * RUNWAY_BLEND`` — a conservative floor that prevents young players'
+    projection horizons from being arbitrarily capped by the comp pool's
+    average snapshot age.
+    """
+    retire = POSITION_TYPICAL_RETIREMENT_AGE.get(position, 32)
+    runway = max(retire - current_age, 0.0)
+    return max(RUNWAY_FLOOR_MIN_YEARS, runway * RUNWAY_BLEND)
 
 
 # v3.1 — proven-production floor parameters.
@@ -1026,14 +1122,22 @@ def project_player(
     # years × discount. The discount approximates a 5%/yr decay over
     # the projected remaining career (geometric mean discount over
     # weighted_seasons ≈ (1 - 0.05)^(weighted_seasons/2)).
+    #
+    # v3.8 (Phil 2026-05-29) — use the larger of (comp-weighted_seasons,
+    # position-typical runway at target_age). Stops young players from
+    # being capped at their comp pool's average snapshot horizon when
+    # they personally have a longer dynasty window. Doesn't help
+    # 30+ players (whose runway floor is lower than their comp horizon).
+    runway_floor = _runway_floor_years(target.position, target_age)
+    effective_seasons = max(weighted_seasons, runway_floor)
     if (
         weighted_seasons > 0 and projection_rate > 0
         and len(comps) >= PEAK_ANCHOR_MIN_COMPS
     ):
-        avg_discount = (1.0 - DISCOUNT_PER_YEAR) ** (weighted_seasons / 2.0)
+        avg_discount = (1.0 - DISCOUNT_PER_YEAR) ** (effective_seasons / 2.0)
         peak_anchored = (
             projection_rate * PROJECTION_GAMES_PER_SEASON
-            * weighted_seasons * avg_discount
+            * effective_seasons * avg_discount
         )
     else:
         peak_anchored = 0.0
@@ -1061,17 +1165,28 @@ def project_player(
         )
         comp_projected_pts.append(pts)
     top_comp_proj = max(comp_projected_pts) if comp_projected_pts else 0.0
-    peak_anchored_capped = min(peak_anchored, 1.25 * top_comp_proj) if top_comp_proj > 0 else peak_anchored
+    # v3.8 (Phil 2026-05-29) — loosen the cap on peak-anchored from 1.25×
+    # to 1.50× the top single-comp projected total. The cap exists to
+    # prevent fantasy explosions; 1.50× still bounds the projection while
+    # giving elite young producers (Caleb Williams, Bo Nix) credit for
+    # their actual stats rather than the comp pool's truncated arcs.
+    peak_anchored_capped = min(peak_anchored, 1.50 * top_comp_proj) if top_comp_proj > 0 else peak_anchored
 
     if target_peak >= threshold and peak_anchored_capped > weighted_pts:
-        # Elite-tier producer with a viable peak anchor: blend 60% comps
-        # + 40% capped peak (was: max() of both, which silently dropped
-        # comp signal entirely for elite producers).
-        projected_fp = 0.60 * weighted_pts + 0.40 * peak_anchored_capped
+        # v3.8 — elite-tier producer with a viable peak anchor: blend
+        # 40% comp-weighted + 60% capped peak-anchored. Phil's brief:
+        # "the actual stats should be weighted a bit higher than the
+        #  similarity scores and their projections...creating undue noise".
+        # The shift from v3.3's 60/40 → 40/60 means a young elite
+        # producer's own production rate now drives the majority of
+        # their projection, with comps as a (still meaningful)
+        # contextualising prior.
+        projected_fp = 0.40 * weighted_pts + 0.60 * peak_anchored_capped
     elif target_peak >= threshold - SOFT_BAND and peak_anchored_capped > weighted_pts:
-        # Soft-band: linearly fade from pure comp-weighted to the 60/40 blend.
+        # Soft-band: linearly fade from pure comp-weighted to the 40/60
+        # blend (also v3.8 — was 60/40 in v3.3).
         t = (target_peak - (threshold - SOFT_BAND)) / SOFT_BAND
-        blended_anchor = 0.60 * weighted_pts + 0.40 * peak_anchored_capped
+        blended_anchor = 0.40 * weighted_pts + 0.60 * peak_anchored_capped
         projected_fp = (1 - t) * weighted_pts + t * blended_anchor
     else:
         # Default for everyone else: pure comp-weighted (Phil's mandate).

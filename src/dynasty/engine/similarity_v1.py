@@ -46,7 +46,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
 
 from .era_pace import (
     ERA_BOUNDS,
@@ -67,6 +67,8 @@ from .career_length_era import (
     style_for_career,
 )
 from .fantasy_arc import (
+    apply_retired_early_flag,
+    load_retired_early_overrides,
     CareerArc,
     SUPPORTED_FORMATS,
     build_career_arc,
@@ -172,6 +174,26 @@ LONG_ARC_VETERAN_AGE = 33
 LONG_ARC_VETERAN_SEASONS = 6
 
 SKILL_POSITIONS: Tuple[str, ...] = ("QB", "RB", "WR", "TE")
+
+# v3.8 (Phil 2026-05-29) — post-stack comp-pool career-arc floor for
+# rookies. After the v2.2 penalty stack runs (survival, confidence,
+# late-breakout, missed-season), rookie projections cannot fall below
+# POST_STACK_COMP_POOL_FRACTION × median(top-5 non-bust comp post-rookie
+# career fp). This is the HARD floor that ensures Jeanty (LT-tier comps)
+# and Judkins (Knowshon-tier comps) don't get crushed below their comp
+# pool's realised career arc just because RBs as a position have high
+# bust rates. Set conservatively (0.40) so it only bites for rookies
+# whose top-5 NON-BUST comps clear ~1,500 career fp — about 600 fp floor.
+POST_STACK_COMP_POOL_FRACTION = 0.40
+# Only fire the post-stack comp-pool floor when survival is below this
+# threshold. Above 0.60 the v2.2 stack is operating in calibrated band
+# and we don't want to flatten projections with a comp-pool override.
+FLOOR_TRIGGER_SURVIVAL = 0.60
+# Top-N similarity comps to consider when building the floor anchor.
+# Restricting to top-similarity comps prevents low-sim outlier non-bust
+# comps from anchoring a bust-profile rookie's floor (Shedeur Sanders →
+# Matt Ryan/McNabb tail).
+POST_STACK_FLOOR_TOPSIM_N = 10
 
 # Fantasy scoring (sf_ppr default) — used only as the "default scoring"
 # parameter callers expect. The real scoring lives in scoring_rules.LEAGUE_SCORING.
@@ -751,8 +773,16 @@ def _career_to_arc_seasons(career: PlayerCareer) -> List[Dict]:
 def _build_arcs(
     careers: Iterable[PlayerCareer],
     pace: EraPaceTable,
+    retired_early_overrides: Optional[Mapping[str, Dict]] = None,
 ) -> Dict[str, CareerArc]:
+    """Build career arcs and apply the v3.8 retired-early flag.
+
+    ``retired_early_overrides`` comes from
+    ``fantasy_arc.load_retired_early_overrides`` (sidecar YAML). When None,
+    the flag is not applied (back-compat).
+    """
     arcs: Dict[str, CareerArc] = {}
+    ovr = retired_early_overrides or {}
     for c in careers:
         seasons = _career_to_arc_seasons(c)
         if not seasons:
@@ -771,6 +801,8 @@ def _build_arcs(
             pace=pace,
             formats=SUPPORTED_FORMATS,
         )
+        if ovr:
+            apply_retired_early_flag(arc, ovr)
         arcs[c.player_id] = arc
     return arcs
 
@@ -1062,7 +1094,11 @@ def run_engine(
     )
 
     # Build fantasy-point arcs for the entire corpus + actives.
-    arcs = _build_arcs(careers.values(), pace)
+    # v3.8 — load the retired-early sidecar so the matching arcs are
+    # tagged at build time and the downstream projection paths can
+    # extrapolate their truncated careers (Phil 2026-05-29).
+    retired_early_overrides = load_retired_early_overrides()
+    arcs = _build_arcs(careers.values(), pace, retired_early_overrides)
     # The long-arc-arc list. For long-arc-but-still-active members, we must
     # use a TRIMMED arc (completed seasons only). Build a parallel set keyed
     # by player_id → trimmed arc.
@@ -1084,6 +1120,8 @@ def run_engine(
             pace=pace,
             formats=SUPPORTED_FORMATS,
         )
+        if retired_early_overrides:
+            apply_retired_early_flag(arc, retired_early_overrides)
         long_arc_arcs.append(arc)
 
     # v3.2 — build the BROAD comp-pool arcs. Includes long-arc arcs
@@ -1110,6 +1148,8 @@ def run_engine(
             pace=pace,
             formats=SUPPORTED_FORMATS,
         )
+        if retired_early_overrides:
+            apply_retired_early_flag(arc, retired_early_overrides)
         comp_pool_arcs.append(arc)
 
     # Percentile table from long-arc corpus (UNCHANGED — keeps high-info
@@ -1632,6 +1672,106 @@ def run_engine(
 
         # Overwrite the production_score with the post-penalty value.
         row["production_score"] = round(stack.projection_final, 1)
+
+        # v3.8 (Phil 2026-05-29) — ROOKIE comp-pool career-arc floor.
+        # Phil's specific examples (Ashton Jeanty top comp = LT, Quinshon
+        # Judkins top comp = Knowshon Moreno) call out that elite-comp
+        # rookies should project to a meaningful fraction of their comp
+        # pool's CAREER fp. The v2.2 survival_multiplier is calibrated to
+        # punish bust-heavy comp pools, but for HIGH-DRAFT-CAPITAL rookies
+        # whose top-5 NON-BUST comps include LT-tier careers, the
+        # multiplier slashes the projection BELOW the comp pool floor.
+        # We re-apply the comp-pool floor here as a HARD post-stack
+        # floor so Jeanty/Judkins/Hampton can't be crushed below
+        # POST_STACK_COMP_POOL_FRACTION × median(top-5 non-bust comp
+        # post-rookie career fp).
+        # v3.8 — post-stack comp-pool floor for rookies whose penalty
+        # stack collapsed the projection below their comp pool's
+        # realised career arc. Phil's brief calls out Jeanty (top comp
+        # = LT, 3,277 career fp) and Judkins (Knowshon-tier) as
+        # specifically needing this protection — the v2.2 survival
+        # multiplier was over-discounting them for RB-position bust
+        # rates.
+        #
+        # Gate: only apply when the stack haircut was steep
+        # (survival_multiplier < FLOOR_TRIGGER_SURVIVAL). Above this
+        # threshold the stack is operating in its calibrated band and
+        # we don't want to override the natural projection ordering
+        # (Fannin > Gadsden because Fannin's stats are better) with a
+        # comp-pool-driven floor that flattens ties.
+        if (
+            engine_kind == "rookie"
+            and surv.survival_multiplier < FLOOR_TRIGGER_SURVIVAL
+        ):
+            # v3.8 — anchor = mean of TOP-3-by-post-rookie-fp NON-BUST
+            # comps drawn from the TOP-N most similar. The two-stage
+            # filter prevents low-similarity outlier comps from
+            # dominating the floor:
+            #
+            #   * Shedeur Sanders has Matt Ryan (sim 0.718) and McNabb
+            #     (sim 0.876) in his non-bust comp list. v3.8 first
+            #     restricts to top-TOPSIM_TOP_N similarity comps, which
+            #     keeps McNabb but drops Matt Ryan; then takes top-3
+            #     by post-rookie career fp. Anchor stays modest.
+            #   * Ashton Jeanty has LT (sim 0.94) and other LT-tier
+            #     RBs all in top-similarity. Anchor stays elite.
+            #
+            # The two-stage filter is the principled answer to "how do
+            # I separate elite-comp rookies from busts whose comp pools
+            # happen to include a McNabb-tier tail?"
+            top_sim_subset = sorted(
+                comps_v22, key=lambda m: m.similarity, reverse=True,
+            )[:POST_STACK_FLOOR_TOPSIM_N]
+            non_bust_in_subset = [
+                m for m in top_sim_subset
+                if m.profile.post_rookie_total_fp > 0
+            ]
+            top3 = sorted(
+                non_bust_in_subset,
+                key=lambda m: m.profile.post_rookie_total_fp,
+                reverse=True,
+            )[:3]
+            if len(top3) >= 3:
+                comp_pool_anchor = sum(
+                    m.profile.post_rookie_total_fp for m in top3
+                ) / 3
+                # Top-3 comps' rookie-year fp/G (from their stored
+                # rookie vector v[0]). v[0] is fp_per_game.
+                comp_rookie_rates = [m.profile.vector[0] for m in top3 if m.profile.vector]
+                target_rookie_rate = float(row.get("rookie_fp_per_game", 0.0))
+                if comp_rookie_rates and target_rookie_rate > 0:
+                    comp_median_rate = sorted(comp_rookie_rates)[
+                        len(comp_rookie_rates) // 2
+                    ]
+                    if comp_median_rate > 0:
+                        # Scale the floor by rate ratio, capped at 1.0.
+                        # A target whose rookie rate matches the comp
+                        # pool median gets full floor; below median
+                        # gets scaled down.
+                        rate_scale = min(
+                            1.0,
+                            target_rookie_rate / comp_median_rate,
+                        )
+                    else:
+                        rate_scale = 1.0
+                else:
+                    rate_scale = 1.0
+                post_stack_floor = (
+                    POST_STACK_COMP_POOL_FRACTION
+                    * comp_pool_anchor
+                    * rate_scale
+                )
+                # Cap at the rookie's own peak-anchored projection.
+                peak_cap = float(row.get("peak_anchored_fp", 0.0))
+                if peak_cap > 0:
+                    post_stack_floor = min(post_stack_floor, peak_cap)
+                if post_stack_floor > row["production_score"]:
+                    row["post_stack_comp_pool_floor"] = round(post_stack_floor, 1)
+                    row["post_stack_comp_pool_anchor"] = round(comp_pool_anchor, 1)
+                    row["post_stack_comp_pool_rate_scale"] = round(rate_scale, 3)
+                    row["production_score"] = round(post_stack_floor, 1)
+                    row["projection_path"] = "rookie_comp_pool_floor"
+                    row["production_path"] = "rookie_comp_pool_floor"
 
         # v3.3 — the v3.1 proven-production floor NO LONGER OVERRIDES
         # production_score. Phil's 2026-05-28 brief: "The projected

@@ -1,0 +1,45 @@
+# v3.8 — comps whose careers were truncated by injury / health rather than
+# by talent decline. The projection engine extrapolates these players'
+# realised arcs forward at their final-3yr rate so they don't drag down
+# young targets that comp to them.
+#
+# Reason should be either "injury" (concussion / structural / multi-injury)
+# or "voluntary" (walked away healthy at peak). Voluntary cases are rare
+# and we treat them the same as injury for projection purposes.
+#
+# Phil's 2026-05-29 brief (v3.8 fix E): Andrew Luck's truncated career
+# was contaminating Caleb Williams's comp pool. Calvin Johnson's similar
+# but for Calvin Johnson at WR.
+#
+# To add a new comp:
+#   1. Find their nflverse player_id in the corpus (or fall back to name).
+#   2. Add an entry below with reason + brief context.
+#   3. Set extrapolate_to_age to the position-typical retirement age you
+#      want their projection extended toward (capped at this age).
+#
+# The engine extends their career_arc post-mortem with synthetic seasons
+# at their (final 3yr-avg) fp_per_game rate, 17 games per season, until
+# the extrapolate_to_age cap. The extrapolated seasons inherit the
+# discount-per-year used in project_remaining so they're not free.
+
+retired_early:
+  - player_id: "00-0029668"           # Andrew Luck (nflverse pid)
+    name: "Andrew Luck"
+    position: "QB"
+    reason: "injury"
+    notes: |
+      Retired prior to 2019 season at age 29 due to cumulative injuries
+      (calf, ankle, lacerated kidney, torn cartilage, shoulder, concussions).
+      Was Comeback Player of the Year in 2018. Healthy projection trajectory
+      was ~35-36yo retirement based on QB career-length norms.
+    extrapolate_to_age: 35
+  - player_id: "00-0025389"           # Calvin Johnson (nflverse pid)
+    name: "Calvin Johnson"
+    position: "WR"
+    reason: "injury"
+    notes: |
+      Retired after 2015 season at age 30 citing cumulative body damage
+      (finger, knee, ankle injuries, concussions). Still producing at
+      elite tier (1,214 yds, 9 TDs in his final season). Comparable WRs
+      played to 32-34yo.
+    extrapolate_to_age: 32

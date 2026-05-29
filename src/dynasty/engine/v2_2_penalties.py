@@ -48,7 +48,7 @@ penalties, not lifts).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 
 from .fantasy_arc import CareerArc, SeasonArcPoint
 
@@ -617,9 +617,102 @@ class MissedSeasonDiagnostics:
     reason: str                        # human-readable explanation for the UI
 
 
+# v3.8 (Phil 2026-05-29) — partial-season penalty is RATE-AWARE.
+#
+# Phil's Malik Nabers / Omarion Hampton examples:
+#   * Nabers played 4 of 17 games in 2025 with strong per-game production
+#     — his projection should reflect his per-game rate, not season totals.
+#   * Hampton played 9 of 17 games similarly.
+# v3.7's penalty scales linearly with games played regardless of whether
+# the player was producing or recovering. v3.8 dampens the haircut in
+# TWO ways:
+#
+#   1. Rate-aware: when the partial season's fp/G was at-or-above the
+#      player's prior peak (signal: producing when on the field), pull
+#      the penalty toward 1.0.
+#   2. Heavy-injury floor: when games < HEAVY_INJURY_GAMES_THRESHOLD
+#      (≤ 7 games, ~half-season miss), the absence is clearly
+#      injury-driven rather than role-related. Pull the penalty toward
+#      HEAVY_INJURY_FLOOR_MULTIPLIER so a young player whose rookie/
+#      sophomore year was wrecked by injury isn't crushed.
+#
+# Combined effect for Nabers (4G, fp/G ratio ~0.79): base 0.759 →
+# heavy-injury softening to ~0.85 (rate-aware doesn't fire).
+# For Hampton (9G, fp/G ratio ~0.78): rate-aware doesn't fire,
+# heavy-injury doesn't fire (>= 8G); kept at v3.7 0.832.
+INJURY_RATE_THRESHOLD = 0.85     # rate must be >= 85% of prior peak to qualify
+INJURY_RATE_SATURATION = 1.05    # rate at-or-above prior peak → max dampening
+INJURY_DAMPENING_MAX = 0.85      # max fraction of the gap to 1.0 that we close
+
+HEAVY_INJURY_GAMES_THRESHOLD = 8   # < this many games = clear injury, not benching
+HEAVY_INJURY_FLOOR_MULTIPLIER = 0.85   # floor the penalty at this level
+
+
+def _peak3yr_through_age(
+    arc: CareerArc, league_format: str, through_age: int,
+) -> float:
+    """Peak-3yr fp/G across seasons strictly BEFORE ``through_age`` —
+    used to detect 'producing at peak when injured' in the partial-season
+    penalty. We compare the partial season's rate against the player's
+    PRIOR peak, not the all-time peak (which would include the partial
+    season's own per-game rate when computed inclusively).
+    """
+    qual = [
+        s for s in arc.career_arc
+        if s.age < through_age and s.games >= 4
+    ]
+    n = len(qual)
+    if n == 0:
+        return 0.0
+    best = 0.0
+    for i in range(n):
+        j = min(n, i + 3)
+        window = qual[i:j]
+        gtot = sum(s.games for s in window)
+        if gtot <= 0:
+            continue
+        ptot = sum(
+            s.fp_per_game.get(league_format, 0.0) * s.games for s in window
+        )
+        avg = ptot / gtot
+        if avg > best:
+            best = avg
+    return best
+
+
+def _injury_rate_dampening(
+    arc: CareerArc, last_season_point, league_format: str = "sf_ppr",
+) -> Tuple[float, float]:
+    """Return (dampening_factor, rate_ratio) for a partial-season penalty.
+
+    dampening_factor in [0, 1] is the fraction of (1.0 - base_mult) we
+    close. 0 = base penalty unchanged; 1 = full dampening to 1.0.
+    rate_ratio is exposed for diagnostics.
+    """
+    last_rate = last_season_point.fp_per_game.get(league_format, 0.0)
+    if last_rate <= 0:
+        return 0.0, 0.0
+    prior_peak = _peak3yr_through_age(arc, league_format, last_season_point.age)
+    if prior_peak <= 0:
+        # First-year (rookie engine handles rookies; cumulative-engine
+        # rookie-as-target shouldn't hit this path). Default to no
+        # dampening so we err on the conservative side.
+        return 0.0, 0.0
+    ratio = last_rate / prior_peak
+    if ratio <= INJURY_RATE_THRESHOLD:
+        return 0.0, ratio
+    if ratio >= INJURY_RATE_SATURATION:
+        return INJURY_DAMPENING_MAX, ratio
+    # Linear ramp between threshold and saturation.
+    span = INJURY_RATE_SATURATION - INJURY_RATE_THRESHOLD
+    progress = (ratio - INJURY_RATE_THRESHOLD) / span
+    return INJURY_DAMPENING_MAX * progress, ratio
+
+
 def compute_missed_recent_season(
     arc: CareerArc,
     corpus_last_season: int,
+    league_format: str = "sf_ppr",
 ) -> MissedSeasonDiagnostics:
     """Apply a multiplicative haircut for missing the most recent season.
 
@@ -671,12 +764,31 @@ def compute_missed_recent_season(
         mult = scale_floor + games_fraction * (scale_ceil - scale_floor)
         # Clamp — just in case of weird inputs.
         mult = max(scale_floor, min(scale_ceil, mult))
+        # v3.8 (Phil 2026-05-29) — rate-aware injury dampening +
+        # heavy-injury floor. When the partial-season per-game rate was
+        # at-or-above the player's prior peak, treat as injury (not
+        # decline) and soften the penalty. When games played is well
+        # below half-season (< 8), the absence is clearly injury-driven
+        # rather than coaching/role; floor the penalty at
+        # HEAVY_INJURY_FLOOR_MULTIPLIER.
+        dampening, rate_ratio = _injury_rate_dampening(arc, last, league_format)
+        reason_extra = ""
+        if dampening > 0:
+            base_mult = mult
+            mult = base_mult + dampening * (1.0 - base_mult)
+            mult = max(scale_floor, min(1.0, mult))
+            reason_extra = (
+                f" — v3.8 injury-rate dampening (rate_ratio={rate_ratio:.2f})"
+            )
+        if last.games < HEAVY_INJURY_GAMES_THRESHOLD and mult < HEAVY_INJURY_FLOOR_MULTIPLIER:
+            mult = HEAVY_INJURY_FLOOR_MULTIPLIER
+            reason_extra += " — v3.8 heavy-injury floor applied"
         return MissedSeasonDiagnostics(
             name=arc.name, position=arc.position,
             last_played_season=last.season, seasons_since_played=0,
             last_played_games=last.games,
             missed_season_multiplier=round(mult, 3),
-            reason=f"only {last.games} of {FULL_SEASON_GAMES} games in {last.season} (partial season — v3.7 scaled penalty)",
+            reason=f"only {last.games} of {FULL_SEASON_GAMES} games in {last.season} (partial season — v3.7 scaled penalty){reason_extra}",
         )
     return MissedSeasonDiagnostics(
         name=arc.name, position=arc.position,
