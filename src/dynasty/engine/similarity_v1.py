@@ -579,6 +579,24 @@ def load_corpus(
     )
     careers: Dict[str, PlayerCareer] = {}
 
+    # v3.9: pre-pass to compute the earliest observed season per pid so
+    # that pre-1970 players with no meta sidecar (added by the 1936-1979
+    # PFR scrape) can still get an age assigned via the
+    # "age = 22 + (season - rookie_season)" fallback. Without this the
+    # whole 1936-1979 corpus drops out at the ``age is None`` filter.
+    first_season_by_pid: Dict[str, int] = {}
+    for row in rows:
+        pid = row.get("player_id") or ""
+        if not pid:
+            continue
+        try:
+            season = int(row.get("season") or 0)
+        except ValueError:
+            continue
+        prev = first_season_by_pid.get(pid)
+        if prev is None or season < prev:
+            first_season_by_pid[pid] = season
+
     for row in rows:
         if (row.get("season_type") or "REG") != "REG":
             continue
@@ -592,7 +610,10 @@ def load_corpus(
             season = int(row.get("season") or 0)
         except ValueError:
             continue
-        if season < 1980:
+        # v3.9 (Phil 2026-06-01): corpus extended back to 1936 (was 1980).
+        # Pre-1936 the NFL didn't exist as a draft-and-stats entity; we
+        # still floor at 1936 to keep the universe well-defined.
+        if season < 1936:
             continue
         games = int(_safe_float(row.get("games") or 0))
         if games < MIN_GAMES_PER_SEASON:
@@ -617,6 +638,9 @@ def load_corpus(
             rs = None
             if m and (m.get("rookie_season") or "").isdigit():
                 rs = int(m["rookie_season"])
+            if rs is None:
+                # v3.9 fallback for pre-1970 players with no meta row.
+                rs = first_season_by_pid.get(pid)
             if rs is not None:
                 age = 22 + (season - rs)
         if age is None:

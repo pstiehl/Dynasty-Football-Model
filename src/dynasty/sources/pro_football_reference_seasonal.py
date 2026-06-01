@@ -49,8 +49,10 @@ USER_AGENT = (
 SUPPORTED_TABLES = ("passing", "rushing", "receiving", "fantasy")
 # Wayback occasionally serves stale 403s for a specific timestamped
 # capture even while neighbouring captures respond 200. We try a few
-# different years (most recent first) before giving up.
-WAYBACK_TIMESTAMPS = ("2024", "2023", "2025", "2022")
+# different years (most recent first) before giving up. As of
+# v3.9 (2026-06-01) the 2025 snapshots cover the older NFL season pages
+# better than 2024 does — some pre-1970 pages only 200 under 2025.
+WAYBACK_TIMESTAMPS = ("2025", "2024", "2023", "2022")
 PFR_BASE = "https://www.pro-football-reference.com"
 
 # Polite throttle. PFR's ToS floor is 1 req/sec, but the Wayback Machine
@@ -84,12 +86,17 @@ def _throttle() -> None:
     _last_request_at = time.monotonic()
 
 
-def _http_get(url: str, *, max_retries: int = 5, timeout: int = 60) -> str:
+def _http_get(url: str, *, max_retries: int = 3, timeout: int = 60) -> str:
     """GET with throttle + exponential backoff on 4xx/5xx + connection errors.
 
     Wayback's 429-style response often manifests as a TCP refusal (the
     edge node simply stops accepting) or a stale 403. We treat both the
     same as 5xx and back off aggressively (up to ~3 min) before giving up.
+
+    v3.9: reduced default max_retries from 5 to 3 so that 403s on a
+    stale snapshot fall through to the next WAYBACK_TIMESTAMPS entry
+    faster. Burning 5 retries on a known-stale 2024 capture before
+    trying 2025 added 60+ min to a full-history scrape.
     """
     backoff = 5.0
     last_exc: Optional[Exception] = None
@@ -149,25 +156,33 @@ def _http_get_with_timestamp_fallback(pfr_path: str) -> str:
 # Season-table scraper
 # ---------------------------------------------------------------------------
 
-def _season_cache_path(year: int, table: str) -> Path:
-    return CACHE_DIR / str(year) / f"{table}.html"
+def _season_cache_path(year: int, table: str, league: str = "NFL") -> Path:
+    if league == "NFL":
+        return CACHE_DIR / str(year) / f"{table}.html"
+    # AFL (1960-1969) / AAFC (1946-1949) split-league seasons.
+    return CACHE_DIR / f"{year}_{league}" / f"{table}.html"
 
 
-def fetch_season_table(year: int, table: str) -> str:
+def fetch_season_table(year: int, table: str, league: str = "NFL") -> str:
     """Fetch HTML for one PFR season table (passing/rushing/receiving/fantasy).
 
-    Cached at ``data/pfr_cache/{year}/{table}.html``. Re-runs that hit the
-    cache do not make network requests.
+    Cached at ``data/pfr_cache/{year}/{table}.html`` (NFL) or
+    ``data/pfr_cache/{year}_{league}/{table}.html`` (AFL / AAFC).
+    Re-runs that hit the cache do not make network requests.
     """
     if table not in SUPPORTED_TABLES:
         raise ValueError(f"unsupported table: {table!r}; expected one of {SUPPORTED_TABLES}")
 
-    cache_path = _season_cache_path(year, table)
+    cache_path = _season_cache_path(year, table, league)
     if cache_path.exists() and cache_path.stat().st_size > 0:
         return cache_path.read_text(encoding="utf-8")
 
-    log.info("Fetching PFR %s %d from Wayback", table, year)
-    html = _http_get_with_timestamp_fallback(f"/years/{year}/{table}.htm")
+    log.info("Fetching PFR %s %d %s from Wayback", table, year, league)
+    if league == "NFL":
+        path = f"/years/{year}/{table}.htm"
+    else:
+        path = f"/years/{year}_{league}/{table}.htm"
+    html = _http_get_with_timestamp_fallback(path)
 
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     cache_path.write_text(html, encoding="utf-8")
