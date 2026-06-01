@@ -39,6 +39,10 @@ from dynasty.sources.pfr_draft_class import DraftPick, fetch_and_parse
 log = logging.getLogger("refresh_pfr_draft_classes")
 
 DEFAULT_YEARS = (2022, 2023, 2024, 2025, 2026)
+# v3.9 — ``--all-history`` sweeps from 1936 (first NFL draft) to the most
+# recent year. Used by ``v3.9: full PFR draft-class corpus expansion``.
+FULL_HISTORY_FROM = 1936
+FULL_HISTORY_TO = 2026
 OUT_DIR = Path("data/pfr")
 
 
@@ -80,7 +84,22 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--years", default=",".join(str(y) for y in DEFAULT_YEARS),
-        help="Comma-separated draft-class years to refresh.",
+        help=(
+            "Comma-separated draft-class years to refresh. Ignored when "
+            "--all-history / --from-year / --to-year is supplied."
+        ),
+    )
+    parser.add_argument(
+        "--all-history", action="store_true",
+        help=f"Refresh every draft class from {FULL_HISTORY_FROM} to {FULL_HISTORY_TO}.",
+    )
+    parser.add_argument(
+        "--from-year", type=int, default=None,
+        help="Range start (inclusive). Overrides --years when paired with --to-year.",
+    )
+    parser.add_argument(
+        "--to-year", type=int, default=None,
+        help="Range end (inclusive). Overrides --years when paired with --from-year.",
     )
     parser.add_argument("--log-level", default="INFO")
     args = parser.parse_args(argv)
@@ -90,9 +109,20 @@ def main(argv=None) -> int:
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    years = [int(s) for s in args.years.split(",") if s.strip()]
-    all_picks = {y: refresh_year(y) for y in years}
-    write_outputs(years, all_picks)
+    if args.all_history:
+        years = list(range(FULL_HISTORY_FROM, FULL_HISTORY_TO + 1))
+    elif args.from_year is not None and args.to_year is not None:
+        years = list(range(args.from_year, args.to_year + 1))
+    else:
+        years = [int(s) for s in args.years.split(",") if s.strip()]
+
+    all_picks: dict = {}
+    for y in years:
+        try:
+            all_picks[y] = refresh_year(y)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("skipping draft class %d (error: %s)", y, exc)
+    write_outputs(sorted(all_picks.keys()), all_picks)
     return 0
 
 

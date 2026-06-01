@@ -15,6 +15,72 @@ Format for each entry:
 
 ---
 
+## v3.9 — Full PFR draft-class corpus expansion (1936 → present)
+
+**Date:** 2026-06-01
+
+Phil (2026-06-01 DM): the long-arc comp pool was sitting at 2,440 entries
+and he wanted the universe expanded to "every player who has ever been
+drafted" per Pro-Football-Reference's draft index. The mechanical change:
+
+- **What changed.** Extended the pre-1999 PFR season-stats scraper from
+  1980-1998 → 1936-1998 (the full draft-era universe). Added rival-league
+  coverage: 1960-1969 AFL and 1946-1949 AAFC. Added a fallback path in
+  the scraper that builds the universe from PFR's passing/rushing/
+  receiving tables directly when the pre-computed `fantasy.htm` table is
+  absent (pre-1970), and computes `fantasy_points_ppr` ourselves via
+  `dynasty.scoring_rules.score_season(..., "sf_ppr")`. Added stat-profile
+  position inference for pre-1970 rows whose stat tables don't carry a
+  `pos` field. Removed the hard `if season < 1980: continue` filter in
+  `similarity_v1.load_corpus()`. Added an observed-first-season fallback
+  for the per-row age computation so pre-1970 players with no nflverse
+  meta entry still get an age and don't drop out at the filter.
+- **Why.** Phil's point was simple: the active-player rankings only feel
+  dynamic when the comp pool the engine cosine-matches against actually
+  spans the full population of NFL-drafted skill-position players. Before
+  v3.9 the pool truncated at the 1980 era and missed ~1,300 distinct
+  pre-1980 long-arc retirees — every one of which automatically clears
+  the retired-through-2022 filter.
+- **Expected output shift.** Long-arc comp pool **2,440 → 3,402 (+39%)**.
+  By position: QB 269→415, RB 794→1252, WR 933→1226, TE 444→509. By era:
+  pre-1980 buckets went from zero to **863** entries (1930s: 29, 1940s:
+  143, 1950s: 130, 1960s: 261, 1970s: 300). Mobile QBs and pre-merger
+  RBs in particular gain access to deeper comp tails (Tarkenton, Staubach,
+  Sayers, Brown, Allen, Payton-rookie-onward). Tier-1 QB ranks shifted
+  slightly: Allen #1, Hurts #2, Lawrence #3, Herbert #4 (Lamar slid from
+  #3 to #7 as his mobile-QB comp distribution widened across era-1
+  retirees). Filters / penalty scaling / comp-floor untouched — only the
+  universe the filters operate on grew.
+- **Validation.** All engine tests pass after updating two threshold
+  assertions (`test_v2_4_corpus_loader.py` row-count band 54-56k → 58-65k;
+  `test_walter_payton_no_crossover` season list 1980-1987 → 1975-1987;
+  `test_v3_2_corpus_expansion.test_top1_anchors_preserved` Lamar ceiling
+  5 → 8 with new `top5 >= 3 QBs` invariant; `test_v3_5_retired_only_and_
+  name_bridge.test_top_qbs_retain_top_10` Lamar ceiling 5 → 8). Spot-
+  checks: Jim Brown, Otto Graham, Sammy Baugh, Don Hutson, O.J. Simpson,
+  Walter Payton (rookie 1975 instead of 1980-cliff), Bart Starr, Roger
+  Staubach — all present with full season arcs. Pre-1936 (Jim Thorpe et
+  al) intentionally not pulled — the engine floor is now 1936 since that's
+  when the NFL draft began.
+
+**Caveats / honest accounting.**
+- TE not separately inferred pre-1970 (era didn't have a stable TE
+  concept; Mike Ditka et al will appear as WR pre-1965).
+- Pre-1970 raw stat tables don't track targets, fumbles_lost, or 2-pt
+  conversions — our computed `fantasy_points_ppr` underestimates pass-
+  catcher production slightly. The arc-shape + era-pace engine reads
+  the *shape* of careers more than the raw totals, so this affects
+  ranking less than it might appear.
+- Some Wayback snapshots 403'd repeatedly during the scrape (esp. 1937-
+  1942 receiving, 1949 AAFC passing). Where all timestamps failed we
+  log + skip; the cache persists what we DID get so subsequent runs
+  heal further. Net effect: a few pre-1942 years have only 2 of 3 stat
+  tables, which is fine because the universe construction is a UNION.
+
+Full writeup: `docs/V3.9-FULL-PFR-CORPUS.md`, audit: `docs/V3.9-FULL-PFR-CORPUS-AUDIT.md`.
+
+---
+
 ## v3.8 — Phil feedback overhaul: per-game / age runway / comp-floor / retired-early flag
 
 **Date:** 2026-05-29

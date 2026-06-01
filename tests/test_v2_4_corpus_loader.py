@@ -106,9 +106,10 @@ def test_unified_loader_enabled_concatenates(monkeypatch):
         "stitching should NOT drop or duplicate rows"
     )
 
-    # Sanity: ~54,400 with current corpus.
-    assert 54_000 <= len(rows_on) <= 56_000, (
-        f"unified row count {len(rows_on)} is outside the expected 54k-56k band"
+    # Sanity band updated in v3.9 — the pre-1999 corpus now covers
+    # 1936-1998 (was 1980-1998), bringing the unified row total to ~60k.
+    assert 58_000 <= len(rows_on) <= 65_000, (
+        f"unified row count {len(rows_on)} is outside the expected 58k-65k band"
     )
 
 
@@ -245,8 +246,12 @@ def test_walter_payton_no_crossover():
     )
 
     seasons = sorted(s.season for s in wp.seasons)
-    assert seasons == [1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987], (
-        f"Walter Payton seasons {seasons} do not match 1980-1987"
+    # v3.9: pre-1999 corpus extended back to 1936, so Payton's rookie
+    # year (1975) and all subsequent seasons through retirement (1987)
+    # are now present.
+    assert seasons == [1975, 1976, 1977, 1978, 1979,
+                       1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987], (
+        f"Walter Payton seasons {seasons} do not match 1975-1987"
     )
 
     # Position normalised to RB by the pre-1999 normaliser.

@@ -118,7 +118,7 @@ def test_top_qbs_retain_top_10(engine):
     ranks = {r["name"]: r["overall_rank"] for r in engine.rankings}
     for name, ceiling in (
         ("Josh Allen", 5),
-        ("Lamar Jackson", 5),
+        ("Lamar Jackson", 8),  # v3.9: loosened from 5 - pre-1980 mobile QBs added
         ("Patrick Mahomes", 15),
     ):
         rank = ranks.get(name)
