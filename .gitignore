@@ -62,6 +62,8 @@ data/diagnostics/
 # the cache is regenerable by re-running scripts/build_pre1999_corpus.py.
 data/pfr_cache/
 data/sr_cache/
+# v3.10 per-player parsed-career-stats cache (rebuilt from data/pfr_cache).
+data/cache/pfr_career_stats/
 
 # v3.0 sports-reference HTML cache. Cache only; the parsed/normalized
 # data lives at data/sos/*.csv(.gz) and is regenerable by re-running
