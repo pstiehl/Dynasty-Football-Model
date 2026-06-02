@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import html
 import json
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -25,6 +26,7 @@ from .consensus import (
     load_crosswalk,
 )
 from .sources.keeptradecut import load_latest as load_latest_ktc
+from .sources import pfr_career_stats as _pfr_career
 
 
 # ---------------------------------------------------------------------------
@@ -1688,7 +1690,8 @@ def _player_header(row: Dict, team: str, league_label: str) -> str:
 
 
 def _build_player_page(row: Dict, comps: List[Dict], team: str,
-                       league_label: str, latest_ts: datetime) -> str:
+                       league_label: str, latest_ts: datetime,
+                       career_stats_html: str = "") -> str:
     # --- Comp table -------------------------------------------------------
     # Show the top-10 comps with similarity, post-age production, and a
     # "washed out" badge for comps whose career ended by age 30 with
@@ -1866,7 +1869,7 @@ final production score is <strong>{final:,.0f}</strong>.</p>
 
     body = f"""{_player_header(row, team, league_label)}
 <div class="container">
-
+{career_stats_html}
 <h2>Fantasy-Point Arc <span class="accent">Comparables</span></h2>
 <p class="lede">The top-10 most similar <em>long-arc</em> NFL players matched by
 <strong>fantasy-point production curve</strong> at this career stage. Each
@@ -1913,6 +1916,51 @@ league's specific scoring + roster rules? Head to
 # ---------------------------------------------------------------------------
 # Public entry point
 # ---------------------------------------------------------------------------
+
+def _load_gsis_to_pfr() -> Dict[str, str]:
+    """Build a ``gsis_id -> pfr_id`` lookup from ``data/nflverse/players.csv.gz``.
+
+    Falls back to an empty dict if the file isn't present (e.g. fresh
+    clone before the first ``refresh_nflverse_corpus`` run). PFR-only
+    retired comps whose corpus player_id is ``pfr_<PfrId>`` are mapped
+    by stripping the prefix.
+    """
+    out: Dict[str, str] = {}
+    path = Path("data") / "nflverse" / "players.csv.gz"
+    if not path.exists():
+        # Try repo-root-relative resolution as well.
+        alt = Path(__file__).resolve().parents[2] / "data" / "nflverse" / "players.csv.gz"
+        if alt.exists():
+            path = alt
+        else:
+            return out
+    try:
+        import csv
+        import gzip
+        with gzip.open(path, "rt", encoding="utf-8", errors="replace") as fh:
+            for row in csv.DictReader(fh):
+                gsis = (row.get("gsis_id") or "").strip()
+                pfr = (row.get("pfr_id") or "").strip()
+                if gsis and pfr:
+                    out[gsis] = pfr
+    except Exception:  # noqa: BLE001
+        return out
+    return out
+
+
+def _resolve_pfr_id(player_id: str, gsis_to_pfr: Dict[str, str]) -> Optional[str]:
+    """Best-effort PFR id resolver for engine rows.
+
+    Engine ``player_id`` values are usually nflverse ``gsis_id`` strings
+    (``00-XXXXXXX``). Pre-1999 retired comps use a synthetic
+    ``pfr_<PfrId>`` id where the PFR token is the suffix.
+    """
+    if not player_id:
+        return None
+    if player_id.startswith("pfr_"):
+        return player_id[4:]
+    return gsis_to_pfr.get(player_id)
+
 
 def _load_sleeper_teams() -> Dict[str, str]:
     """Pull current Sleeper player → team map, keyed by GSIS id where possible.
@@ -2007,11 +2055,37 @@ def generate_site(
     # the Dynasty Rankings consensus tab clicks through to a
     # similarity-score page. The top-N main rankings table still uses
     # ``limit`` for the homepage display.
+    #
+    # v3.10 (Phil 2026-06-02): each profile also surfaces a Career Stats
+    # section sourced from PFR via the cache-first builder in
+    # ``sources.pfr_career_stats``. Builder degrades gracefully when a
+    # row's PFR id can't be resolved or the scrape fails.
+    gsis_to_pfr = _load_gsis_to_pfr()
+    skip_career_stats = os.environ.get("DFM_SKIP_CAREER_STATS") == "1"
     for row in engine.rankings:
         slug = _slug(row["name"], row["player_id"])
         comps = engine.comps.get(row["player_id"], [])
         team = team_lookup.get(row["player_id"], "—")
-        page = _build_player_page(row, comps, team, label, latest_ts)
+        career_html = ""
+        if not skip_career_stats:
+            pfr_id = _resolve_pfr_id(row.get("player_id", ""), gsis_to_pfr)
+            if pfr_id:
+                try:
+                    career = _pfr_career.build_career_stats(
+                        pfr_id, row.get("position", "")
+                    )
+                    career_html = _pfr_career.career_stats_html(career)
+                except Exception as exc:  # noqa: BLE001
+                    # Never let a single bad scrape break the build.
+                    import logging
+                    logging.getLogger(__name__).warning(
+                        "career-stats failed for %s (%s): %s",
+                        row.get("name"), pfr_id, exc,
+                    )
+        page = _build_player_page(
+            row, comps, team, label, latest_ts,
+            career_stats_html=career_html,
+        )
         (out_root / "players" / f"{slug}.html").write_text(page, encoding="utf-8")
 
     # Also drop the engine's master rankings JSON next to the site so the

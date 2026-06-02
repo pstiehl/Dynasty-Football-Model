@@ -15,6 +15,43 @@ Format for each entry:
 
 ---
 
+## v3.10 — Career stats panel + PFR similarity audit
+
+**Date:** 2026-06-02
+
+Two Phil-driven adds (see `docs/V3.10-CAREER-STATS-AND-AUDIT.md` for the
+full writeup):
+
+- **What changed.** Every ranked player's profile page now renders a
+  *Career Stats* section directly above the Fantasy-Point Arc
+  Comparables table — season-by-season PFR data with Superflex PPR
+  fantasy points and a career totals row. Implementation:
+  `dynasty.sources.pfr_career_stats` (parser + HTML renderer +
+  per-player JSON cache) wired into `_build_player_page` in
+  `dynasty.report`. The same profile route serves both the Similarity
+  Scores and Dynasty Rankings pages so we only render once.
+  Independently, `scripts/audit/pfr_similarity_audit.py` compares our
+  top-10 Fantasy-Point Arc Comparables against PFR's `#all_sim_scores`
+  Career row for the top-50 ranked players; outputs land in
+  `docs/audits/pfr_comparison_audit.md` + `pfr_audit_summary.csv`.
+- **Why.** Phil's 2026-06-02 ask. The career-stats block makes every
+  profile page self-contained — you can see the player's actual
+  production history without leaving the page. The audit answers "is
+  our similarity engine pointing at the same kind of comps PFR's Bill
+  James method does, and where do we diverge?"
+- **Expected output shift.** Cosmetic only on the profile page (no
+  scoring change). The audit surfaces 4 testable model holes — (1)
+  active-modern cohort under-represented, (2) mid-tier-veteran blind
+  spot, (3) pre-1999 corpus driving projections, (4) durable-legend
+  over-pull on mid-tier query players. Each ships with a proposed
+  fix; next model PR can pick them off independently.
+- **Validation.** 7 of the top-50 had PFR sim_scores rendered in our
+  Wayback snapshots; average overlap@10 with PFR Career row = 0.43 /
+  10, Jaccard = 0.023. Re-run after the next Wayback snapshot refresh
+  will expand the auditable population.
+
+---
+
 ## v3.9 — Full PFR draft-class corpus expansion (1936 → present)
 
 **Date:** 2026-06-01

@@ -1,0 +1,51 @@
+rank,name,position,player_id,pfr_id,overlap_at_10,overlap_at_20,jaccard,n_misses,n_extras,skip_reason
+1,Josh Allen,QB,00-0034857,AlleJo02,1,1,0.0526,9,9,
+2,Jalen Hurts,QB,00-0036389,HurtJa00,1,1,0.0526,9,9,
+3,Trevor Lawrence,QB,00-0036971,LawrTr00,,,,0,0,no sim_scores table
+4,Justin Herbert,QB,00-0036355,HerbJu00,,,,0,0,no sim_scores table
+5,Jahmyr Gibbs,RB,00-0039139,GibbJa01,,,,0,0,no sim_scores table
+6,Bijan Robinson,RB,00-0038542,RobiBi01,,,,0,0,no sim_scores table
+7,Lamar Jackson,QB,00-0034796,JackLa00,,,,0,0,no sim_scores table
+8,Amon-Ra St. Brown,WR,00-0036963,StxxAm00,,,,0,0,no sim_scores table
+9,Patrick Mahomes,QB,00-0033873,MahoPa00,1,1,0.0526,9,9,
+10,Jaxson Dart,QB,00-0040691,DartJa00,,,,0,0,no sim_scores table
+11,Drake Maye,QB,00-0039851,MayeDr00,,,,0,0,no sim_scores table
+12,Brock Purdy,QB,00-0037834,PurdBr00,,,,0,0,no sim_scores table
+13,De'Von Achane,RB,00-0039040,AchaDe00,,,,0,0,no sim_scores table
+14,Kyler Murray,QB,00-0035228,MurrKy00,,,,0,0,no sim_scores table
+15,Puka Nacua,WR,00-0039075,NacuPu00,,,,0,0,no sim_scores table
+16,Bo Nix,QB,00-0039732,NixxBo00,,,,0,0,no sim_scores table
+17,Jonathan Taylor,RB,00-0036223,TaylJo02,,,,0,0,no sim_scores table
+18,Baker Mayfield,QB,00-0034855,MayfBa00,0,0,0.0000,10,10,
+19,Nico Collins,WR,00-0036554,CollNi00,,,,0,0,no sim_scores table
+20,Tetairoa McMillan,WR,00-0040124,McMiTe00,,,,0,0,no sim_scores table
+21,Jayden Daniels,QB,00-0039910,DaniJa02,,,,0,0,no sim_scores table
+22,Ja'Marr Chase,WR,00-0036900,ChasJa00,,,,0,0,no sim_scores table
+23,Jared Goff,QB,00-0033106,GoffJa00,0,0,0.0000,10,10,
+24,Rashee Rice,WR,00-0039067,RiceRa01,,,,0,0,no sim_scores table
+25,Emeka Egbuka,WR,00-0040129,EgbuEm01,,,,0,0,no sim_scores table
+26,Daniel Jones,QB,00-0035710,JoneDa05,,,,0,0,no sim_scores table
+27,CeeDee Lamb,WR,00-0036358,LambCe00,,,,0,0,no sim_scores table
+28,Jaxon Smith-Njigba,WR,00-0038543,SmitJa06,,,,0,0,no sim_scores table
+29,Chris Olave,WR,00-0037239,OlavCh00,,,,0,0,no sim_scores table
+30,Kyren Williams,RB,00-0037840,WillKy02,,,,0,0,no sim_scores table
+31,Justin Jefferson,WR,00-0036322,JeffJu00,,,,0,0,no sim_scores table
+32,Cam Ward,QB,00-0040676,WardCa00,,,,0,0,no sim_scores table
+33,A.J. Brown,WR,00-0035676,BrowAJ00,,,,0,0,no sim_scores table
+34,Tee Higgins,WR,00-0036410,HiggTe00,,,,0,0,no sim_scores table
+35,Dak Prescott,QB,00-0033077,PresDa01,0,0,0.0000,10,10,
+36,Tua Tagovailoa,QB,00-0036212,TagoTu00,,,,0,0,no sim_scores table
+37,Caleb Williams,QB,00-0039918,WillCa03,,,,0,0,no sim_scores table
+38,Sam Darnold,QB,00-0034869,DarnSa00,0,0,0.0000,10,10,
+39,Garrett Wilson,WR,00-0037740,WilsGa00,,,,0,0,no sim_scores table
+40,Joe Burrow,QB,00-0036442,BurrJo01,,,,0,0,no sim_scores table
+41,Justin Fields,QB,00-0036945,FielJu00,,,,0,0,no sim_scores table
+42,Josh Jacobs,RB,00-0035700,JacoJo01,,,,0,0,no sim_scores table
+43,Luther Burden III,WR,00-0040735,BurdLu00,,,,0,0,no sim_scores table
+44,Harold Fannin Jr.,TE,00-0040663,FannHa00,,,,0,0,no sim_scores table
+45,Zay Flowers,WR,00-0039064,FlowZa00,,,,0,0,no sim_scores table
+46,Deebo Samuel Sr.,WR,00-0035719,SamuDe00,,,,0,0,no sim_scores table
+47,Drake London,WR,00-0037238,LondDr00,,,,0,0,no sim_scores table
+48,Brock Bowers,TE,00-0039338,BoweBr01,,,,0,0,no sim_scores table
+49,George Pickens,WR,00-0037247,PickGe00,,,,0,0,no sim_scores table
+50,Deshaun Watson,QB,00-0033537,WatsDe00,,,,0,0,no sim_scores table
