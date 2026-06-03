@@ -1,4 +1,9 @@
-# Kings of Dynasty — Fantasy Football
+# Box Score Dynasty — Fantasy Football
+
+> **Production over noise.** Dynasty rankings built on box scores, not narratives.
+
+*(Brand history: previously published as "Kings of Dynasty" in v2.x / v3.x;
+rebranded to **Box Score Dynasty** at v3.14, 2026-06-03.)*
 
 A dynasty fantasy football ranking model built on a fantasy-point-arc
 similarity engine (v2.0/v2.1) plus a survival / confidence / late-
@@ -9,7 +14,7 @@ penalties discount bust-prone comp pools, small-sample players, and
 late-breakout QBs into the rank tier their realistic dynasty value
 warrants.
 
-Output is a self-contained static site ("Kings of Dynasty") you can open
+Output is a self-contained static site (**Box Score Dynasty**) you can open
 in any browser — a `Similarity Scores` ranking page, a `Dynasty Rankings`
 page with format presets (Superflex PPR and 2QB PPR), a Methodology page,
 and per-player comparable pages.

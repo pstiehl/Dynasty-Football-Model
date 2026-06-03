@@ -312,21 +312,27 @@ def _read(path: str) -> str:
 
 
 def test_site_title_rebrand(site):
+    """v3.14 — the brand is now 'Box Score Dynasty'. Originally pinned to
+    'Kings of Dynasty' at v2.2; refreshed in v3.14 for Phil's rebrand."""
     html = _read(os.path.join(site, "rankings.html"))
-    assert "Kings of Dynasty" in html
-    assert "<title>Kings of Dynasty" in html
+    assert "Box Score Dynasty" in html
+    assert "<title>Box Score Dynasty" in html
+    # And the old brand is gone.
+    assert "Kings of Dynasty" not in html
 
 
 def test_no_old_title_in_h1_or_title(site):
     html = _read(os.path.join(site, "rankings.html"))
     assert "<title>Dynasty Football Model" not in html
-    # The header h1 must be "Kings of Dynasty" not "Dynasty Football Model".
-    # We allow the literal string "Dynasty Football" to appear elsewhere
-    # (legacy docstring / footer comments) but not inside the <h1>.
+    # The header h1 must be 'Box Score Dynasty' (v3.14 rebrand) —
+    # not 'Dynasty Football Model' (the legacy engine name) or the
+    # v2.2 'Kings of Dynasty' interim brand.
     h1_start = html.find("<h1>")
     h1_end = html.find("</h1>")
     h1 = html[h1_start:h1_end]
     assert "Dynasty Football Model" not in h1
+    assert "Kings of Dynasty" not in h1
+    assert "Box Score" in h1
 
 
 def test_tab_renames_in_nav(site):

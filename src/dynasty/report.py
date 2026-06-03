@@ -95,6 +95,27 @@ header.site nav a.active { opacity: 1; border-bottom: 2px solid var(--accent); p
 header.site .meta { opacity: 0.6; font-size: 12px; margin-top: 4px; }
 .container { max-width: 1240px; margin: 0 auto; padding: 28px 36px; }
 .container.narrow { max-width: 900px; }
+.brand-hero {
+  margin: 8px 0 28px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+}
+.brand-hero-tagline {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+.brand-hero-subtitle {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+  font-weight: 500;
+}
 h2 { color: var(--text); font-size: 22px; margin-top: 32px; font-weight: 600; }
 h2 .accent { color: var(--accent); }
 h3 { color: var(--text); font-size: 16px; margin-top: 22px; font-weight: 600; }
@@ -195,6 +216,42 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
 """
 
 
+# ---------------------------------------------------------------------------
+# v3.14 — Brand: Box Score Dynasty
+#
+# Single source of truth for the brand name + meta description + social
+# tagline. Phil's 2026-06-03 brief on the rebrand:
+#
+#   * Brand: "Box Score Dynasty" (everywhere — page titles, header logo,
+#     footer, social meta).
+#   * Meta description: "Box Score Dynasty — NFL dynasty fantasy football
+#     rankings focused on production, not hype. Every player ranked by
+#     what they actually did on the field."
+#   * Hero tagline: "Production over noise." (primary, on the homepage).
+#     Secondary subtitle: "Dynasty rankings built on box scores, not
+#     narratives."
+#   * <title> pattern: "Box Score Dynasty — <page name>"
+#   * Social meta (og:title, og:description, twitter:card) all consistent
+#     with the meta description above.
+# ---------------------------------------------------------------------------
+
+BRAND_NAME = "Box Score Dynasty"
+BRAND_META_DESCRIPTION = (
+    "Box Score Dynasty — NFL dynasty fantasy football rankings focused on "
+    "production, not hype. Every player ranked by what they actually did "
+    "on the field."
+)
+BRAND_HERO_TAGLINE = "Production over noise."
+BRAND_HERO_SUBTITLE = "Dynasty rankings built on box scores, not narratives."
+BRAND_SITE_URL = "https://pstiehl.github.io/Dynasty-Football-Model/"
+
+
+def _brand_title(page_name: str) -> str:
+    """Return the <title> tag value for a page following the Phil-approved
+    pattern: ``Box Score Dynasty — <page name>``."""
+    return f"{BRAND_NAME} — {page_name}"
+
+
 def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) -> str:
     ts = latest_ts.strftime("%B %d, %Y at %I:%M %p UTC") if latest_ts else "—"
 
@@ -205,8 +262,8 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
     return f"""<header class="site">
   <div class="row">
     <div>
-      <h1><a href="rankings.html">Kings of <span class="accent">Dynasty</span></a></h1>
-      <div class="meta">Fantasy Football · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
+      <h1><a href="rankings.html">Box Score <span class="accent">Dynasty</span></a></h1>
+      <div class="meta">{_esc(BRAND_HERO_TAGLINE)} · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
     </div>
     <nav>
       {link("rankings.html", "Similarity Scores", "rankings")}
@@ -222,7 +279,7 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
 def _footer() -> str:
     return (
         '<footer>'
-        'Kings of Dynasty · Fantasy Football · open source on '
+        f'{BRAND_NAME} · Fantasy Football · open source on '
         '<a href="https://github.com/pstiehl/Dynasty-Football-Model">GitHub</a> · '
         'Stats: <a href="https://github.com/nflverse/nflverse-data">nflverse</a> · '
         '<a href="https://www.pro-football-reference.com/">Pro-Football-Reference</a> · '
@@ -231,13 +288,43 @@ def _footer() -> str:
     )
 
 
+def _meta_tags(page_name: str) -> str:
+    """Render the brand-consistent meta + Open Graph + Twitter card tags
+    for a page. All three social previews share the same description and
+    a brand-prefixed title so the rebrand reads cleanly when the site is
+    shared on Slack, Twitter / X, Discord, iMessage, etc."""
+    title = _brand_title(page_name)
+    desc = BRAND_META_DESCRIPTION
+    return (
+        f'<meta name="description" content="{_esc(desc)}">\n'
+        f'<meta property="og:type" content="website">\n'
+        f'<meta property="og:site_name" content="{_esc(BRAND_NAME)}">\n'
+        f'<meta property="og:title" content="{_esc(title)}">\n'
+        f'<meta property="og:description" content="{_esc(desc)}">\n'
+        f'<meta property="og:url" content="{_esc(BRAND_SITE_URL)}">\n'
+        f'<meta name="twitter:card" content="summary">\n'
+        f'<meta name="twitter:title" content="{_esc(title)}">\n'
+        f'<meta name="twitter:description" content="{_esc(desc)}">'
+    )
+
+
 def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/style.css") -> str:
+    # The ``title`` passed in by callers is already in the
+    # ``Box Score Dynasty — <page name>`` form (we call ``_brand_title``
+    # at the call site). Derive the bare page-name back out so the
+    # social meta tags carry the same brand-prefixed title.
+    if title.startswith(f"{BRAND_NAME} — "):
+        page_name = title[len(f"{BRAND_NAME} — "):]
+    else:
+        page_name = title
+    meta_block = _meta_tags(page_name)
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{_esc(title)}</title>
+{meta_block}
 <link rel="stylesheet" href="{css_href}">
 </head>
 <body>
@@ -280,7 +367,19 @@ def _build_rankings(engine: EngineResult, latest_ts: datetime, league_label: str
 <td class="score">{row['production_score']:.0f}</td>
 </tr>"""
 
+    # v3.14 — Hero block. The rankings page is the landing page (also
+    # written to index.html), so it carries the brand hero. Other pages
+    # rely on the site header + meta tags.
+    hero_html = (
+        '<section class="brand-hero">'
+        f'<h2 class="brand-hero-tagline">{_esc(BRAND_HERO_TAGLINE)}</h2>'
+        f'<p class="brand-hero-subtitle">{_esc(BRAND_HERO_SUBTITLE)}</p>'
+        '</section>'
+    )
+
     body = f"""<div class="container">
+
+{hero_html}
 
 <h2>Similarity <span class="accent">Scores</span></h2>
 <p class="lede">Players ranked by projected lifetime fantasy points,
@@ -348,7 +447,7 @@ q.addEventListener('input', update); pos.addEventListener('change', update); upd
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Similarity Scores",
+        _brand_title("Similarity Scores"),
         _site_header("rankings", latest_ts, league_label),
         body,
     )
@@ -648,7 +747,7 @@ render();
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Dynasty Rankings",
+        _brand_title("Dynasty Rankings"),
         _site_header("league", latest_ts, league_label),
         body,
     )
@@ -738,7 +837,7 @@ setFormat('sf_ppr');
 </script>
 </div>"""
     return _page(
-        "Kings of Dynasty — Dynasty Rankings",
+        _brand_title("Dynasty Rankings"),
         _site_header("league", latest_ts, league_label),
         body,
     )
@@ -989,7 +1088,7 @@ projections.</div>
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Methodology",
+        _brand_title("Methodology"),
         _site_header("methodology", latest_ts, league_label),
         body,
     )
@@ -1095,7 +1194,7 @@ history. See <a href="methodology.html">Methodology</a>.</p>
 
 </div>"""
     return _page(
-        "Kings of Dynasty — Sources",
+        _brand_title("Sources"),
         _site_header("sources", latest_ts, league_label),
         body,
     )
@@ -1263,7 +1362,7 @@ with per-prospect comp pages.</div>
 
 </div>"""
         return _page(
-            "Kings of Dynasty — Prospects",
+            _brand_title("Prospects"),
             _site_header("prospects", latest_ts, league_label),
             body,
         )
@@ -1491,7 +1590,7 @@ update();
 
 </div>"""
     return _page(
-        "Kings of Dynasty — Prospects",
+        _brand_title("Prospects"),
         _site_header("prospects", latest_ts, league_label),
         body,
     )
@@ -1749,7 +1848,7 @@ See the <a href="../sources.html">Sources</a> page for the full attribution.</p>
 </div>"""
 
     return _page(
-        f"Kings of Dynasty — {name} (Prospect)",
+        f"{BRAND_NAME} — {name} (Prospect)",
         _site_header("prospects", latest_ts, label),
         body,
         css_href="../assets/style.css",
@@ -2032,7 +2131,7 @@ See the <a href="../sources.html">Sources</a> page for the full attribution.</p>
 </div>"""
 
     return _page(
-        f"Kings of Dynasty — {row['name']}",
+        f"{BRAND_NAME} — {row['name']}",
         _site_header("rankings", latest_ts, league_label),
         body,
         css_href="../assets/style.css",
