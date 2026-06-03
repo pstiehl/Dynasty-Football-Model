@@ -465,9 +465,29 @@ def career_stats_html(career: Dict) -> str:
         + "</tr>"
     )
 
+    # Build a direct link back to the canonical PFR player page when we
+    # have the id. PFR's URL pattern is
+    # ``/players/<first-letter-of-id>/<pfr_id>.htm``. Adding this is the
+    # right-thing under PFR's terms of use (attribution + link back) and
+    # lets the reader jump from our derived fp-totals view to the
+    # underlying raw splits in one click.
+    pfr_id = career.get("pfr_id") or ""
+    if pfr_id:
+        first_letter = pfr_id[0].upper()
+        pfr_url = f"https://www.pro-football-reference.com/players/{first_letter}/{pfr_id}.htm"
+        source_link = (
+            f'<a href="{_esc(pfr_url)}" rel="noopener" target="_blank">'
+            f'Pro Football Reference</a>'
+        )
+    else:
+        source_link = (
+            '<a href="https://www.pro-football-reference.com/" '
+            'rel="noopener" target="_blank">Pro Football Reference</a>'
+        )
+
     return f"""
 <h2>Career <span class="accent">Stats</span></h2>
-<p class="lede">Season-by-season production from Pro Football Reference,
+<p class="lede">Season-by-season production from {source_link},
 with fantasy points computed under Superflex PPR (1 PPR · 4 pt pass TD ·
 6 pt rush/rec TD · −2 INT · −2 fumble). Career totals on the bottom
 row.</p>

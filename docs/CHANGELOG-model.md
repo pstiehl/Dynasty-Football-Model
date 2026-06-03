@@ -15,6 +15,84 @@ Format for each entry:
 
 ---
 
+## v3.13 — Pro-Football-Reference + Sports-Reference attribution scrub
+
+**Date:** 2026-06-03
+
+Phil's 2026-06-03 brief asked for the third leg of the v3.11+ stack to be
+an attribution scrub on the data sources we *actually* use. The Sources
+page was four merges out of date — it still framed the site as
+“one primary data source” (nflverse) and listed Pro-Football-Reference
+as a one-off pre-1999 backfill in the methodology page footnote. In
+reality the engine now scrapes:
+
+- PFR seasonal stats 1936–1998 (v3.9 corpus expansion) + 1960–69 AFL + 1946–49 AAFC
+- PFR draft history for the 2022–2026 NFL classes (v3.4 drafted-only prospects)
+- PFR per-player career stats on every veteran profile page (v3.10)
+- Sports-Reference / CFB per-season production for the entire 2000–present
+  college prospect corpus (v3.0)
+- Sports-Reference / CFB conference standings for the v3.0 conference-tier
+  weighting
+
+What changed
+: **A. Sources page rewrite.** Every external scrape is now its own row
+  with a working link to the canonical site and a one-line description
+  of the role. New rows: PFR seasonal stats, PFR draft history, PFR
+  per-player career stats, Sports-Reference / CFB, Sports-Reference / CFB
+  standings, Tankathon big-board. An attribution callout under the table
+  explicitly credits Sports Reference LLC as the owner of PFR + SR-CFB —
+  the right thing under their ToU.
+
+: **B. Career stats panel deep-links to PFR.** The Career Stats block
+  rendered on every veteran profile page (v3.10) used to attribute
+  “from Pro Football Reference” as plain text. v3.13 turns that into a
+  direct link to the canonical PFR player page when we have the
+  `pfr_id` (`/players/<L>/<pfr_id>.htm` pattern), and falls back to the
+  PFR root URL otherwise. `rel="noopener" target="_blank"`.
+
+: **C. Veteran + prospect page footers.** Both per-player templates now
+  carry a small sources-pointer paragraph at the bottom
+  (“NFL stats sourced from nflverse + Pro-Football-Reference. See the
+  Sources page for the full attribution.” on veteran pages; the
+  prospect-page equivalent points at SR-CFB for college stats and at
+  PFR for the comp's NFL outcome).
+
+: **D. Methodology page corpus-floor bullet updated.** The bullet
+  still claimed a 1980 floor; the v3.9 backfill pushed it to 1936.
+  Linkified the PFR reference inline and pointed the reader at the
+  Sources page for the full picture.
+
+: **E. Site footer.** Now links both `pro-football-reference.com` and
+  `sports-reference.com/cfb/` instead of just listing them as plain
+  text.
+
+Why
+: ToS compliance — PFR and SR-CFB both ask for an attribution credit
+  + link back, and we were under-crediting given how much we now depend
+  on them. Also reader trust: a dynasty manager looking at a player's
+  career-stats block should be able to click straight through to the
+  source to audit.
+
+Expected output shift
+: None. Cosmetic + meta-data only — no engine numbers move.
+
+Validation
+: New regression suite `tests/test_v3_13_pfr_sr_attribution.py` (15
+  tests) pins:
+  - Sources page lists PFR (3 sub-rows: seasonal / draft / career stats),
+    SR-CFB (2 sub-rows: production / standings), and the
+    “Sports Reference LLC” attribution callout.
+  - Career stats panel deep-links to the canonical PFR player page when
+    `pfr_id` is known; falls back to PFR root when not.
+  - Career stats panel renders `rel="noopener" target="_blank"`.
+  - Empty payload still short-circuits (no regression on the “hide the
+    section when no rows” contract).
+  - Veteran + prospect page footers carry an `../sources.html` pointer.
+  - Methodology page now contains a working PFR link and the updated
+    1936 floor.
+  - Site footer links both PFR and SR-CFB.
+  - The “no longer blends external opinions” framing survives the
+    rewrite (we didn't accidentally re-frame the engine as a blend).
 ## v3.12 — Superflex Positional VORP + Dynasty Rankings UI controls
 
 **Date:** 2026-06-03
