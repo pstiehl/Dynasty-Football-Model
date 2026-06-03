@@ -1268,17 +1268,48 @@ def run_engine(
         if n_completed == 1:
             rookie_year = ap.rookie_season
             first_completed = target_arc.career_arc[0].season
-            # Treat the player as a v2.1 rookie if EITHER:
-            #   * their first completed season is the current or previous
-            #     NFL season (most common case — 2025 draft class), OR
-            #   * their actual draft year is within the last 2 seasons
-            #     AND they only played 1 completed year (handles late
-            #     bloomers who debuted in year 2 like Brock Purdy did,
-            #     though Purdy played enough that he's not in this bucket).
-            if first_completed >= current_season - 1:
-                is_recent_rookie = True
-            elif rookie_year is not None and rookie_year >= current_season - 1:
-                is_recent_rookie = True
+            # v3.11 (Phil 2026-06-03) — "vet-as-rookie" fix.
+            # PRIOR BUG: the cohort dispatcher only looked at first_completed
+            # (first season with >= MIN_GAMES_PER_SEASON=4 games). Vets
+            # whose actual rookie year had < 4 games (practice-squad call-up,
+            # short stints) and whose first >=4-game season fell years
+            # later (in the current/prior season) got misclassified as
+            # rookies. Tyrell Shavers (nflverse rookie_season=2023, first
+            # >=4G season=2025) was being comped as a 2025 rookie.
+            #
+            # FIX: gate the rookie engine on the player's ACTUAL rookie
+            # year (from players.csv.gz's rookie_season field, surfaced
+            # as ap.rookie_season). The player is treated as a v2.1
+            # rookie iff EITHER:
+            #   * their actual rookie year is the current or previous
+            #     NFL season (the genuine 2024/2025 draft classes), OR
+            #   * we don't know their actual rookie year AND their first
+            #     >=4G season is the current/previous NFL season (legacy
+            #     fallback for players without a meta row).
+            # If their actual rookie year predates current_season - 1 by
+            # 2+ years (Shavers, Tonges, Tyler Badie, …) they fall through
+            # to the veteran cumulative-arc engine — their career arc may
+            # still be thin, but it is THEIRS, not a misappropriated
+            # rookie comp pool.
+            VET_AS_ROOKIE_GUARD_YEARS = 2
+            if rookie_year is not None:
+                if rookie_year >= current_season - 1:
+                    is_recent_rookie = True
+                elif (
+                    rookie_year in {s.season for s in target_arc.career_arc}
+                    and first_completed == rookie_year
+                    and first_completed >= current_season - VET_AS_ROOKIE_GUARD_YEARS
+                ):
+                    # Actual rookie year IS the first >=4G season AND it's
+                    # still within the rookie window (degenerate guard).
+                    is_recent_rookie = True
+                # Otherwise: actual rookie predates the window. Fall
+                # through to the veteran engine.
+            else:
+                # Unknown actual rookie year — use the legacy first-
+                # completed heuristic.
+                if first_completed >= current_season - 1:
+                    is_recent_rookie = True
 
         if is_recent_rookie:
             # ---- v2.1 1-NFL-season rookie engine ----
@@ -1785,6 +1816,25 @@ def run_engine(
                     * comp_pool_anchor
                     * rate_scale
                 )
+                # v3.11 (Phil 2026-06-03) — sample-confidence gate on
+                # the comp-pool floor. PRIOR BUG: the post-stack floor
+                # ignored the rookie's games-played confidence factor.
+                # Bub Means (4 games in 2024, rookie_confidence_factor
+                # = 4/8 = 0.5) was being anchored to the FULL comp-pool
+                # floor (864.4 * 0.40 = 345.8) despite only 4 games of
+                # signal. A 4-game rookie should not get the same comp-
+                # pool protection as a 17-game rookie.
+                #
+                # FIX: multiply the floor by rookie_confidence_factor.
+                # This is continuous (no cliff) and matches the intent
+                # of confidence shrinkage — a 4G rookie gets HALF the
+                # comp-pool floor of a full-season rookie. The base
+                # projection (which already had confidence applied via
+                # project_rookie) is unchanged; only the FLOOR is gated.
+                target_rookie_conf = float(
+                    row.get("rookie_confidence_factor", 1.0) or 1.0,
+                )
+                post_stack_floor *= target_rookie_conf
                 # Cap at the rookie's own peak-anchored projection.
                 peak_cap = float(row.get("peak_anchored_fp", 0.0))
                 if peak_cap > 0:
@@ -1793,6 +1843,7 @@ def run_engine(
                     row["post_stack_comp_pool_floor"] = round(post_stack_floor, 1)
                     row["post_stack_comp_pool_anchor"] = round(comp_pool_anchor, 1)
                     row["post_stack_comp_pool_rate_scale"] = round(rate_scale, 3)
+                    row["post_stack_comp_pool_confidence_scale"] = round(target_rookie_conf, 3)
                     row["production_score"] = round(post_stack_floor, 1)
                     row["projection_path"] = "rookie_comp_pool_floor"
                     row["production_path"] = "rookie_comp_pool_floor"
