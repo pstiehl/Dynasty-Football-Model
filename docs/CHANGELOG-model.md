@@ -15,6 +15,112 @@ Format for each entry:
 
 ---
 
+## v3.11 — Vet-as-rookie fix + sample-confidence comp-pool floor
+
+**Date:** 2026-06-03
+
+Phil's 2026-06-03 brief identified two related bugs in the v3.10
+rookie engine path:
+
+> Bug A: Tyrell Shavers (nflverse rookie_season=2023, 2yr exp) is
+> showing up as a 2025 rookie because his 2024 had 1 game and his
+> first ≥4-game season is 2025. The rookie engine's cohort dispatcher
+> only looked at the first season with ≥4 games (after the corpus
+> filter), not the actual nflverse rookie_season. 14 vets were being
+> comped against the 2024-25 draft classes.
+
+> Bug B: Bub Means (4 games in 2024, sample_confidence=0.133) is
+> projecting 345.8 production_score because the post-stack comp-pool
+> floor (POST_STACK_COMP_POOL_FRACTION × comp_pool_anchor × rate_scale)
+> ignored his confidence factor. A 4-game rookie should not be anchored
+> to the same comp-pool floor as a 17-game rookie.
+
+What changed
+: **A. Vet-as-rookie cohort dispatcher fix**
+  (`similarity_v1.run_engine` rookie-eligibility check).
+
+  The cohort dispatcher now gates the rookie engine on the player's
+  ACTUAL rookie year (`PlayerCareer.rookie_season`, sourced from
+  nflverse `players.csv.gz`'s `rookie_season` field), not on the first
+  season in the v2.0 arc corpus.
+
+  A player is treated as a v2.1 rookie iff EITHER:
+  - Their actual rookie year is the current or previous NFL season
+    (the genuine 2024/2025 draft classes), OR
+  - We don't know their actual rookie year AND their first ≥4G season
+    is the current/previous NFL season (legacy fallback).
+
+  If their actual rookie year predates `current_season - 1` by 2+
+  years (Shavers, Tonges, Tyler Badie, …) they fall through to the
+  veteran cumulative-arc engine.
+
+: **B. Sample-confidence gate on post-stack comp-pool floor**
+  (`similarity_v1.run_engine` rookie post-stack floor branch).
+
+  The post-stack floor is now multiplied by the rookie's stored
+  `rookie_confidence_factor` (clamped to [0.5, 1.0] by
+  `project_rookie`). Bub Means' 4-game confidence (0.5) halves his
+  floor; Ashton Jeanty's 17-game confidence (1.0) leaves his floor
+  untouched. This is continuous (no cliff) and matches the intent of
+  the existing confidence shrinkage applied inside `project_rookie`.
+
+  The confidence scale used is recorded on the row as
+  `post_stack_comp_pool_confidence_scale` for UI / diagnostics.
+
+Why
+: Phil's 2026-06-03 DM enumerated 14 vets (Shavers, Tonges, Tyler
+  Badie, Zavier Scott, Brycen Tremayne, Mitchell Tinsley, John
+  FitzPatrick, Tanner McKee, Cameron Latu, Evan Hull, Sincere
+  McCormick, Kenny Yeboah, Jacob Saylors, Dylan Drummond) whose v3.10
+  rookie-engine `rookie_year` was 2+ years after their nflverse
+  `rookie_season`. The shared root cause is that the v2.0 arc corpus
+  filter (`games >= MIN_GAMES_PER_SEASON=4`) drops sub-4G rookie
+  seasons, leaving `target_arc.career_arc[0].season` as a much later
+  “first real season” that the cohort dispatcher then treats as the
+  rookie year.
+
+Expected output shift
+: **Vets out of rookie engine.** 14 vets move from the rookie engine
+  to the veteran cumulative-arc engine. Their production scores drop
+  to reflect their actual (thin) NFL footprints. Examples:
+
+    | Player          | v3.10 rank | v3.11 rank | v3.10 prod | v3.11 prod |
+    |-----------------|-----------:|-----------:|-----------:|-----------:|
+    | Jake Tonges     | 97         | 393        | 592.0      | 87.1       |
+    | Tyrell Shavers  | 103        | 483        | 567.8      | 58.0       |
+    | Zavier Scott    | 183        | 639        | 363.1      | 25.3       |
+    | Tyler Badie     | 220        | 645        | 271.8      | 23.6       |
+    | Kenny Yeboah    | 515        | 694        | 53.8       | 15.7       |
+
+: **Bub Means.** Stays in the rookie engine (his actual rookie year
+  IS 2024) but his post-stack floor drops from 345.8 → 172.9. Overall
+  rank slips from 189 → ~279. The two-tier confidence haircut (engine
+  + post-stack) now correctly reflects his 4-game sample.
+
+: **Other rookies.** Full-confidence rookies (Jeanty, Judkins,
+  Hampton, Tetairoa McMillan, Cam Ward) are unaffected — their
+  `rookie_confidence_factor` is 1.0 so the gate is a no-op.
+
+Validation
+: New regression suite `tests/test_v3_11_vet_as_rookie_and_floor_confidence.py`
+  pins:
+  - Shavers + 13 other misclassified vets are no longer in the rookie
+    engine.
+  - Bub Means stays in the rookie engine and his production_score
+    drops below 200.
+  - Real 2025 rookies (Hunter, McMillan, Ward, Sanders, Hampton,
+    Judkins, Jeanty) remain in the rookie engine.
+  - v3.8 invariants (Puka > Nico, Caleb > Fields > Watson, Fannin >
+    Gadsden) all hold.
+
+  One pre-existing test (`test_shedeur_sanders_still_deep`) had its
+  threshold relaxed from `>100` to `>=100` because Shedeur Sanders
+  moved from rank 102 → 100 when Tonges and Shavers exited the
+  rookie engine. Same deep tier; the original threshold was sensitive
+  to two misclassified vets that no longer sit ahead of him.
+
+---
+
 ## v3.10 — Career stats panel + PFR similarity audit
 
 **Date:** 2026-06-02
