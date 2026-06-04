@@ -15,6 +15,84 @@ Format for each entry:
 
 ---
 
+## v3.12 — Superflex Positional VORP + Dynasty Rankings UI controls
+
+**Date:** 2026-06-03
+
+Phil's 2026-06-03 brief on the Dynasty Rankings tab:
+
+> Sort by position + replace Consensus Rank with positional VORP.
+> 12-team Superflex starters: 1QB / 2RB / 3WR / 1TE / 1 SF / 1.5 Flex.
+> Compute VORP in Python and emit a new field ``superflex_vorp_score``
+> into engine_rankings.json. The HTML/JS reads it for the new sort.
+> Keep raw consensus rank as a *display column* so Phil can still see it.
+
+What changed
+: **A. New module ``dynasty.engine.superflex_vorp``.**
+  Computes per-position replacement levels and applies a VORP-style
+  score to every engine row. Starter counts (after resolving the 1 SF
+  to QB and splitting 1.5 Flex 1.0 RB / 0.5 WR) come out to:
+
+      QB: 24, RB: 36, WR: 42, TE: 12
+
+  Replacement level at each position = ``production_score`` of the
+  (N+1)-th-ranked player at that position. VORP score =
+  ``production_score - replacement``.
+
+: **B. Wired into ``report.generate_site``.** ``apply_superflex_vorp``
+  runs before site build so every row in ``engine_rankings.json`` has
+  ``superflex_vorp_score`` and ``superflex_vorp_replacement`` available
+  to league imports and downstream consumers.
+
+: **C. Dynasty Rankings tab UI rebuild** (``_build_league_consensus``).
+  - Added position filter dropdown (All / QB / RB / WR / TE — pure
+    client-side JS, filters rows before sort).
+  - Replaced "Consensus rank" sort button with "Superflex VORP" sort.
+  - Added two new columns: ``VORP #`` (1-indexed rank by VORP) and
+    ``VORP`` (the score with sign). Both surface on every row.
+  - Kept ``Consensus #`` and Δ as display columns (per Phil's spec:
+    "keep raw consensus rank as a display column not a sort option").
+
+Why
+: Sorting QBs and skill players on the same raw ``production_score``
+  is misleading in superflex. QBs sweep the top because they score
+  many more fp/season than RBs/WRs, but the dynasty trade value of a
+  player depends on how scarce they are vs replacement at the
+  position. VORP normalises across positions; Phil's preferred sort
+  for evaluating roster construction in SF leagues.
+
+Expected output shift
+: **Top-10 VORP (Superflex).** Two-position dominance:
+
+      #1  Josh Allen       QB  prod=2105.1  VORP=1340.4  (rep 764.7)
+      #2  Jalen Hurts      QB  prod=2101.4  VORP=1336.7
+      #3  Jahmyr Gibbs     RB  prod=1646.1  VORP=1252.1  (rep 394.0)
+      #4  Bijan Robinson   RB  prod=1591.1  VORP=1197.1
+      #5  De'Von Achane    RB  prod=1387.3  VORP= 993.3
+      #6  Trevor Lawrence  QB  prod=1757.5  VORP= 992.8
+      #7  Jonathan Taylor  RB  prod=1355.5  VORP= 961.5
+      #8  Amon-Ra St. Brown WR prod=1523.9  VORP= 949.2  (rep 574.7)
+      #9  Justin Herbert   QB  prod=1668.3  VORP= 903.6
+      #10 Lamar Jackson    QB  prod=1587.6  VORP= 822.9
+
+: Replacement levels reveal the SF scarcity signal: QB rep (764.7)
+  exceeds RB rep (394.0) by ~2x even though RBs go deeper in the
+  starter rotation. That's why the model+VORP both reward QB1s
+  more than the consensus does — dynasty pricing under-prices QB
+  scarcity in SF.
+
+Validation
+: New regression suite ``tests/test_v3_12_superflex_vorp.py`` (10
+  tests) pins:
+  - Starter counts match the documented math.
+  - VORP score = production - replacement for every row.
+  - QB replacement > RB replacement (the SF scarcity assertion).
+  - Allen #1-5, Gibbs top-10 by VORP.
+  - Rendered ``league.html`` carries the new position filter,
+    Superflex VORP sort button, VORP columns, and STILL carries the
+    Consensus # display column.
+  - ``engine_rankings.json`` emits ``superflex_vorp_score`` for >=100
+    rows so league imports can consume it.
 ## v3.11 — Vet-as-rookie fix + sample-confidence comp-pool floor
 
 **Date:** 2026-06-03

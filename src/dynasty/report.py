@@ -20,6 +20,10 @@ from typing import Dict, Iterable, List, Optional
 
 from .engine.similarity_v1 import EngineResult, OUT_ROOT, run_engine
 from .engine.format_overlay import PRESETS, OverlayResult, all_format_overlays
+from .engine.superflex_vorp import (
+    SUPERFLEX_STARTERS,
+    apply_superflex_vorp,
+)
 from .consensus import (
     ConsensusComparison,
     compare_to_consensus,
@@ -429,6 +433,27 @@ def _build_league_consensus(
         r["player_id"]: _slug(r["name"], r["player_id"])
         for r in engine.rankings
     }
+    # v3.12 (Phil 2026-06-03) — surface Superflex Positional VORP on the
+    # Dynasty Rankings tab. The field is added to every engine row by
+    # ``apply_superflex_vorp`` in ``generate_site`` BEFORE this builder
+    # runs, so we can just look it up by player_id.
+    vorp_by_pid: Dict[str, float] = {
+        r["player_id"]: r.get("superflex_vorp_score")
+        for r in engine.rankings
+    }
+    # Compute a 1-indexed "VORP rank" so the UI can display where each
+    # player sits when sorted by Superflex Positional Value.
+    vorp_ranked = sorted(
+        (
+            r for r in engine.rankings
+            if r.get("superflex_vorp_score") is not None
+        ),
+        key=lambda r: r["superflex_vorp_score"],
+        reverse=True,
+    )
+    vorp_rank_by_pid: Dict[str, int] = {
+        r["player_id"]: i + 1 for i, r in enumerate(vorp_ranked)
+    }
     payload: Dict[str, Dict] = {}
     for fmt in formats:
         cmp = compare_to_consensus(
@@ -454,6 +479,11 @@ def _build_league_consensus(
                     "ktc_value": r.consensus_value,
                     "tier": r.consensus_tier,
                     "pos_rank": r.consensus_positional_rank,
+                    # v3.12: Superflex Positional VORP — production
+                    # over replacement at the player's position in a
+                    # 12-team Superflex league.
+                    "vorp_score": vorp_by_pid.get(r.gsis_id),
+                    "vorp_rank": vorp_rank_by_pid.get(r.gsis_id),
                     # Compute slug from the engine row by gsis_id so
                     # every row clicks through to its player page.
                     "slug": slug_by_pid.get(r.gsis_id) or r.slug,
@@ -487,9 +517,18 @@ community consensus for the same league format.</p>
 
 <div class="controls">
   Format: <span class="stats"><strong>Superflex PPR</strong></span>
+  &nbsp;·
+  Position:
+  <select id="ov-pos">
+    <option value="">All</option>
+    <option value="QB">QB</option>
+    <option value="RB">RB</option>
+    <option value="WR">WR</option>
+    <option value="TE">TE</option>
+  </select>
   &nbsp;· Sort:
   <button onclick="setSort('model')" id="sort-model">Model rank</button>
-  <button onclick="setSort('consensus')" id="sort-consensus">Consensus rank</button>
+  <button onclick="setSort('vorp')" id="sort-vorp">Superflex VORP</button>
   <button onclick="setSort('bullish')" id="sort-bullish">Model bullish</button>
   <button onclick="setSort('bearish')" id="sort-bearish">Model bearish</button>
   <span class="stats" id="ov-stats"></span>
@@ -499,6 +538,8 @@ community consensus for the same league format.</p>
 <thead><tr>
   <th>Model #</th><th>Player</th><th>Pos</th><th>Team</th>
   <th>Age</th>
+  <th style="text-align:right">VORP #</th>
+  <th style="text-align:right">VORP</th>
   <th style="text-align:right">Consensus #</th>
   <th style="text-align:right">Δ</th>
   <th style="text-align:right">Score</th>
@@ -521,6 +562,9 @@ const CONSENSUS = {payload_json};
 // the legacy overlay fallback path.
 const currentFmt = 'sf_ppr';
 let currentSort = 'model';
+// v3.12 (Phil 2026-06-03) — client-side position filter applied to the
+// rendered table. Empty string = all positions.
+let currentPos = '';
 // Consensus-page delta semantics (per Phil 2026-05-22):
 // Model ranking a player HIGHER than the crowd is the bullish
 // data-disagrees-with-narrative signal → green up-arrow.
@@ -540,9 +584,19 @@ function posBadge(p) {{
   return '<span class="pos-badge" style="background:'+c+'">'+p+'</span>';
 }}
 function sortedRows(fmt, sort) {{
-  const rows = CONSENSUS[fmt].rows.slice();
-  if (sort === 'consensus') rows.sort((a, b) => a.consensus_rank - b.consensus_rank);
-  else if (sort === 'bullish') rows.sort((a, b) => a.delta - b.delta);
+  let rows = CONSENSUS[fmt].rows.slice();
+  // v3.12: position filter applies before sort.
+  if (currentPos) {{
+    rows = rows.filter(r => r.pos === currentPos);
+  }}
+  if (sort === 'vorp') {{
+    // Superflex Positional VORP: descending by vorp_score, nulls last.
+    rows.sort((a, b) => {{
+      const av = a.vorp_score == null ? -Infinity : a.vorp_score;
+      const bv = b.vorp_score == null ? -Infinity : b.vorp_score;
+      return bv - av;
+    }});
+  }} else if (sort === 'bullish') rows.sort((a, b) => a.delta - b.delta);
   else if (sort === 'bearish') rows.sort((a, b) => b.delta - a.delta);
   else rows.sort((a, b) => a.model_rank - b.model_rank);
   return rows;
@@ -555,25 +609,37 @@ function render() {{
     const slugCell = r.slug
       ? '<a href="players/'+r.slug+'.html">'+r.name+'</a>'
       : r.name;
+    const vorpScoreCell = r.vorp_score == null
+      ? '—'
+      : (r.vorp_score >= 0 ? '+' : '') + r.vorp_score.toFixed(0);
+    const vorpRankCell = r.vorp_rank == null ? '—' : r.vorp_rank;
     return '<tr class="player-row"><td class="rank">'+r.model_rank+'</td>'+
       '<td class="name">'+slugCell+'</td>'+
       '<td>'+posBadge(r.pos)+'</td>'+
       '<td class="team">'+(r.team||'—')+'</td>'+
       '<td class="years">'+(r.age==null?'—':r.age)+'</td>'+
+      '<td class="years" style="text-align:right">'+vorpRankCell+'</td>'+
+      '<td class="score" style="text-align:right">'+vorpScoreCell+'</td>'+
       '<td class="years" style="text-align:right">'+r.consensus_rank+'</td>'+
       '<td class="years" style="text-align:right">'+chip(r.delta)+'</td>'+
       '<td class="score" style="text-align:right">'+r.score.toFixed(0)+'</td>'+
       '<td class="score" style="text-align:right">'+(r.ktc_value==null?'—':r.ktc_value)+'</td>'+
       '</tr>';
   }}).join('');
+  const posLabel = currentPos ? ' · ' + currentPos + ' only' : '';
   document.getElementById('ov-stats').textContent =
-    data.label + ' · ' + data.matched + ' players matched';
-  ['model','consensus','bullish','bearish'].forEach(k => {{
+    data.label + ' · ' + rows.length + ' shown of ' + data.matched + ' players matched' + posLabel;
+  ['model','vorp','bullish','bearish'].forEach(k => {{
     const b = document.getElementById('sort-'+k);
     if (b) b.style.opacity = (k === currentSort) ? '1' : '0.55';
   }});
 }}
 function setSort(s) {{ currentSort = s; render(); }}
+// v3.12 (Phil 2026-06-03) — position filter dropdown.
+document.getElementById('ov-pos').addEventListener('change', (e) => {{
+  currentPos = e.target.value || '';
+  render();
+}});
 render();
 </script>
 
@@ -2000,6 +2066,12 @@ def generate_site(
 
     if engine is None:
         engine = run_engine(persist=True)
+
+    # v3.12 (Phil 2026-06-03) — add Superflex Positional VORP to every
+    # row BEFORE site/overlay/JSON write so the field is visible on the
+    # Dynasty Rankings tab and downstream consumers (league imports,
+    # engine_rankings.json readers).
+    apply_superflex_vorp(engine.rankings)
 
     overlays = all_format_overlays(engine)
     team_lookup = _load_sleeper_teams()
