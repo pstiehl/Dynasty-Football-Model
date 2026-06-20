@@ -15,6 +15,173 @@ Format for each entry:
 
 ---
 
+## v3.14 — Box Score Dynasty rebrand
+
+**Date:** 2026-06-03
+
+Phil's 2026-06-03 rebrand brief. The site has been published as
+"Kings of Dynasty" since the v2.2 UI rebuild; Phil wanted a name that
+actually communicates the model's thesis. The new brand is
+**Box Score Dynasty** with the hero tagline **"Production over noise."**
+
+What changed
+: **A. Brand constants.** Added `BRAND_NAME`, `BRAND_META_DESCRIPTION`,
+  `BRAND_HERO_TAGLINE`, `BRAND_HERO_SUBTITLE`, and `BRAND_SITE_URL`
+  module-level constants in `dynasty.report`. Single source of truth
+  for the rebrand — every page title, social tag, header h1, footer,
+  and hero block reads from these.
+
+: **B. Page titles.** Every `<title>` tag now follows the
+  `Box Score Dynasty — <page name>` pattern via the new
+  `_brand_title(page)` helper. Replaces nine hard-coded
+  `"Kings of Dynasty — ..."` literals.
+
+: **C. Social meta tags.** New `_meta_tags(page_name)` helper that
+  emits a consistent block of `<meta name="description">`,
+  `og:type` / `og:site_name` / `og:title` / `og:description` /
+  `og:url`, and `twitter:card` / `twitter:title` / `twitter:description`.
+  Spliced into every page by `_page(...)`. All three social previews
+  share the canonical meta description from Phil's brief:
+  "Box Score Dynasty — NFL dynasty fantasy football rankings focused on
+  production, not hype. Every player ranked by what they actually did
+  on the field."
+
+: **D. Site header.** h1 now reads `Box Score <span class="accent">Dynasty</span>`
+  (was `Kings of <span class="accent">Dynasty</span>`). The secondary
+  meta strip leads with the hero tagline (`Production over noise.`)
+  instead of the generic "Fantasy Football" descriptor — the tagline
+  is the brand.
+
+: **E. Hero block on the landing page.** New `.brand-hero` section
+  above the `Similarity Scores` h2 on `rankings.html` (which is also
+  written to `index.html`). Renders the tagline at 30px/800 weight and
+  the subtitle at 15px/muted, on a soft
+  `linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)` accent-bordered
+  card. CSS shipped in `_shared_css`.
+
+: **F. Footer rebrand.** `Box Score Dynasty · Fantasy Football · ...`
+  (was `Kings of Dynasty · Fantasy Football · ...`).
+
+: **G. README.md.** Title is now `Box Score Dynasty — Fantasy Football`
+  with the hero tagline as a blockquote and a brand-history footnote
+  noting the v2.x/v3.x "Kings of Dynasty" name.
+
+Why
+: "Kings of Dynasty" was generic dynasty-football branding that could
+  belong to any consensus aggregator. "Box Score Dynasty" tells you
+  the model's thesis in two words: production, measured by what
+  actually happened on the field, not what the consensus says or what
+  the hype cycle predicts. The hero tagline "Production over noise."
+  is the one-line elevator pitch.
+
+Expected output shift
+: **None.** Cosmetic + meta only — no engine numbers move, no
+  rankings change, no JSON schema change.
+
+Validation
+: New regression suite `tests/test_v3_14_brand_box_score_dynasty.py`
+  (24 tests) pins:
+  - `BRAND_NAME == "Box Score Dynasty"`.
+  - `BRAND_META_DESCRIPTION` matches Phil's brief verbatim.
+  - `BRAND_HERO_TAGLINE == "Production over noise."` and the chosen
+    subtitle.
+  - `_brand_title(page)` follows the dash pattern for Methodology /
+    Dynasty Rankings / Prospects.
+  - Every page carries `<title>Box Score Dynasty — <page name></title>`,
+    `<meta name="description">`, `og:type=website`,
+    `og:site_name=Box Score Dynasty`, `og:title=Box Score Dynasty — <page>`,
+    `og:description=<canonical>`, `og:url=<gh-pages-url>`,
+    `twitter:card=summary`, `twitter:title=...`, `twitter:description=<canonical>`.
+  - Site header h1 reads `Box Score Dynasty`; site footer reads
+    `Box Score Dynasty`. Neither contains `Kings of Dynasty`.
+  - Rankings page renders the `.brand-hero` block with the tagline + subtitle
+    sourced from `BRAND_HERO_*` constants.
+  - `_shared_css` carries `.brand-hero`, `.brand-hero-tagline`,
+    `.brand-hero-subtitle` selectors.
+  - The header `<h1>` and footer contain no `"Kings of"` substring.
+  - The pre-existing v2.2 brand tests in
+    `tests/test_v2_2_penalties.py::test_site_title_rebrand` /
+    `test_no_old_title_in_h1_or_title` are updated to pin
+    `Box Score Dynasty` (with an inline note about the v2.2 → v3.14
+    brand migration).
+## v3.13 — Pro-Football-Reference + Sports-Reference attribution scrub
+
+**Date:** 2026-06-03
+
+Phil's 2026-06-03 brief asked for the third leg of the v3.11+ stack to be
+an attribution scrub on the data sources we *actually* use. The Sources
+page was four merges out of date — it still framed the site as
+“one primary data source” (nflverse) and listed Pro-Football-Reference
+as a one-off pre-1999 backfill in the methodology page footnote. In
+reality the engine now scrapes:
+
+- PFR seasonal stats 1936–1998 (v3.9 corpus expansion) + 1960–69 AFL + 1946–49 AAFC
+- PFR draft history for the 2022–2026 NFL classes (v3.4 drafted-only prospects)
+- PFR per-player career stats on every veteran profile page (v3.10)
+- Sports-Reference / CFB per-season production for the entire 2000–present
+  college prospect corpus (v3.0)
+- Sports-Reference / CFB conference standings for the v3.0 conference-tier
+  weighting
+
+What changed
+: **A. Sources page rewrite.** Every external scrape is now its own row
+  with a working link to the canonical site and a one-line description
+  of the role. New rows: PFR seasonal stats, PFR draft history, PFR
+  per-player career stats, Sports-Reference / CFB, Sports-Reference / CFB
+  standings, Tankathon big-board. An attribution callout under the table
+  explicitly credits Sports Reference LLC as the owner of PFR + SR-CFB —
+  the right thing under their ToU.
+
+: **B. Career stats panel deep-links to PFR.** The Career Stats block
+  rendered on every veteran profile page (v3.10) used to attribute
+  “from Pro Football Reference” as plain text. v3.13 turns that into a
+  direct link to the canonical PFR player page when we have the
+  `pfr_id` (`/players/<L>/<pfr_id>.htm` pattern), and falls back to the
+  PFR root URL otherwise. `rel="noopener" target="_blank"`.
+
+: **C. Veteran + prospect page footers.** Both per-player templates now
+  carry a small sources-pointer paragraph at the bottom
+  (“NFL stats sourced from nflverse + Pro-Football-Reference. See the
+  Sources page for the full attribution.” on veteran pages; the
+  prospect-page equivalent points at SR-CFB for college stats and at
+  PFR for the comp's NFL outcome).
+
+: **D. Methodology page corpus-floor bullet updated.** The bullet
+  still claimed a 1980 floor; the v3.9 backfill pushed it to 1936.
+  Linkified the PFR reference inline and pointed the reader at the
+  Sources page for the full picture.
+
+: **E. Site footer.** Now links both `pro-football-reference.com` and
+  `sports-reference.com/cfb/` instead of just listing them as plain
+  text.
+
+Why
+: ToS compliance — PFR and SR-CFB both ask for an attribution credit
+  + link back, and we were under-crediting given how much we now depend
+  on them. Also reader trust: a dynasty manager looking at a player's
+  career-stats block should be able to click straight through to the
+  source to audit.
+
+Expected output shift
+: None. Cosmetic + meta-data only — no engine numbers move.
+
+Validation
+: New regression suite `tests/test_v3_13_pfr_sr_attribution.py` (15
+  tests) pins:
+  - Sources page lists PFR (3 sub-rows: seasonal / draft / career stats),
+    SR-CFB (2 sub-rows: production / standings), and the
+    “Sports Reference LLC” attribution callout.
+  - Career stats panel deep-links to the canonical PFR player page when
+    `pfr_id` is known; falls back to PFR root when not.
+  - Career stats panel renders `rel="noopener" target="_blank"`.
+  - Empty payload still short-circuits (no regression on the “hide the
+    section when no rows” contract).
+  - Veteran + prospect page footers carry an `../sources.html` pointer.
+  - Methodology page now contains a working PFR link and the updated
+    1936 floor.
+  - Site footer links both PFR and SR-CFB.
+  - The “no longer blends external opinions” framing survives the
+    rewrite (we didn't accidentally re-frame the engine as a blend).
 ## v3.12 — Superflex Positional VORP + Dynasty Rankings UI controls
 
 **Date:** 2026-06-03

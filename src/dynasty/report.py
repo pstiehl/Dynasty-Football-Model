@@ -95,6 +95,27 @@ header.site nav a.active { opacity: 1; border-bottom: 2px solid var(--accent); p
 header.site .meta { opacity: 0.6; font-size: 12px; margin-top: 4px; }
 .container { max-width: 1240px; margin: 0 auto; padding: 28px 36px; }
 .container.narrow { max-width: 900px; }
+.brand-hero {
+  margin: 8px 0 28px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%);
+  border-left: 4px solid var(--accent);
+  border-radius: 6px;
+}
+.brand-hero-tagline {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  line-height: 1.15;
+}
+.brand-hero-subtitle {
+  margin: 8px 0 0;
+  font-size: 15px;
+  color: var(--muted);
+  font-weight: 500;
+}
 h2 { color: var(--text); font-size: 22px; margin-top: 32px; font-weight: 600; }
 h2 .accent { color: var(--accent); }
 h3 { color: var(--text); font-size: 16px; margin-top: 22px; font-weight: 600; }
@@ -195,6 +216,42 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
 """
 
 
+# ---------------------------------------------------------------------------
+# v3.14 — Brand: Box Score Dynasty
+#
+# Single source of truth for the brand name + meta description + social
+# tagline. Phil's 2026-06-03 brief on the rebrand:
+#
+#   * Brand: "Box Score Dynasty" (everywhere — page titles, header logo,
+#     footer, social meta).
+#   * Meta description: "Box Score Dynasty — NFL dynasty fantasy football
+#     rankings focused on production, not hype. Every player ranked by
+#     what they actually did on the field."
+#   * Hero tagline: "Production over noise." (primary, on the homepage).
+#     Secondary subtitle: "Dynasty rankings built on box scores, not
+#     narratives."
+#   * <title> pattern: "Box Score Dynasty — <page name>"
+#   * Social meta (og:title, og:description, twitter:card) all consistent
+#     with the meta description above.
+# ---------------------------------------------------------------------------
+
+BRAND_NAME = "Box Score Dynasty"
+BRAND_META_DESCRIPTION = (
+    "Box Score Dynasty — NFL dynasty fantasy football rankings focused on "
+    "production, not hype. Every player ranked by what they actually did "
+    "on the field."
+)
+BRAND_HERO_TAGLINE = "Production over noise."
+BRAND_HERO_SUBTITLE = "Dynasty rankings built on box scores, not narratives."
+BRAND_SITE_URL = "https://pstiehl.github.io/Dynasty-Football-Model/"
+
+
+def _brand_title(page_name: str) -> str:
+    """Return the <title> tag value for a page following the Phil-approved
+    pattern: ``Box Score Dynasty — <page name>``."""
+    return f"{BRAND_NAME} — {page_name}"
+
+
 def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) -> str:
     ts = latest_ts.strftime("%B %d, %Y at %I:%M %p UTC") if latest_ts else "—"
 
@@ -205,8 +262,8 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
     return f"""<header class="site">
   <div class="row">
     <div>
-      <h1><a href="rankings.html">Kings of <span class="accent">Dynasty</span></a></h1>
-      <div class="meta">Fantasy Football · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
+      <h1><a href="rankings.html">Box Score <span class="accent">Dynasty</span></a></h1>
+      <div class="meta">{_esc(BRAND_HERO_TAGLINE)} · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
     </div>
     <nav>
       {link("rankings.html", "Similarity Scores", "rankings")}
@@ -222,20 +279,52 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
 def _footer() -> str:
     return (
         '<footer>'
-        'Kings of Dynasty · Fantasy Football · open source on '
+        f'{BRAND_NAME} · Fantasy Football · open source on '
         '<a href="https://github.com/pstiehl/Dynasty-Football-Model">GitHub</a> · '
-        'Stats: <a href="https://github.com/nflverse/nflverse-data">nflverse</a> + Pro-Football-Reference'
+        'Stats: <a href="https://github.com/nflverse/nflverse-data">nflverse</a> · '
+        '<a href="https://www.pro-football-reference.com/">Pro-Football-Reference</a> · '
+        '<a href="https://www.sports-reference.com/cfb/">Sports-Reference / CFB</a>'
         '</footer>'
     )
 
 
+def _meta_tags(page_name: str) -> str:
+    """Render the brand-consistent meta + Open Graph + Twitter card tags
+    for a page. All three social previews share the same description and
+    a brand-prefixed title so the rebrand reads cleanly when the site is
+    shared on Slack, Twitter / X, Discord, iMessage, etc."""
+    title = _brand_title(page_name)
+    desc = BRAND_META_DESCRIPTION
+    return (
+        f'<meta name="description" content="{_esc(desc)}">\n'
+        f'<meta property="og:type" content="website">\n'
+        f'<meta property="og:site_name" content="{_esc(BRAND_NAME)}">\n'
+        f'<meta property="og:title" content="{_esc(title)}">\n'
+        f'<meta property="og:description" content="{_esc(desc)}">\n'
+        f'<meta property="og:url" content="{_esc(BRAND_SITE_URL)}">\n'
+        f'<meta name="twitter:card" content="summary">\n'
+        f'<meta name="twitter:title" content="{_esc(title)}">\n'
+        f'<meta name="twitter:description" content="{_esc(desc)}">'
+    )
+
+
 def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/style.css") -> str:
+    # The ``title`` passed in by callers is already in the
+    # ``Box Score Dynasty — <page name>`` form (we call ``_brand_title``
+    # at the call site). Derive the bare page-name back out so the
+    # social meta tags carry the same brand-prefixed title.
+    if title.startswith(f"{BRAND_NAME} — "):
+        page_name = title[len(f"{BRAND_NAME} — "):]
+    else:
+        page_name = title
+    meta_block = _meta_tags(page_name)
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{_esc(title)}</title>
+{meta_block}
 <link rel="stylesheet" href="{css_href}">
 </head>
 <body>
@@ -278,7 +367,19 @@ def _build_rankings(engine: EngineResult, latest_ts: datetime, league_label: str
 <td class="score">{row['production_score']:.0f}</td>
 </tr>"""
 
+    # v3.14 — Hero block. The rankings page is the landing page (also
+    # written to index.html), so it carries the brand hero. Other pages
+    # rely on the site header + meta tags.
+    hero_html = (
+        '<section class="brand-hero">'
+        f'<h2 class="brand-hero-tagline">{_esc(BRAND_HERO_TAGLINE)}</h2>'
+        f'<p class="brand-hero-subtitle">{_esc(BRAND_HERO_SUBTITLE)}</p>'
+        '</section>'
+    )
+
     body = f"""<div class="container">
+
+{hero_html}
 
 <h2>Similarity <span class="accent">Scores</span></h2>
 <p class="lede">Players ranked by projected lifetime fantasy points,
@@ -346,7 +447,7 @@ q.addEventListener('input', update); pos.addEventListener('change', update); upd
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Similarity Scores",
+        _brand_title("Similarity Scores"),
         _site_header("rankings", latest_ts, league_label),
         body,
     )
@@ -646,7 +747,7 @@ render();
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Dynasty Rankings",
+        _brand_title("Dynasty Rankings"),
         _site_header("league", latest_ts, league_label),
         body,
     )
@@ -736,7 +837,7 @@ setFormat('sf_ppr');
 </script>
 </div>"""
     return _page(
-        "Kings of Dynasty — Dynasty Rankings",
+        _brand_title("Dynasty Rankings"),
         _site_header("league", latest_ts, league_label),
         body,
     )
@@ -963,13 +1064,17 @@ projections.</div>
 
 <h3>Known limitations</h3>
 <ul>
-  <li><strong>Corpus floor: 1980.</strong> The v2.4 backfill added 1980-1998
-      seasons from Pro-Football-Reference, so workhorse-era RBs (Walter
-      Payton, Marcus Allen, Eric Dickerson, Earl Campbell), peak-era passers
-      (Marino, Montana, Kelly, Young, Moon), and elite-era WRs (Rice,
-      Largent, Reed, Carter) are now comp-eligible. Pre-1980 players
-      (Jim Brown, OJ Simpson, Sayers) remain out of scope — 14-game seasons
-      and undefined era-pace multipliers make the comparison unreliable.</li>
+  <li><strong>Corpus floor: 1936 (v3.9).</strong> The historical backfill
+      pulls 1936–1998 seasons from <a href="https://www.pro-football-reference.com/">Pro-Football-Reference</a>
+      (plus rival-league coverage — 1960–1969 AFL, 1946–1949 AAFC), so
+      every drafted player from the league's inception is comp-eligible:
+      workhorse-era RBs (Walter Payton, Marcus Allen, Eric Dickerson, Earl
+      Campbell), peak-era passers (Marino, Montana, Kelly, Young, Moon),
+      elite-era WRs (Rice, Largent, Reed, Carter), and the pre-modern
+      legends (Jim Brown, Gale Sayers, Otto Graham). 14-game and 12-game
+      seasons are era-pace-adjusted, which we explicitly flag with a 0.9×
+      confidence haircut on pre-1999 comps. See the
+      <a href="sources.html">Sources</a> page for the full attribution.</li>
   <li>Pre-1999 comps carry a 0.9× confidence haircut because era-pace
       adjustment is principled but not perfect. They display with an
       <span class="era-chip">⏳ 1985</span> badge on player pages.</li>
@@ -983,7 +1088,7 @@ projections.</div>
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Methodology",
+        _brand_title("Methodology"),
         _site_header("methodology", latest_ts, league_label),
         body,
     )
@@ -997,58 +1102,99 @@ def _build_sources(latest_ts: datetime, league_label: str) -> str:
     body = """<div class="container narrow">
 
 <h2>Data <span class="accent">Sources</span></h2>
-<p class="lede">v1.0 runs on one primary data source. Auxiliary sources from
-the v0.x composite are still synced for metadata but no longer feed the
-ranking.</p>
+<p class="lede">v1.0 runs on one primary data source plus a small set of
+external scrapes that extend the NFL-era corpus back to 1936 and add a
+college production layer for the prospect engine. Every external source is
+listed below with its role and attribution; nothing is silently consumed.</p>
 
 <table>
 <thead><tr><th>Source</th><th>Role</th><th>Where it's used</th></tr></thead>
 <tbody>
-<tr><td class="name">nflverse · player_stats_season</td>
+<tr><td class="name"><a href="https://github.com/nflverse/nflverse-data">nflverse · player_stats_season</a></td>
     <td><span class="tag">primary</span></td>
     <td>Every per-season stat line for every NFL skill player back to 1999. The
     retired-only similarity corpus and the era-pace calibration are built
     entirely from this file.</td></tr>
-<tr><td class="name">nflverse · players</td>
+<tr><td class="name"><a href="https://github.com/nflverse/nflverse-data">nflverse · players</a></td>
     <td><span class="tag">primary</span></td>
     <td>Player metadata: positions, birth dates, rookie/last seasons, draft
     info. Used to filter to skill positions and to compute age.</td></tr>
-<tr><td class="name">Sleeper API</td>
+<tr><td class="name"><a href="https://www.pro-football-reference.com/">Pro-Football-Reference</a> · seasonal stats</td>
+    <td><span class="tag">primary</span></td>
+    <td>Backfills NFL skill-position seasonal stats from <strong>1936–1998</strong>
+    (and the 1960–1969 AFL + 1946–1949 AAFC rival leagues) — the pre-1999 era
+    nflverse doesn't cover. Powers the legends comp pool (Rice, Marino,
+    Payton, Brown-era greats). Scraped via the Wayback Machine; cached per
+    season. See <code>src/dynasty/sources/pro_football_reference_seasonal.py</code>.</td></tr>
+<tr><td class="name"><a href="https://www.pro-football-reference.com/">Pro-Football-Reference</a> · draft history</td>
+    <td><span class="tag">primary</span></td>
+    <td>NFL draft round / pick / team for the 2022–2026 classes — drives the
+    pick-tier baseline projection (v3.4) and the “🏈 R3 #76” chip on prospect
+    rows. See <code>src/dynasty/sources/pfr_draft_class.py</code>.</td></tr>
+<tr><td class="name"><a href="https://www.pro-football-reference.com/">Pro-Football-Reference</a> · per-player career stats</td>
+    <td><span class="tag">profile</span></td>
+    <td>Season-by-season career stats rendered on every veteran profile
+    page (v3.10). Cache-first, Wayback-fronted; degrades to an empty
+    section on scrape failure. See <code>src/dynasty/sources/pfr_career_stats.py</code>.</td></tr>
+<tr><td class="name"><a href="https://www.sports-reference.com/cfb/">Sports-Reference / CFB</a></td>
+    <td><span class="tag">primary</span></td>
+    <td>College football per-season passing/rushing/receiving production for
+    the v3.0 prospect engine — the entire 2000-present college skill-position
+    corpus that the college→NFL similarity layer comps against. See
+    <code>src/dynasty/sources/sports_reference_cfb.py</code>.</td></tr>
+<tr><td class="name"><a href="https://www.sports-reference.com/cfb/">Sports-Reference / CFB</a> · standings</td>
+    <td><span class="tag">primary</span></td>
+    <td>Per-season conference standings that feed the v3.0 conference-tier
+    weighting (SEC/Big Ten/Big 12 vs Group of Five). See
+    <code>src/dynasty/sources/sports_reference_cfb_standings.py</code>.</td></tr>
+<tr><td class="name"><a href="https://sleeper.com/">Sleeper API</a></td>
     <td><span class="tag">metadata</span></td>
     <td>Current roster + team for active players. Powers the team column on
     the rankings page and the league-import flow on
     <a href="league.html">/league.html</a>.</td></tr>
-<tr><td class="name">MyFantasyLeague API</td>
+<tr><td class="name"><a href="https://www.myfantasyleague.com/">MyFantasyLeague API</a></td>
     <td><span class="tag">metadata</span></td>
     <td>League-import for MFL leagues. Same overlay engine, just different
     roster-fetch path.</td></tr>
-<tr><td class="name">NFL Draft history</td>
+<tr><td class="name"><a href="https://www.tankathon.com/nfl/big_board">Tankathon big-board</a></td>
     <td><span class="tag">metadata</span></td>
-    <td>Draft round/pick for current players (shown on player pages). Not in
-    the composite.</td></tr>
+    <td>Pre-draft (2027) big-board ordering — used until the actual NFL draft
+    pick is known. See <code>src/dynasty/sources/tankathon_big_board.py</code>.</td></tr>
 <tr><td class="name"><a href="https://keeptradecut.com/dynasty-rankings">KeepTradeCut</a></td>
     <td><span class="tag">consensus</span></td>
     <td>Community-driven dynasty rankings. Used only on the
     <a href="league.html">Dynasty Rankings</a> tab to diff the model
-    against the crowd — explicitly NOT a model input. Refreshed daily;
+    against the crowd — explicitly <strong>NOT</strong> a model input. Refreshed daily;
     see <a href="https://github.com/pstiehl/Dynasty-Football-Model/blob/main/docs/CONSENSUS-VS-MODEL.md">CONSENSUS-VS-MODEL.md</a>.</td></tr>
-<tr><td class="name">dynastyprocess <code>db_playerids.csv</code></td>
+<tr><td class="name"><a href="https://github.com/dynastyprocess/data">dynastyprocess</a> · <code>db_playerids.csv</code></td>
     <td><span class="tag">metadata</span></td>
-    <td>Free player-id crosswalk maintained by <a href="https://github.com/dynastyprocess/data">dynastyprocess</a>.
-    Provides the <code>ktc_id → gsis_id</code> mapping that joins the
-    KeepTradeCut consensus snapshot to model players.</td></tr>
+    <td>Free player-id crosswalk maintained by dynastyprocess. Provides the
+    <code>ktc_id → gsis_id</code> mapping that joins the KeepTradeCut
+    consensus snapshot to model players.</td></tr>
 </tbody>
 </table>
 
+<div class="callout" style="margin-top:18px">
+<strong>Pro-Football-Reference & Sports-Reference attribution.</strong>
+NFL historical season stats, draft history, and per-player career stats
+shown on this site are derived from
+<a href="https://www.pro-football-reference.com/">Pro-Football-Reference.com</a>.
+College football production data feeding the v3.0 prospect engine is derived
+from <a href="https://www.sports-reference.com/cfb/">Sports-Reference.com / College Football</a>.
+Both are properties of <a href="https://www.sports-reference.com/">Sports Reference LLC</a>;
+we gratefully acknowledge the source and link back to the canonical page wherever
+a stat block appears on a player profile.
+</div>
+
 <p class="lede" style="margin-top:18px">v0.x sources (FantasyCalc,
-DynastyProcess, FantasyPros, Brainy Ballers, FFC ADP, PFF, RAS, NFL Impact,
-DynastyProcess, etc.) have been removed from the composite. The engine no
-longer blends external opinions — it produces its own ranking from raw
-production history. See <a href="methodology.html">Methodology</a>.</p>
+DynastyProcess composite, FantasyPros, Brainy Ballers, FFC ADP, PFF, RAS, NFL Impact,
+etc.) have been removed from the ranking composite. The engine no longer
+blends external opinions — it produces its own ranking from raw production
+history. See <a href="methodology.html">Methodology</a>.</p>
 
 </div>"""
     return _page(
-        "Kings of Dynasty — Sources",
+        _brand_title("Sources"),
         _site_header("sources", latest_ts, league_label),
         body,
     )
@@ -1216,7 +1362,7 @@ with per-prospect comp pages.</div>
 
 </div>"""
         return _page(
-            "Kings of Dynasty — Prospects",
+            _brand_title("Prospects"),
             _site_header("prospects", latest_ts, league_label),
             body,
         )
@@ -1444,7 +1590,7 @@ update();
 
 </div>"""
     return _page(
-        "Kings of Dynasty — Prospects",
+        _brand_title("Prospects"),
         _site_header("prospects", latest_ts, league_label),
         body,
     )
@@ -1693,10 +1839,16 @@ available.</p>
 <p class="lede" style="margin-top:24px">Methodology details:
 <a href="../methodology.html#prospects">v3.0 prospect engine — PR 3 similarity, PR 4 projection, PR 5 back-test</a>.</p>
 
+<p class="lede" style="margin-top:8px;font-size:13px;opacity:0.75">College production stats sourced from
+<a href="https://www.sports-reference.com/cfb/" rel="noopener" target="_blank">Sports-Reference / College Football</a>.
+NFL outcomes for each comp sourced from
+<a href="https://www.pro-football-reference.com/" rel="noopener" target="_blank">Pro-Football-Reference</a>.
+See the <a href="../sources.html">Sources</a> page for the full attribution.</p>
+
 </div>"""
 
     return _page(
-        f"Kings of Dynasty — {name} (Prospect)",
+        f"{BRAND_NAME} — {name} (Prospect)",
         _site_header("prospects", latest_ts, label),
         body,
         css_href="../assets/style.css",
@@ -1969,10 +2121,17 @@ because era-pace adjustment is principled but not perfect.</p>
 league's specific scoring + roster rules? Head to
 <a href="../league.html">Dynasty Rankings</a>.</p>
 
+<p class="lede" style="margin-top:8px;font-size:13px;opacity:0.75">NFL stats sourced from
+<a href="https://github.com/nflverse/nflverse-data" rel="noopener" target="_blank">nflverse</a>
+(1999–present) and
+<a href="https://www.pro-football-reference.com/" rel="noopener" target="_blank">Pro-Football-Reference</a>
+(1936–1998 + the per-player career stats block above).
+See the <a href="../sources.html">Sources</a> page for the full attribution.</p>
+
 </div>"""
 
     return _page(
-        f"Kings of Dynasty — {row['name']}",
+        f"{BRAND_NAME} — {row['name']}",
         _site_header("rankings", latest_ts, league_label),
         body,
         css_href="../assets/style.css",
