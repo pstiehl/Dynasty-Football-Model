@@ -1,8 +1,8 @@
 {
  "schema": "crossleague.corpus.v1",
- "generated_at": "2026-09-21T17:35:10.989817+00:00",
+ "generated_at": "2026-09-21T18:03:14.217193+00:00",
  "first_indexed_at": "2026-09-21T17:07:30.457657+00:00",
- "n_runs": 3,
+ "n_runs": 4,
  "persisted": true,
  "coverage": {
   "n_leagues": 5,
@@ -3966,7 +3966,7 @@
    "lineage_root": "970003719653826560",
    "discovered_via": "seed",
    "hop": 0,
-   "retained_from": "2026-09-21T17:35:10.989817+00:00",
+   "retained_from": "2026-09-21T18:03:14.217193+00:00",
    "result": {
     "managers": [
      {
@@ -4347,7 +4347,7 @@
    "lineage_root": "939984431383752704",
    "discovered_via": "J1MB0SL1CE",
    "hop": 1,
-   "retained_from": "2026-09-21T17:35:10.989817+00:00",
+   "retained_from": "2026-09-21T18:03:14.217193+00:00",
    "result": {
     "managers": [
      {
@@ -4777,7 +4777,7 @@
    "lineage_root": "1126621778744287232",
    "discovered_via": "zdubyah",
    "hop": 1,
-   "retained_from": "2026-09-21T17:35:10.989817+00:00",
+   "retained_from": "2026-09-21T18:03:14.217193+00:00",
    "result": {
     "managers": [
      {
@@ -5056,7 +5056,7 @@
    "lineage_root": "1265188752372793344",
    "discovered_via": "wstebbins",
    "hop": 1,
-   "retained_from": "2026-09-21T17:35:10.989817+00:00",
+   "retained_from": "2026-09-21T18:03:14.217193+00:00",
    "result": {
     "managers": [
      {
