@@ -104,7 +104,12 @@ jobs:
       - name: Refresh YouTube highlight index
         continue-on-error: true
         env:
-          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+          # Falls back to APIGOOGLESAND, the only secret currently on the
+          # repo. If that one is actually the Maps key for another project,
+          # the YouTube API answers 403, this step logs it and exits without
+          # blocking the deploy - so the fallback is safe either way. Add a
+          # secret literally named YOUTUBE_API_KEY and it wins automatically.
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY || secrets.APIGOOGLESAND }}
         run: |
           if [ -z "$YOUTUBE_API_KEY" ]; then
             echo "YOUTUBE_API_KEY not set - skipping highlights refresh."
