@@ -1,0 +1,16 @@
+{
+  "_comment": "Seed league ids for the cross-league Manager Score corpus crawl. Sleeper has NO endpoint that enumerates leagues, and league ids are 19-digit snowflakes, so the id space cannot be swept. The only discovery path is the social graph: league -> /league/{id}/users -> /user/{user_id}/leagues/nfl/{season} -> their leagues -> their users. These are the entry points into that graph. See docs/CROSS-LEAGUE-CORPUS.md.",
+
+  "_why_not_leagues_json": "leagues.json at the repo root is a PUBLISHING manifest, not a crawl frontier. Every entry there produces dynasty_site/leagues/<platform>-<id>.json and appears in the league.html selector, and it exists mainly because MFL has no CORS and must be baked in. The two files have different scope (MFL+Sleeper vs Sleeper-only), different lifecycle (hand-curated and small vs machine-extensible and growing), and different consumers (the league selector vs the corpus crawler). Adding crawl seeds to leagues.json would publish a per-league page for every seed and pollute the league picker with leagues nobody on this site asked to see. Kept separate on purpose.",
+
+  "_privacy": "Only Sleeper display_name (a pseudonymous handle) is ever surfaced. No attempt is made to resolve a real identity. Data is read from Sleeper's public, read-only, unauthenticated API.",
+
+  "season": 2026,
+
+  "seeds": [
+    {
+      "league_id": "1316222126914539520",
+      "note": "Dallas Kings — 12 teams, half-PPR, 2026. Dynasty chain: 2026=1316222126914539520, 2025=1182068302871396352, 2024=1048697508282695680, 2023=970003719653826560. Seed and test fixture; the crawler resolves the chain itself via previous_league_id and must never depend on these ids being present."
+    }
+  ]
+}
