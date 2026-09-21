@@ -33,6 +33,28 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      # The scrapers cache every fetched page under data/pfr_cache and
+      # data/sr_cache and short-circuit on a cache hit. Those directories are
+      # gitignored (~60 MB), so without this step every CI run starts cold and
+      # re-scrapes the entire history from Pro Football Reference. Measured on
+      # run 30819066222: 198 min wall time, 196 of it inside the PFR scraper,
+      # 431 fetch exceptions, 42 min of pure backoff sleeping, and 127 Wayback
+      # fallbacks - all of it re-fetching seasons that have not changed since
+      # they were played.
+      #
+      # Rolling cache: the run-id key never hits, so every run saves a fresh
+      # copy, while restore-keys pulls the newest previous one. Daily access
+      # keeps it clear of the 7-day eviction window.
+      - name: Restore scraped-page cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/pfr_cache
+            data/sr_cache
+          key: scrape-cache-${{ github.run_id }}
+          restore-keys: |
+            scrape-cache-
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
