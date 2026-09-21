@@ -209,6 +209,87 @@ function msResolvePickValue(picks, season, round) {
   return { value: null, basis: 'unvalued', label: season + ' ' + ord };
 }
 
+/* ------------------------------------------------- point-in-time series */
+
+/* The value history is one aligned series: dates[] plus, per asset key, an
+ * array of values with null where the asset was off the board that day.
+ *
+ * Two lookups matter, and they are deliberately asymmetric in time:
+ *
+ *   msSeriesValueAt   - the price ON the transaction date. Never looks
+ *                       FORWARD; if nothing was recorded on or before that
+ *                       day, the answer is "unknown", not "the next one".
+ *   msSeriesPeakAfter - the highest price observed on or AFTER that date.
+ *
+ * The gap between them is what the metric is built on. See msCapture.
+ */
+function msSeriesIndexAtOrBefore(dates, date) {
+  if (!dates || !dates.length || !date) return -1;
+  var best = -1;
+  for (var i = 0; i < dates.length; i++) {
+    if (dates[i] <= date) best = i; else break;
+  }
+  return best;
+}
+
+function msSeriesValueAt(series, key, date, table) {
+  if (!series || !series.dates) return null;
+  var tbl = series[table || 'sf'] || {};
+  var row = tbl[key] || null;
+  if (!row) return null;
+  var idx = msSeriesIndexAtOrBefore(series.dates, date);
+  /* Walk back to the most recent day this asset was actually on the board. */
+  for (var i = idx; i >= 0; i--) {
+    if (row[i] != null) return { value: row[i], asOf: series.dates[i] };
+  }
+  return null;
+}
+
+function msSeriesPeakAfter(series, key, date, table) {
+  if (!series || !series.dates) return null;
+  var tbl = series[table || 'sf'] || {};
+  var row = tbl[key] || null;
+  if (!row) return null;
+  var best = null, bestDate = null, seen = false;
+  for (var i = 0; i < series.dates.length; i++) {
+    if (series.dates[i] < date) continue;
+    seen = true;
+    if (row[i] == null) continue;
+    if (best == null || row[i] > best) { best = row[i]; bestDate = series.dates[i]; }
+  }
+  if (!seen) return null;   /* nothing observed after this date yet */
+  return { value: best, asOf: bestDate, observed: best != null };
+}
+
+/* Value capture: what the asset was worth when it changed hands, against
+ * the highest it reached afterwards.
+ *
+ * Why not "value then vs value now": a player's value decays as he ages, so
+ * judging a 2023 trade by today's board punishes the passage of time rather
+ * than the decision. Why not "highest ever" including before the trade:
+ * acquiring a player who already peaked two years earlier would score well
+ * on a naive ratio while actually being the purchase of a declining asset.
+ *
+ * Measuring forward from the transaction fixes both. capture >= 0 always,
+ * which is fine because every use is RELATIVE - received against given, or
+ * a pick against what its draft slot typically captured. An asset that only
+ * declined captures 0; one acquired before a rise captures a lot.
+ */
+function msCapture(series, key, date, table) {
+  var at = msSeriesValueAt(series, key, date, table);
+  if (!at) return { evaluable: false, reason: 'no value recorded on or before this date' };
+  var peak = msSeriesPeakAfter(series, key, date, table);
+  if (!peak) return { evaluable: false, reason: 'too recent - no value recorded since',
+                      vAt: at.value, vAtDate: at.asOf };
+  var top = (peak.value == null || peak.value < at.value) ? at.value : peak.value;
+  return {
+    evaluable: true,
+    vAt: at.value, vAtDate: at.asOf,
+    peak: top, peakDate: peak.asOf || at.asOf,
+    capture: top - at.value
+  };
+}
+
 /* ------------------------------------------------------------- scoring */
 
 /* Score one league.
@@ -244,14 +325,15 @@ function msScoreLeague(input, opts) {
   var audit = { picks: [], trades: [], waivers: [] };
   var draftMeta = [];
   var unvalued = 0;
+  var notEvaluable = 0;
 
   /* ---- draft ---- */
   (input.drafts || []).forEach(function (d) {
     var valued = (d.picks || []).filter(function (p) {
-      return typeof p.value === 'number' && isFinite(p.value);
+      return p.evaluable && typeof p.capture === 'number' && isFinite(p.capture);
     });
     var curve = msExpectedCurve(
-      valued.map(function (p) { return { slot: p.slot, value: p.value }; }),
+      valued.map(function (p) { return { slot: p.slot, value: p.capture }; }),
       { minPicks: opts.minPicksPerDraft }
     );
     draftMeta.push({
@@ -264,17 +346,20 @@ function msScoreLeague(input, opts) {
     (d.picks || []).forEach(function (p) {
       var r = row(p.managerId);
       if (!r) return;
-      if (typeof p.value !== 'number' || !isFinite(p.value)) { unvalued++; return; }
+      if (!p.evaluable || typeof p.capture !== 'number' || !isFinite(p.capture)) {
+        notEvaluable++; return;
+      }
       var expected = curve.at(p.slot);
       if (expected == null) return;
-      var surplus = p.value - expected;
+      var surplus = p.capture - expected;
       r.draft.n += 1;
       r.draft.total += surplus;
       audit.picks.push({
         managerId: p.managerId, draftId: d.id, season: d.season,
         draftLabel: d.label, slot: p.slot, name: p.name, pos: p.pos,
-        value: p.value, expected: expected, surplus: surplus,
-        basis: p.basis || 'current', date: p.date || null
+        vAt: p.vAt, vAtDate: p.vAtDate, peak: p.peak, peakDate: p.peakDate,
+        capture: p.capture, expected: expected, surplus: surplus,
+        basis: p.basis || 'point-in-time', date: p.date || null
       });
     });
   });
@@ -287,12 +372,14 @@ function msScoreLeague(input, opts) {
     sides.forEach(function (s) {
       var recv = 0, give = 0;
       (s.received || []).forEach(function (a) {
-        if (typeof a.value === 'number' && isFinite(a.value)) recv += a.value;
-        else { partial = true; unvalued++; }
+        if (a.evaluable && typeof a.capture === 'number' && isFinite(a.capture)) {
+          recv += a.capture;
+        } else { partial = true; notEvaluable++; }
       });
       (s.given || []).forEach(function (a) {
-        if (typeof a.value === 'number' && isFinite(a.value)) give += a.value;
-        else { partial = true; unvalued++; }
+        if (a.evaluable && typeof a.capture === 'number' && isFinite(a.capture)) {
+          give += a.capture;
+        } else { partial = true; notEvaluable++; }
       });
       sideNet.push({ managerId: s.managerId, received: recv, given: give,
                      net: recv - give, assets: s });
@@ -339,17 +426,20 @@ function msScoreLeague(input, opts) {
   (input.waivers || []).forEach(function (w) {
     var r = row(w.managerId);
     if (!r) return;
-    if (typeof w.value !== 'number' || !isFinite(w.value)) { unvalued++; return; }
-    /* Surplus over the cheapest player on the board: claiming a
-     * replacement-level body is not a skill, finding a starter is. */
-    var surplus = w.value - floor;
-    if (surplus < 0) surplus = 0;
+    if (!w.evaluable || typeof w.capture !== 'number' || !isFinite(w.capture)) {
+      notEvaluable++; return;
+    }
+    /* Capture already answers "did this pickup go on to be worth
+     * something": a replacement-level body that never rose captures 0. */
+    var surplus = w.capture;
     r.waiver.n += 1;
     r.waiver.total += surplus;
     audit.waivers.push({
       managerId: w.managerId, date: w.date || null, name: w.name, pos: w.pos,
-      value: w.value, surplus: surplus, faab: w.faab == null ? null : w.faab,
-      basis: w.basis || 'current'
+      vAt: w.vAt, vAtDate: w.vAtDate, peak: w.peak, peakDate: w.peakDate,
+      capture: w.capture, surplus: surplus,
+      faab: w.faab == null ? null : w.faab,
+      basis: w.basis || 'point-in-time'
     });
   });
 
@@ -416,6 +506,7 @@ function msScoreLeague(input, opts) {
     weights: effective,
     meta: {
       unvaluedAssets: unvalued,
+      notEvaluableAssets: notEvaluable,
       liveComponents: live,
       floor: floor,
       nTrades: (input.trades || []).length,
@@ -435,6 +526,8 @@ if (typeof module !== 'undefined' && module.exports) {
     msMean: msMean, msMedian: msMedian, msPstdev: msPstdev,
     msShrink: msShrink, msZScores: msZScores,
     msExpectedCurve: msExpectedCurve, msOrdinal: msOrdinal,
+    msSeriesValueAt: msSeriesValueAt, msSeriesPeakAfter: msSeriesPeakAfter,
+    msCapture: msCapture,
     msResolvePickValue: msResolvePickValue, msScoreLeague: msScoreLeague
   };
 }
@@ -455,7 +548,7 @@ MANAGERSCORE_UI_JS = r"""
 
 var MSX = {
   values: null,        /* managerscore_values.json */
-  history: {},         /* date -> compact value point */
+  series: null,        /* managerscore_series.json - the dated value history */
   result: null,
   leagueChain: [],
   loadError: null
@@ -500,7 +593,10 @@ function msGetJSONSoft(url, fallback) {
 function msLoadValues() {
   return msGetJSON('managerscore_values.json').then(function (v) {
     MSX.values = v;
-    return v;
+    return msGetJSONSoft('managerscore_series.json', null).then(function (s) {
+      MSX.series = s;
+      return v;
+    });
   }).catch(function (e) {
     MSX.values = null;
     MSX.loadError = String(e && e.message || e);
@@ -509,51 +605,8 @@ function msLoadValues() {
 }
 
 function msHistoryDates() {
-  var h = MSX.values && MSX.values.history;
-  return (h && h.dates) || [];
-}
-
-/* Latest retained snapshot on or before `date`. Never reaches forward in
- * time - a price that did not exist yet is not a point-in-time price. */
-function msNearestHistoryDate(date, dates) {
-  if (!date) return null;
-  var best = null;
-  var sorted = (dates || []).slice().sort();
-  for (var i = 0; i < sorted.length; i++) {
-    if (sorted[i] <= date) best = sorted[i]; else break;
-  }
-  return best;
-}
-
-function msHistoryUrl(date) {
-  var h = (MSX.values && MSX.values.history) || {};
-  var dir = h.dir || 'ktc_history';
-  var tmpl = h.file_template || 'ktc_values_{date}.json';
-  return dir + '/' + tmpl.replace('{date}', date);
-}
-
-/* Preload every history point the transaction set needs, deduplicated, so
- * scoring itself stays synchronous and testable. */
-function msPreloadHistory(dates) {
-  var need = {};
-  (dates || []).forEach(function (d) {
-    var nearest = msNearestHistoryDate(d, msHistoryDates());
-    if (nearest && !MSX.history[nearest]) need[nearest] = true;
-  });
-  var wanted = Object.keys(need);
-  if (!wanted.length) return Promise.resolve();
-  return Promise.all(wanted.map(function (d) {
-    return msGetJSONSoft(msHistoryUrl(d), null).then(function (p) {
-      if (p) MSX.history[d] = p;
-    });
-  }));
-}
-
-/* ------------------------------------------------------------ valuation */
-
-function msFloor() {
-  var v = MSX.values;
-  return (v && v.ktc && typeof v.ktc.floor === 'number') ? v.ktc.floor : 0;
+  var s = MSX.series;
+  return (s && s.dates) || [];
 }
 
 function msPlayerEntry(sleeperId) {
@@ -563,49 +616,52 @@ function msPlayerEntry(sleeperId) {
 }
 
 /* [value, name, position, ktc_id] */
-function msValueForPlayer(sleeperId, date, fallbackName) {
+function msCaptureForPlayer(sleeperId, date, fallbackName) {
   var entry = msPlayerEntry(sleeperId);
   var name = (entry && entry[1]) || fallbackName || ('Sleeper #' + sleeperId);
   var pos = (entry && entry[2]) || '';
   var ktcId = entry && entry[3] != null ? String(entry[3]) : null;
 
-  if (ktcId) {
-    var d = msNearestHistoryDate(date, msHistoryDates());
-    var point = d ? MSX.history[d] : null;
-    if (point && point.sf && point.sf[ktcId] != null) {
-      return { value: point.sf[ktcId], basis: 'as-of ' + d, pointInTime: true,
-               name: name, pos: pos };
-    }
+  if (!ktcId) {
+    return { evaluable: false, name: name, pos: pos,
+             reason: 'not on the KeepTradeCut board' };
   }
-  if (entry && typeof entry[0] === 'number') {
-    return { value: entry[0], basis: 'current', pointInTime: false,
-             name: name, pos: pos };
-  }
-  /* Outside KTC's published top 500. Priced at the board floor, which is
-   * the cheapest real asset KTC ranks - not zero, and not a guess. */
-  return { value: msFloor(), basis: 'off-board floor', pointInTime: false,
-           offBoard: true, name: name, pos: pos };
+  var c = msCapture(MSX.series, ktcId, date, 'sf');
+  c.name = name; c.pos = pos;
+  return c;
 }
 
-function msPicksFor(date) {
-  var d = msNearestHistoryDate(date, msHistoryDates());
-  var point = d ? MSX.history[d] : null;
-  if (point && point.picks && Object.keys(point.picks).length) {
-    return { picks: point.picks, asOf: d };
+function msCaptureForPick(season, round, date) {
+  var picks = (MSX.series && MSX.series.picks) || {};
+  /* Resolve the label against whichever pick rows the archive actually
+   * carries, then capture on that label's own series. */
+  var r = msResolvePickValue(msPickSnapshotAt(date), String(season), round);
+  var label = r.label;
+  var key = null;
+  if (picks[season + ' Mid ' + msOrdinal(round)]) key = season + ' Mid ' + msOrdinal(round);
+  else if (picks[label]) key = label;
+  if (!key) {
+    return { evaluable: false, name: label, pos: 'PICK',
+             reason: 'pick not on the archived board' };
   }
-  var v = MSX.values;
-  return { picks: (v && v.picks) || {}, asOf: null };
+  var c = msCapture(MSX.series, key, date, 'picks');
+  c.name = key; c.pos = 'PICK';
+  return c;
 }
 
-function msValueForPick(season, round, date) {
-  var src = msPicksFor(date);
-  var r = msResolvePickValue(src.picks, String(season), round);
-  return {
-    value: r.value,
-    label: r.label,
-    basis: (src.asOf ? 'as-of ' + src.asOf + ' · ' : 'current · ') + r.basis,
-    pointInTime: !!src.asOf
-  };
+/* Values on the nearest archived date at or before `date`, used only to
+ * resolve which pick label exists; capture then runs on the full series. */
+function msPickSnapshotAt(date) {
+  var s = MSX.series;
+  if (!s || !s.dates) return {};
+  var idx = msSeriesIndexAtOrBefore(s.dates, date);
+  if (idx < 0) return {};
+  var out = {};
+  var picks = s.picks || {};
+  for (var k in picks) {
+    if (picks[k] && picks[k][idx] != null) out[k] = picks[k][idx];
+  }
+  return out;
 }
 
 /* --------------------------------------------------------- sleeper reads */
@@ -724,9 +780,9 @@ function msBuildInput(seasons) {
     });
   });
 
-  return msPreloadHistory(txDates).then(function () {
+  return Promise.resolve().then(function () {
     var drafts = [], trades = [], waivers = [];
-    var pit = 0, cur = 0, offBoard = 0;
+    var evaluable = 0, tooRecent = 0, offBoard = 0;
 
     seasons.forEach(function (s) {
       var lid = s.league.league_id;
@@ -743,14 +799,15 @@ function msBuildInput(seasons) {
           var md = p.metadata || {};
           var nm = ((md.first_name || '') + ' ' + (md.last_name || '')).trim();
           var uid = p.picked_by || userFor(lid, p.roster_id);
-          var v = msValueForPlayer(p.player_id, date, nm);
-          if (v.pointInTime) pit++; else cur++;
-          if (v.offBoard) offBoard++;
+          var c = msCaptureForPlayer(p.player_id, date, nm);
+          if (c.evaluable) evaluable++; else if (c.vAt != null) tooRecent++; else offBoard++;
           return {
             managerId: uid, slot: Number(p.pick_no || 0),
             round: Number(p.round || 0), playerId: String(p.player_id || ''),
-            name: v.name, pos: v.pos || md.position || '',
-            value: v.value, basis: v.basis, date: date
+            name: c.name, pos: c.pos || md.position || '',
+            evaluable: c.evaluable, capture: c.capture,
+            vAt: c.vAt, vAtDate: c.vAtDate, peak: c.peak, peakDate: c.peakDate,
+            reason: c.reason, date: date
           };
         }).filter(function (p) { return p.managerId && p.slot > 0; });
         if (picks.length) {
@@ -774,26 +831,28 @@ function msBuildInput(seasons) {
           Object.keys(t.adds || {}).forEach(function (pid) {
             var uid = userFor(lid, t.adds[pid]);
             var sd = side(uid); if (!sd) return;
-            var v = msValueForPlayer(pid, date, null);
-            if (v.pointInTime) pit++; else cur++;
-            if (v.offBoard) offBoard++;
-            sd.received.push({ kind: 'player', label: v.name, value: v.value,
-                               basis: v.basis, pos: v.pos });
+            var c = msCaptureForPlayer(pid, date, null);
+            if (c.evaluable) evaluable++; else if (c.vAt != null) tooRecent++; else offBoard++;
+            sd.received.push({ kind: 'player', label: c.name, pos: c.pos,
+                               evaluable: c.evaluable, capture: c.capture,
+                               vAt: c.vAt, peak: c.peak, reason: c.reason });
           });
           Object.keys(t.drops || {}).forEach(function (pid) {
             var uid = userFor(lid, t.drops[pid]);
             var sd = side(uid); if (!sd) return;
-            var v = msValueForPlayer(pid, date, null);
-            sd.given.push({ kind: 'player', label: v.name, value: v.value,
-                            basis: v.basis, pos: v.pos });
+            var c = msCaptureForPlayer(pid, date, null);
+            sd.given.push({ kind: 'player', label: c.name, pos: c.pos,
+                            evaluable: c.evaluable, capture: c.capture,
+                            vAt: c.vAt, peak: c.peak, reason: c.reason });
           });
           (t.draft_picks || []).forEach(function (dpk) {
             var to = userFor(lid, dpk.owner_id);
             var from = userFor(lid, dpk.previous_owner_id);
-            var pv = msValueForPick(dpk.season, dpk.round, date);
-            if (pv.pointInTime) pit++; else cur++;
-            var asset = { kind: 'pick', label: pv.label, value: pv.value,
-                          basis: pv.basis };
+            var pc = msCaptureForPick(dpk.season, dpk.round, date);
+            if (pc.evaluable) evaluable++; else tooRecent++;
+            var asset = { kind: 'pick', label: pc.name,
+                          evaluable: pc.evaluable, capture: pc.capture,
+                          vAt: pc.vAt, peak: pc.peak, reason: pc.reason };
             var st = side(to); if (st) st.received.push(asset);
             var sf = side(from); if (sf) sf.given.push(asset);
           });
@@ -818,12 +877,14 @@ function msBuildInput(seasons) {
           Object.keys(t.adds || {}).forEach(function (pid) {
             var uid = userFor(lid, t.adds[pid]);
             if (!uid) return;
-            var v = msValueForPlayer(pid, date, null);
-            if (v.pointInTime) pit++; else cur++;
-            if (v.offBoard) offBoard++;
+            var c = msCaptureForPlayer(pid, date, null);
+            if (c.evaluable) evaluable++; else if (c.vAt != null) tooRecent++; else offBoard++;
             waivers.push({ managerId: uid, date: date, playerId: String(pid),
-                           name: v.name, pos: v.pos, value: v.value,
-                           basis: v.basis, faab: faab, type: type });
+                           name: c.name, pos: c.pos,
+                           evaluable: c.evaluable, capture: c.capture,
+                           vAt: c.vAt, vAtDate: c.vAtDate, peak: c.peak,
+                           peakDate: c.peakDate, reason: c.reason,
+                           faab: faab, type: type });
           });
         }
       });
@@ -832,9 +893,9 @@ function msBuildInput(seasons) {
     return {
       input: {
         managers: Object.keys(managers).map(function (k) { return managers[k]; }),
-        drafts: drafts, trades: trades, waivers: waivers, floor: msFloor()
+        drafts: drafts, trades: trades, waivers: waivers
       },
-      coverage: { pointInTime: pit, current: cur, offBoard: offBoard }
+      coverage: { evaluable: evaluable, tooRecent: tooRecent, offBoard: offBoard }
     };
   });
 }
@@ -858,39 +919,43 @@ function msDeltaClass(n) {
 }
 
 function msRenderBasisBanner(coverage) {
-  var h = (MSX.values && MSX.values.history) || {};
-  var total = (coverage.pointInTime || 0) + (coverage.current || 0);
-  var pit = coverage.pointInTime || 0;
+  var s = MSX.series || {};
+  var dates = s.dates || [];
   var box = msEl('ms-basis');
   if (!box) return;
+  var ev = coverage.evaluable || 0;
+  var recent = coverage.tooRecent || 0;
+  var off = coverage.offBoard || 0;
 
   var html;
-  if (!pit) {
-    html = '<strong>Current-value basis.</strong> Every transaction below is ' +
-      'priced at <em>today\'s</em> KeepTradeCut value, not the value on the ' +
-      'day it happened. No dated KTC history exists for this project yet' +
-      (h.earliest ? '' : ' (none at all)') + ', and it cannot be ' +
-      'reconstructed after the fact. ' +
-      '<br><br>That makes this a measure of <strong>how transactions turned ' +
-      'out</strong>, not of how defensible they looked at the time. A manager ' +
-      'who traded for a player before he broke out and one who traded for him ' +
-      'after score identically here. Read it as outcome, not process.' +
-      (h.count ? '' : '<br><br>This page starts improving on its own: the daily ' +
-       'job now retains a small dated value file, so transactions dated after ' +
-       'that accumulation begins will be priced point-in-time and labelled ' +
-       '<code>as-of</code>.');
-  } else if (pit < total) {
-    html = '<strong>Mixed basis — ' + pit + ' of ' + total + ' asset ' +
-      'valuations are point-in-time.</strong> Transactions on or after <code>' +
-      msEsc(h.earliest || '') + '</code> are priced at the KTC value retained ' +
-      'for that date and labelled <code>as-of</code>. Everything earlier ' +
-      'predates our value history and is priced at today\'s value, labelled ' +
-      '<code>current</code>. Per-transaction bases are shown in the audit ' +
-      'tables below.';
+  if (!dates.length) {
+    html = '<strong>No dated value history available.</strong> This page ' +
+      'needs <code>managerscore_series.json</code> to price anything, and it ' +
+      'is missing. Nothing has been scored.';
   } else {
-    html = '<strong>Point-in-time basis.</strong> Every asset is priced at the ' +
-      'KTC value retained for the date of the transaction (history from <code>' +
-      msEsc(h.earliest || '') + '</code>).';
+    html = '<strong>Point-in-time value capture.</strong> Every asset is ' +
+      'priced at its KeepTradeCut value <em>on the date it changed hands</em>, ' +
+      'then compared with the highest value it reached <em>afterwards</em>. ' +
+      'The gap is what the manager captured.' +
+      '<br><br>This is deliberately not "value then versus value today": a ' +
+      'player\'s value decays as he ages, so judging a 2023 trade by today\'s ' +
+      'board would punish the passage of time rather than the decision. It is ' +
+      'also not "highest ever", which would reward buying a player who had ' +
+      'already peaked. Measuring forward from each transaction isolates the ' +
+      'thing that is actually skill: acquiring before a rise, and shedding ' +
+      'before a fall.' +
+      '<br><br><strong>The archive is real but sparse.</strong> ' + dates.length +
+      ' dated boards from <code>' + msEsc(dates[0]) + '</code> to <code>' +
+      msEsc(dates[dates.length - 1]) + '</code>, recovered from public web ' +
+      'archive captures. Gaps of weeks to months exist, so a transaction is ' +
+      'priced at the nearest recorded board <em>on or before</em> its date ' +
+      '(never after), and a "peak" is the highest value we actually observed ' +
+      '&mdash; the true peak may sit in a gap. Every row shows the dates used.' +
+      '<br><br>' + ev + ' asset valuation(s) evaluated' +
+      (recent ? ', <strong>' + recent + ' too recent to judge</strong> (nothing ' +
+        'recorded after them yet &mdash; you cannot grade foresight on a trade ' +
+        'made last week)' : '') +
+      (off ? ', ' + off + ' never on the KTC board' : '') + '.';
   }
   box.className = 'callout callout-warn';
   box.style.display = 'block';
@@ -899,14 +964,15 @@ function msRenderBasisBanner(coverage) {
 
 function msRenderSummary(result, coverage) {
   var m = result.meta;
+  var s = MSX.series || {};
+  var dates = s.dates || [];
   var kpis = [
     [String(result.managers.length), 'Managers scored'],
     [String(m.nPicksScored), 'Draft picks scored'],
     [String(m.nTradesScored) + ' / ' + String(m.nTrades), 'Trades scored'],
-    [String(m.nWaivers), 'Waiver / FA adds'],
-    [coverage.pointInTime + ' / ' + (coverage.pointInTime + coverage.current),
-     'Point-in-time valuations'],
-    [String(coverage.offBoard), 'Assets priced at board floor']
+    [String(m.nWaivers), 'Waiver / FA adds scored'],
+    [String(dates.length), 'Dated boards in archive'],
+    [String(coverage.tooRecent || 0), 'Assets too recent to judge']
   ];
   msEl('ms-summary').innerHTML =
     '<div class="kpi-row">' + kpis.map(function (k) {
@@ -915,11 +981,12 @@ function msRenderSummary(result, coverage) {
     }).join('') + '</div>' +
     '<div class="ms-sub">Components in play: ' +
     msEsc(m.liveComponents.join(', ') || 'none') +
-    ' · weights ' + msEsc(Object.keys(result.weights).filter(function (c) {
+    ' · weights ' + (Object.keys(result.weights).filter(function (c) {
       return result.weights[c] > 0;
     }).map(function (c) {
       return c + ' ' + (result.weights[c] * 100).toFixed(0) + '%';
-    }).join(' / ') || '—') + '</div>';
+    }).join(' / ') || '—') +
+    ' · values are KeepTradeCut superflex consensus points</div>';
 }
 
 function msRenderTable(result) {
@@ -988,16 +1055,19 @@ function msRenderAudit(managerId) {
 
   html += '<h4>Draft picks (' + picks.length + ')</h4>';
   html += picks.length ? '<table><thead><tr><th>Draft</th><th>Slot</th>' +
-    '<th>Player</th><th>Value</th><th>Expected at slot</th><th>Surplus</th>' +
-    '<th>Basis</th></tr></thead><tbody>' +
+    '<th>Player</th><th>Value at pick</th><th>Peak after</th><th>Captured</th>' +
+    '<th>Slot par</th><th>Surplus</th></tr></thead><tbody>' +
     picks.map(function (p) {
       return '<tr><td>' + msEsc(p.draftLabel || p.season || '') + '</td>' +
         '<td>' + p.slot + '</td>' +
         '<td class="name">' + msEsc(p.name) + '</td>' +
-        '<td>' + msFmt(p.value) + '</td>' +
+        '<td>' + msFmt(p.vAt) + '<span class="ms-basis"> ' +
+          msEsc(p.vAtDate || '') + '</span></td>' +
+        '<td>' + msFmt(p.peak) + '<span class="ms-basis"> ' +
+          msEsc(p.peakDate || '') + '</span></td>' +
+        '<td>' + msFmt(p.capture) + '</td>' +
         '<td>' + msFmt(p.expected) + '</td>' +
-        '<td class="' + msDeltaClass(p.surplus) + '">' + msSigned(p.surplus) + '</td>' +
-        '<td class="ms-basis">' + msEsc(p.basis) + '</td></tr>';
+        '<td class="' + msDeltaClass(p.surplus) + '">' + msSigned(p.surplus) + '</td></tr>';
     }).join('') + '</tbody></table>'
     : '<p class="ms-sub">No scored draft picks.</p>';
 
@@ -1008,7 +1078,13 @@ function msRenderAudit(managerId) {
     if (!mine) return '';
     function assets(list) {
       return list.length ? list.map(function (a) {
-        return msEsc(a.label) + ' (' + msFmt(a.value) + ')';
+        if (!a.evaluable) {
+          return msEsc(a.label) + ' <span class="ms-basis">(' +
+                 msEsc(a.reason || 'not priceable') + ')</span>';
+        }
+        return msEsc(a.label) + ' <span class="ms-basis">(' + msFmt(a.vAt) +
+               ' &rarr; ' + msFmt(a.peak) + ', captured ' + msFmt(a.capture) +
+               ')</span>';
       }).join(', ') : '—';
     }
     return '<div class="ms-trade' + (t.scored ? '' : ' ms-trade-unscored') + '">' +
@@ -1032,14 +1108,16 @@ function msRenderAudit(managerId) {
 
   html += '<h4>Waiver / free-agent adds (' + waivers.length + ')</h4>';
   html += waivers.length ? '<table><thead><tr><th>Date</th><th>Player</th>' +
-    '<th>Value</th><th>Over floor</th><th>FAAB</th><th>Basis</th></tr></thead><tbody>' +
+    '<th>Value at add</th><th>Peak after</th><th>Captured</th><th>FAAB</th>' +
+    '</tr></thead><tbody>' +
     waivers.map(function (w) {
       return '<tr><td>' + msEsc(w.date || '—') + '</td>' +
         '<td class="name">' + msEsc(w.name) + '</td>' +
-        '<td>' + msFmt(w.value) + '</td>' +
+        '<td>' + msFmt(w.vAt) + '</td>' +
+        '<td>' + msFmt(w.peak) + '<span class="ms-basis"> ' +
+          msEsc(w.peakDate || '') + '</span></td>' +
         '<td class="' + msDeltaClass(w.surplus) + '">' + msSigned(w.surplus) + '</td>' +
-        '<td>' + (w.faab == null ? '—' : msEsc(w.faab)) + '</td>' +
-        '<td class="ms-basis">' + msEsc(w.basis) + '</td></tr>';
+        '<td>' + (w.faab == null ? '—' : msEsc(w.faab)) + '</td></tr>';
     }).join('') + '</tbody></table>'
     : '<p class="ms-sub">No waiver or free-agent adds on record.</p>';
 
@@ -1203,10 +1281,10 @@ if (typeof document !== 'undefined' && document.addEventListener) {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports.msNearestHistoryDate = msNearestHistoryDate;
+  module.exports.msHistoryDates = msHistoryDates;
   module.exports.msMsToDate = msMsToDate;
-  module.exports.msValueForPlayer = msValueForPlayer;
-  module.exports.msValueForPick = msValueForPick;
+  module.exports.msCaptureForPlayer = msCaptureForPlayer;
+  module.exports.msCaptureForPick = msCaptureForPick;
   module.exports.msBuildInput = msBuildInput;
   module.exports.msRenderAudit = msRenderAudit;
   module.exports.msRenderTable = msRenderTable;

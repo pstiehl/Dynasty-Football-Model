@@ -7,13 +7,14 @@
  *   node tests/js/managerscore_dom_tests.js /tmp/ms_page.js
  *
  * Why this exists: no browser is available in the build environment, and the
- * UI layer contains the part of the page that cannot be reasoned about on
- * paper -- the mapping from Sleeper's actual JSON shapes (adds/drops keyed by
- * player id to roster id, per-week transaction pages, previous_league_id
- * chaining, ms-epoch timestamps) into the scoring core's input. That mapping
- * is exercised here against synthetic payloads built to the documented
- * shapes. It proves the wiring is self-consistent; it does NOT prove Sleeper
- * really returns these shapes, which needs a live call.
+ * UI layer contains the part that cannot be reasoned about on paper -- the
+ * mapping from Sleeper's actual JSON shapes (adds/drops keyed by player id to
+ * roster id, per-week transaction pages, previous_league_id chaining,
+ * ms-epoch timestamps) into the scoring core's input, and the join from
+ * sleeper_id through ktc_id into the dated value series.
+ *
+ * It proves the wiring is self-consistent. It does NOT prove Sleeper really
+ * returns these shapes -- that needs a live call.
  *
  * Exits 0 on success, 1 with a report on first failure.
  */
@@ -42,20 +43,14 @@ function near(a, b, label, eps) {
 
 function makeEl(id) {
   return {
-    id: id,
-    innerHTML: '',
-    className: '',
-    checked: true,
-    value: '',
-    style: {},
-    _listeners: {},
+    id: id, innerHTML: '', className: '', checked: true, value: '',
+    style: {}, _listeners: {},
     addEventListener: function (ev, fn) { this._listeners[ev] = fn; },
     scrollIntoView: function () { this._scrolled = true; },
     getAttribute: function (k) { return this['_attr_' + k] || null; },
     setAttribute: function (k, v) { this['_attr_' + k] = v; }
   };
 }
-
 const els = {};
 global.document = {
   getElementById: function (id) {
@@ -63,58 +58,53 @@ global.document = {
     return els[id];
   },
   /* The stub does not parse innerHTML, so selector queries return nothing.
-   * Click wiring is therefore not covered here; msRenderAudit is driven
-   * directly instead. */
+   * Click wiring is not covered here; msRenderAudit is driven directly. */
   querySelectorAll: function () { return []; },
   addEventListener: function (ev, fn) { this['_on_' + ev] = fn; }
 };
 
 /* ------------------------------------------------------- stub artifacts */
 
-/* Two players on the KTC board, one deliberately absent so the off-board
- * floor path is exercised. sleeper_id -> [sf_value, name, pos, ktc_id] */
+/* sleeper_id -> [current_value, name, position, ktc_id] */
 const VALUES = {
   schema: 'managerscore.values.v1',
   available: true,
-  ktc: { captured_at: '2026-09-20T11:00:00+00:00', n_players: 3, n_mapped: 3, floor: 500 },
+  ktc: { captured_at: '2026-06-01T11:00:00+00:00', n_players: 3, n_mapped: 3, floor: 500 },
   crosswalk: { available: true, n_mapped: 3 },
-  history: {
-    available: true, count: 1, dates: ['2026-09-01'],
-    earliest: '2026-09-01', latest: '2026-09-01',
-    dir: 'ktc_history', file_template: 'ktc_values_{date}.json'
-  },
+  history: { available: true, count: 5, dates: [], earliest: '2025-01-01', latest: '2026-12-01' },
   by_sleeper: {
-    '100': [9000, 'Star Back', 'RB', 1],
-    '200': [4000, 'Depth WR', 'WR', 2],
-    '300': [1200, 'Flyer TE', 'TE', 3]
+    '100': [6000, 'Riser Back', 'RB', 1],
+    '200': [6000, 'Fading WR', 'WR', 2],
+    '300': [1000, 'Wire Gem', 'TE', 3]
   },
-  picks: { '2027 Early 1st': 7000, '2027 Mid 1st': 6000, '2027 Late 1st': 5000 },
+  picks: {},
   notes: []
 };
 
-/* On 2026-09-01 the star was cheaper and the flyer dearer than today. */
-const HISTORY_POINT = {
-  schema: 'ktc.values.v1', date: '2026-09-01',
-  sf: { '1': 6500, '2': 4200, '3': 2500 },
-  picks: { '2027 Mid 1st': 5200 },
-  floor: 480
+/* Five dated boards. Player 1 rises throughout, player 2 only declines,
+ * player 3 spikes late. These are the numbers every capture assertion
+ * below is derived from. */
+const SERIES = {
+  schema: 'ktc.series.v1',
+  dates: ['2025-01-01', '2025-06-01', '2026-01-01', '2026-06-01', '2026-12-01'],
+  floors: [400, 400, 450, 500, 500],
+  sf: {
+    '1': [1000, 2000, 5000, 6000, 9000],
+    '2': [9000, 8000, 7000, 6000, 5000],
+    '3': [500, 500, 500, 1000, 3000]
+  },
+  picks: { '2027 Mid 1st': [1000, 1500, 2000, 2500, 4000] }
 };
 
 /* -------------------------------------------------- stub Sleeper league */
 
-/* Two seasons chained by previous_league_id. Three managers by user_id;
- * roster_id 1..3 in the current season and deliberately REORDERED in the
- * prior season, so keying managers by roster_id instead of user_id would
- * mis-attribute the older draft and this test would catch it. */
-const LG_CUR = {
-  league_id: 'L2', name: 'Dynasty Now', season: '2026',
-  previous_league_id: 'L1', total_rosters: 3
-};
-const LG_PREV = {
-  league_id: 'L1', name: 'Dynasty Then', season: '2025',
-  previous_league_id: null, total_rosters: 3
-};
-
+/* Two seasons chained by previous_league_id. Roster ids are deliberately
+ * REORDERED in the prior season, so keying managers by roster_id instead of
+ * user_id would mis-attribute the older draft and this test would catch it. */
+const LG_CUR = { league_id: 'L2', name: 'Dynasty Now', season: '2026',
+                 previous_league_id: 'L1', total_rosters: 3 };
+const LG_PREV = { league_id: 'L1', name: 'Dynasty Then', season: '2025',
+                  previous_league_id: null, total_rosters: 3 };
 const USERS = [
   { user_id: 'uA', display_name: 'Alpha' },
   { user_id: 'uB', display_name: 'Bravo' },
@@ -131,44 +121,38 @@ const ROSTERS_PREV = [
   { roster_id: 3, owner_id: 'uB' }
 ];
 
-/* A 36-pick draft in the current season: Alpha beats slot, Bravo misses. */
-function drafts(seasonLabel, startMs) {
-  return [{
-    draft_id: 'd-' + seasonLabel, season: seasonLabel, type: 'snake',
-    start_time: startMs, settings: { rounds: 12 }, metadata: { name: 'startup' }
-  }];
-}
+/* Draft on 2025-01-15 -> priced from the 2025-01-01 board, with four later
+ * boards to measure the peak against. */
+const DRAFTS = [{
+  draft_id: 'd-2026', season: '2026', type: 'snake',
+  start_time: Date.UTC(2025, 0, 15), settings: { rounds: 12 },
+  metadata: { name: 'startup' }
+}];
 function draftPicks() {
   const out = [];
   for (let slot = 1; slot <= 36; slot++) {
     const idx = (slot - 1) % 3;
-    const rosterId = idx + 1;
-    /* Alpha (roster 1) takes the 9000 player, Cara 4000, Bravo 1200 -- but
-     * always at ascending slots, so Alpha's surplus is positive. */
-    const pid = [100, 200, 300][idx];
     out.push({
-      pick_no: slot, round: Math.ceil(slot / 3), roster_id: rosterId,
-      picked_by: ROSTERS_CUR[idx].owner_id, player_id: String(pid),
+      pick_no: slot, round: Math.ceil(slot / 3), roster_id: idx + 1,
+      picked_by: ROSTERS_CUR[idx].owner_id,
+      player_id: String([100, 200, 300][idx]),
       metadata: { first_name: 'P', last_name: String(slot), position: 'WR' }
     });
   }
   return out;
 }
 
-/* One trade (week 0 = off-season, where dynasty trades live), one waiver. */
+/* Trade on 2026-09-10 -> priced from the 2026-06-01 board, peak from
+ * 2026-12-01. Alpha takes the riser, sends the fader plus a 2027 1st. */
 const TX_WEEK0 = [
   {
-    /* A real Sleeper trade lists each moved player TWICE: once in adds
-     * under its new roster, once in drops under its old one. Getting this
-     * wrong is what the core's balance check exists to catch. */
     transaction_id: 'tx1', type: 'trade', status: 'complete',
     created: Date.UTC(2026, 8, 10), status_updated: Date.UTC(2026, 8, 10),
     roster_ids: [1, 2],
-    adds: { '100': 1, '200': 2 },   /* Alpha gets the star, Bravo gets depth */
-    drops: { '100': 2, '200': 1 },  /* mirror image of the adds             */
+    adds: { '100': 1, '200': 2 },
+    drops: { '100': 2, '200': 1 },
     draft_picks: [
-      { season: '2027', round: 1, roster_id: 1,
-        previous_owner_id: 1, owner_id: 2 }  /* Alpha sends a 2027 1st to Bravo */
+      { season: '2027', round: 1, roster_id: 1, previous_owner_id: 1, owner_id: 2 }
     ]
   },
   {
@@ -178,57 +162,50 @@ const TX_WEEK0 = [
     settings: { waiver_bid: 17 }
   },
   {
-    /* Must be ignored: not complete. */
     transaction_id: 'tx3', type: 'trade', status: 'failed',
     created: Date.UTC(2026, 8, 13), adds: { '200': 2 }, drops: { '200': 1 }
   }
 ];
 
 const fetchLog = [];
-global.fetch = function (url) {
-  fetchLog.push(url);
-  function json(payload, ok) {
-    return Promise.resolve({
-      ok: ok === undefined ? true : ok,
-      json: function () { return Promise.resolve(payload); }
-    });
-  }
-  if (url === 'managerscore_values.json') return json(VALUES);
-  if (url === 'ktc_history/ktc_values_2026-09-01.json') return json(HISTORY_POINT);
-  if (url === 'https://api.sleeper.app/v1/league/L2') return json(LG_CUR);
-  if (url === 'https://api.sleeper.app/v1/league/L1') return json(LG_PREV);
-  if (/\/league\/(L1|L2)\/users$/.test(url)) return json(USERS);
-  if (/\/league\/L2\/rosters$/.test(url)) return json(ROSTERS_CUR);
-  if (/\/league\/L1\/rosters$/.test(url)) return json(ROSTERS_PREV);
-  if (/\/league\/L2\/drafts$/.test(url)) return json(drafts('2026', Date.UTC(2026, 7, 25)));
-  if (/\/league\/L1\/drafts$/.test(url)) return json([]);
-  if (/\/draft\/d-2026\/picks$/.test(url)) return json(draftPicks());
-  if (/\/league\/L2\/transactions\/0$/.test(url)) return json(TX_WEEK0);
-  if (/\/transactions\/\d+$/.test(url)) return json([]);
-  /* Anything else 404s, exactly as Sleeper does for an absent resource. */
-  return json(null, false);
-};
+function jsonResp(payload, okFlag) {
+  return Promise.resolve({
+    ok: okFlag === undefined ? true : okFlag,
+    json: function () { return Promise.resolve(payload); }
+  });
+}
+function installFullLeague(week0) {
+  global.fetch = function (url) {
+    fetchLog.push(url);
+    if (url === 'managerscore_values.json') return jsonResp(VALUES);
+    if (url === 'managerscore_series.json') return jsonResp(SERIES);
+    if (url === 'https://api.sleeper.app/v1/league/L2') return jsonResp(LG_CUR);
+    if (url === 'https://api.sleeper.app/v1/league/L1') return jsonResp(LG_PREV);
+    if (/\/league\/(L1|L2)\/users$/.test(url)) return jsonResp(USERS);
+    if (/\/league\/L2\/rosters$/.test(url)) return jsonResp(ROSTERS_CUR);
+    if (/\/league\/L1\/rosters$/.test(url)) return jsonResp(ROSTERS_PREV);
+    if (/\/league\/L2\/drafts$/.test(url)) return jsonResp(DRAFTS);
+    if (/\/league\/L1\/drafts$/.test(url)) return jsonResp([]);
+    if (/\/draft\/d-2026\/picks$/.test(url)) return jsonResp(draftPicks());
+    if (/\/league\/L2\/transactions\/0$/.test(url)) {
+      return jsonResp(week0 === undefined ? TX_WEEK0 : week0);
+    }
+    if (/\/transactions\/\d+$/.test(url)) return jsonResp([]);
+    return jsonResp(null, false);
+  };
+}
+installFullLeague();
 
 /* ------------------------------------------------------------- load JS */
 
 const M = require(jsPath);
 ok(typeof M.msRun === 'function', 'UI module exports msRun');
 ok(typeof M.msScoreLeague === 'function', 'core is available to the UI');
-
-/* DOMContentLoaded wiring must be registered, not fired at import. */
+ok(typeof M.msCapture === 'function', 'capture helper is available');
 ok(typeof document._on_DOMContentLoaded === 'function',
-   'page registers a DOMContentLoaded handler');
+   'page registers a DOMContentLoaded handler rather than firing at import');
 
 /* -------------------------------------------------------- pure helpers */
-
-near(M.msNearestHistoryDate('2026-09-15', ['2026-09-01', '2026-09-10', '2026-10-01']) ===
-     '2026-09-10' ? 0 : 1, 0, 'nearest history date picks latest on-or-before');
-ok(M.msNearestHistoryDate('2026-08-01', ['2026-09-01']) === null,
-   'never reaches FORWARD in time for a price that did not exist yet');
-ok(M.msNearestHistoryDate(null, ['2026-09-01']) === null,
-   'undated transaction gets no history point');
-ok(M.msNearestHistoryDate('2026-09-15', []) === null,
-   'no history yields no history point');
 
 ok(M.msMsToDate(Date.UTC(2026, 8, 10)) === '2026-09-10', 'ms epoch to ISO date');
 ok(M.msMsToDate(Math.floor(Date.UTC(2026, 8, 10) / 1000)) === '2026-09-10',
@@ -240,98 +217,109 @@ ok(M.msMsToDate('nonsense') === null, 'garbage timestamp degrades to null');
 
 M.msRun('L2', true).then(function (result) {
   ok(result !== null, 'msRun produced a result');
-  if (!result) { report(); return; }
+  if (!result) { return; }
 
   const by = {};
   result.managers.forEach(function (m) { by[m.name] = m; });
-
   ok(result.managers.length === 3, 'three managers scored',
      String(result.managers.length));
-  ok(by.Alpha && by.Bravo && by.Cara, 'managers resolved by display name');
 
-  /* previous_league_id was followed. */
+  ok(fetchLog.indexOf('managerscore_series.json') >= 0,
+     'the dated value series was fetched');
   ok(fetchLog.indexOf('https://api.sleeper.app/v1/league/L1') >= 0,
      'the league history chain was walked');
+  ok(result.managers.length === 3,
+     'reordered prior-season rosters did not split anyone into two managers');
 
-  /* Manager identity is the user id, so the reordered prior-season rosters
-   * did not split anyone into two managers. */
-  ok(result.managers.length === 3, 'reordered prior-season rosters did not duplicate managers');
-
-  /* The draft was scored. */
-  ok(result.drafts.length === 1, 'one draft found', String(result.drafts.length));
+  /* ---- draft, priced from the 2025-01-01 board ---- */
+  ok(result.drafts.length === 1, 'one draft found');
   ok(result.drafts[0].scored, 'the 36-pick draft was scored');
   ok(result.meta.nPicksScored === 36, 'all 36 picks scored',
      String(result.meta.nPicksScored));
+  const aPick = result.audit.picks.filter(function (p) {
+    return p.managerId === 'uA';
+  })[0];
+  ok(!!aPick, 'Alpha has audited picks');
+  ok(aPick.vAtDate === '2025-01-01',
+     'picks priced from the board on or before draft day', String(aPick.vAtDate));
+  near(aPick.vAt, 1000, 'Alpha drafted the riser at its 2025-01 price');
+  near(aPick.peak, 9000, 'against its later peak');
+  near(aPick.capture, 8000, 'capturing the whole rise');
+  /* Alpha took the riser, Bravo the decliner, at interleaved slots. */
+  ok(by.Alpha.draft.mean > by.Bravo.draft.mean,
+     'drafting the riser beats drafting the decliner');
 
-  /* The trade was parsed from adds/drops/draft_picks and scored. */
+  /* ---- trade, priced from the 2026-06-01 board ---- */
   ok(result.meta.nTrades === 1, 'one complete trade found (failed one ignored)',
      String(result.meta.nTrades));
   ok(result.meta.nTradesScored === 1, 'the trade was scored');
   const tr = result.audit.trades[0];
-  ok(tr.sides.length === 2, 'trade has two sides', String(tr.sides.length));
-  const alphaSide = tr.sides.filter(function (s) { return s.managerId === 'uA'; })[0];
-  const bravoSide = tr.sides.filter(function (s) { return s.managerId === 'uB'; })[0];
-  ok(!!alphaSide && !!bravoSide, 'both sides attributed to user ids');
-  near(alphaSide.net + bravoSide.net, 0, 'the trade is zero-sum');
+  const aSide = tr.sides.filter(function (s) { return s.managerId === 'uA'; })[0];
+  const bSide = tr.sides.filter(function (s) { return s.managerId === 'uB'; })[0];
+  ok(!!aSide && !!bSide, 'both sides attributed to user ids');
 
-  /* Alpha received player 100 and gave player 200 plus a 2027 1st. Priced at
-   * the 2026-09-01 history point: 6500 in, 4200 + 5200 out. */
-  near(alphaSide.received, 6500, 'received side priced point-in-time');
-  near(alphaSide.given, 4200 + 5200, 'given side includes the traded pick');
-  near(bravoSide.received, 4200 + 5200, 'the mirror side receives what Alpha gave');
-  near(bravoSide.given, 6500, 'and gives what Alpha received');
+  /* riser: 6000 -> 9000 = 3000 captured. fader: 6000 -> peak 5000, so peak
+   * floors at vAt and capture is 0. pick: 2500 -> 4000 = 1500. */
+  near(aSide.received, 3000, 'Alpha received 3000 of capture (the riser)');
+  near(aSide.given, 1500, 'Alpha gave 1500 (fader captures 0, pick captures 1500)');
+  near(aSide.net, 1500, 'Alpha nets +1500');
+  near(bSide.net, -1500, 'Bravo nets the mirror');
+  near(aSide.net + bSide.net, 0, 'the trade is exactly zero-sum');
   ok(tr.unbalanced === false, 'a correctly parsed trade balances');
-  near(tr.imbalance, 0, 'imbalance is exactly zero');
-  ok(tr.sides.every(function (s) {
-    return (s.assets.received || []).concat(s.assets.given || [])
-      .some(function (a) { return a.kind === 'pick'; }) || true;
-  }), 'pick assets are carried into the audit');
 
-  /* The waiver add was parsed, with FAAB recorded but not scored. */
-  ok(result.meta.nWaivers === 1, 'one waiver add found', String(result.meta.nWaivers));
+  const faderAsset = (aSide.assets.given || []).filter(function (a) {
+    return a.label === 'Fading WR';
+  })[0];
+  ok(!!faderAsset, 'the fader appears on the given side');
+  near(faderAsset.capture, 0,
+       'an asset that only declined captures zero, not a negative');
+
+  const pickAsset = (aSide.assets.given || []).filter(function (a) {
+    return a.kind === 'pick';
+  })[0];
+  ok(!!pickAsset, 'the traded pick is carried as an asset');
+  near(pickAsset.capture, 1500, 'the pick captured 2500 -> 4000');
+
+  /* ---- waiver ---- */
+  ok(result.meta.nWaivers === 1, 'one waiver add found');
   const w = result.audit.waivers[0];
   ok(w.managerId === 'uC', 'waiver attributed to the claiming roster owner');
   ok(w.faab === 17, 'FAAB bid recorded for disclosure', String(w.faab));
-  ok(/as-of 2026-09-01/.test(w.basis), 'waiver priced point-in-time', w.basis);
-  near(w.value, 2500, 'waiver used the historical value, not the current one');
+  near(w.vAt, 1000, 'waiver priced from the 2026-06-01 board');
+  near(w.peak, 3000, 'against the 2026-12-01 peak');
+  near(w.surplus, 2000, 'capturing 2000');
 
-  /* Point-in-time labelling actually happened, and differs from current. */
-  const pitPicks = result.audit.picks.filter(function (p) {
-    return /as-of/.test(p.basis);
-  });
-  ok(pitPicks.length === 0,
-     'the draft predates our history, so its picks are priced current',
-     String(pitPicks.length));
-  ok(result.audit.picks.every(function (p) { return p.basis === 'current'; }),
-     'and are labelled current, not silently treated as as-of');
-
-  /* Banner + summary + table rendered something truthful. */
+  /* ---- rendering ---- */
   const basis = document.getElementById('ms-basis');
-  ok(/Mixed basis/.test(basis.innerHTML),
-     'basis banner reports a MIXED basis for this league', basis.innerHTML.slice(0, 80));
-  ok(basis.style.display === 'block', 'basis banner is visible');
+  ok(/Point-in-time value capture/.test(basis.innerHTML),
+     'banner states the point-in-time capture basis', basis.innerHTML.slice(0, 70));
+  ok(/decays as he ages/.test(basis.innerHTML),
+     'banner explains why it is not "value then vs value today"');
+  ok(/already peaked/.test(basis.innerHTML),
+     'banner explains why it is not "highest ever"');
+  ok(/sparse/.test(basis.innerHTML), 'banner discloses that the archive is sparse');
+  ok(/5 dated boards/.test(basis.innerHTML.replace(/<[^>]+>/g, '')),
+     'banner reports how many dated boards back the score');
 
   const summary = document.getElementById('ms-summary');
-  ok(/Managers scored/.test(summary.innerHTML), 'summary KPIs rendered');
-  ok(/Point-in-time valuations/.test(summary.innerHTML),
-     'summary discloses point-in-time coverage');
+  ok(/Dated boards in archive/.test(summary.innerHTML), 'summary shows archive depth');
+  ok(/too recent to judge/i.test(summary.innerHTML),
+     'summary exposes the unevaluable count');
 
   const table = document.getElementById('ms-table');
   ok(/Manager Score/.test(table.innerHTML), 'results table rendered');
-  ok(/Alpha/.test(table.innerHTML), 'managers appear in the table');
   ok(/<th>Draft z<\/th>/.test(table.innerHTML), 'component breakdown columns present');
 
-  /* Audit panel renders per-manager detail on demand. */
   M.msRenderAudit('uA');
   const audit = document.getElementById('ms-audit');
   ok(audit.style.display === 'block', 'audit panel opens');
-  ok(/Draft picks \(/.test(audit.innerHTML), 'audit lists draft picks');
-  ok(/Trades \(/.test(audit.innerHTML), 'audit lists trades');
-  ok(/Waiver \/ free-agent adds \(/.test(audit.innerHTML), 'audit lists waiver adds');
+  ok(/Value at pick/.test(audit.innerHTML), 'pick audit shows the price on the day');
+  ok(/Peak after/.test(audit.innerHTML), 'pick audit shows the later peak');
+  ok(/Captured/.test(audit.innerHTML), 'pick audit shows what was captured');
+  ok(/2025-01-01/.test(audit.innerHTML),
+     'audit names the board date actually used');
   ok(/got/.test(audit.innerHTML) && /gave/.test(audit.innerHTML),
      'trade audit shows both directions');
-  ok(/Expected at slot/.test(audit.innerHTML),
-     'pick audit exposes the slot expectation it was judged against');
 
   return runDegradation();
 }).then(function () { report(); })
@@ -343,163 +331,117 @@ M.msRun('L2', true).then(function (result) {
 /* ------------------------------------------------- degradation scenarios */
 
 function runDegradation() {
-  /* 1. Value artifact missing entirely -> explain, do not score. */
-  global.fetch = function (url) {
-    if (url === 'managerscore_values.json') {
-      return Promise.resolve({ ok: false, json: function () {
-        return Promise.reject(new Error('nope')); } });
-    }
-    return Promise.resolve({ ok: false, json: function () {
-      return Promise.resolve(null); } });
-  };
+  /* 1. Transactions after the last dated board cannot be judged. */
+  installFullLeague([{
+    transaction_id: 'txr', type: 'trade', status: 'complete',
+    created: Date.UTC(2027, 5, 1), status_updated: Date.UTC(2027, 5, 1),
+    roster_ids: [1, 2],
+    adds: { '100': 1 }, drops: { '100': 2 }
+  }]);
   return M.msRun('L2', false).then(function (res) {
-    ok(res === null, 'no result when the value artifact is missing');
-    const st = document.getElementById('ms-status');
-    ok(/KeepTradeCut values are unavailable/.test(st.innerHTML),
-       'missing artifact is explained on the page', st.innerHTML.slice(0, 80));
-    ok(document.getElementById('ms-results').style.display === 'none',
-       'results stay hidden rather than showing an empty table');
-  }).then(function () {
-    /* 2. Artifact present but flagged unavailable. */
-    global.fetch = function (url) {
-      const payload = url === 'managerscore_values.json'
-        ? { available: false, by_sleeper: {}, history: {}, ktc: {}, notes: ['empty'] }
-        : null;
-      return Promise.resolve({ ok: true, json: function () {
-        return Promise.resolve(payload); } });
-    };
-    return M.msRun('L2', false);
-  }).then(function (res) {
-    ok(res === null, 'available:false artifact does not score');
-    ok(/unavailable/.test(document.getElementById('ms-status').innerHTML),
-       'and says so');
-  }).then(function () {
-    /* 3. Values fine, but the league does not exist on Sleeper. */
-    global.fetch = function (url) {
-      if (url === 'managerscore_values.json') {
-        return Promise.resolve({ ok: true, json: function () {
-          return Promise.resolve(VALUES); } });
-      }
-      return Promise.resolve({ ok: false, json: function () {
-        return Promise.resolve(null); } });
-    };
-    return M.msRun('NOPE', false);
-  }).then(function (res) {
-    ok(res === null, 'a missing league does not score');
-    ok(/Could not score that league/.test(document.getElementById('ms-status').innerHTML),
-       'a missing league is reported, not crashed on',
-       document.getElementById('ms-status').innerHTML.slice(0, 80));
-  }).then(function () {
-    /* 4. League exists but has no drafts, no trades, no waivers, and no
-     *    history: the all-current, nothing-scorable path. */
-    global.fetch = function (url) {
-      function json(p, okFlag) {
-        return Promise.resolve({ ok: okFlag === undefined ? true : okFlag,
-          json: function () { return Promise.resolve(p); } });
-      }
-      if (url === 'managerscore_values.json') {
-        const v = JSON.parse(JSON.stringify(VALUES));
-        v.history = { available: false, count: 0, dates: [], earliest: null,
-                      latest: null, dir: 'ktc_history',
-                      file_template: 'ktc_values_{date}.json' };
-        return json(v);
-      }
-      if (url === 'https://api.sleeper.app/v1/league/L2') {
-        return json({ league_id: 'L2', name: 'Bare', season: '2026',
-                      previous_league_id: null });
-      }
-      if (/\/users$/.test(url)) return json(USERS);
-      if (/\/rosters$/.test(url)) return json(ROSTERS_CUR);
-      if (/\/drafts$/.test(url)) return json([]);
-      if (/\/transactions\/\d+$/.test(url)) return json([]);
-      return json(null, false);
-    };
-    return M.msRun('L2', false);
-  }).then(function (res) {
-    ok(res !== null, 'a bare league still produces a result');
+    ok(res !== null, 'a too-recent trade does not crash the page');
     if (!res) return;
-    ok(res.managers.length === 3, 'all rosters appear even with no transactions');
-    ok(res.managers.every(function (m) { return m.index === M.MS_INDEX_CENTER; }),
-       'with nothing scorable everyone sits at the league centre');
-    ok(res.meta.liveComponents.length === 0, 'no components are live');
+    ok(res.meta.nTradesScored === 0,
+       'a trade with nothing recorded after it is not scored',
+       String(res.meta.nTradesScored));
+    ok(res.audit.trades[0].partial === true, 'it is flagged partial');
+    ok(res.meta.notEvaluableAssets > 0, 'and its assets counted as unevaluable');
     const basis = document.getElementById('ms-basis');
-    ok(/Current-value basis/.test(basis.innerHTML),
-       'with no history the banner states the CURRENT-value basis',
-       basis.innerHTML.slice(0, 90));
-    ok(/turned out/.test(basis.innerHTML),
-       'and explains it measures outcome rather than process');
+    ok(/too recent to judge/.test(basis.innerHTML),
+       'the banner says some assets are too recent',
+       basis.innerHTML.replace(/<[^>]+>/g, '').slice(-140));
   }).then(function () {
-    /* 5. A trade that moves FAAB will not balance in KTC points. That is
-     *    legitimate, so it must still score -- but it must be flagged. */
-    const faabTrade = {
+    /* 2. FAAB in a trade: legitimate imbalance, scored but flagged. */
+    installFullLeague([{
       transaction_id: 'txf', type: 'trade', status: 'complete',
       created: Date.UTC(2026, 8, 10), status_updated: Date.UTC(2026, 8, 10),
       roster_ids: [1, 2],
-      adds: { '100': 2 }, drops: { '100': 1 },   /* Alpha sells the star */
+      adds: { '100': 2 }, drops: { '100': 1 },
       waiver_budget: [{ sender: 2, receiver: 1, amount: 50 }]
-    };
-    installLeague([faabTrade]);
+    }]);
     return M.msRun('L2', false);
   }).then(function (res) {
-    ok(res !== null, 'a FAAB trade still produces a result');
+    ok(res !== null, 'a FAAB trade produces a result');
     if (!res) return;
     const t = res.audit.trades[0];
-    ok(!!t, 'the FAAB trade is audited');
     ok(t.faab && t.faab.length === 1, 'FAAB legs are carried through');
-    ok(t.faab[0].amount === 50, 'FAAB amount preserved', String(t.faab[0].amount));
+    ok(t.faab[0].amount === 50, 'FAAB amount preserved');
     ok(t.unbalanced === false,
        'FAAB explains the imbalance, so it is not called a parse error');
     ok(t.scored === true, 'and the asset flow is still scored');
     ok(res.meta.nTradesWithFaab === 1, 'FAAB trades are counted for disclosure');
   }).then(function () {
-    /* 6. An unbalanced trade with NO FAAB is a parsing problem. Scoring it
-     *    would fabricate a steal, so it must be reported and skipped. */
-    const broken = {
+    /* 3. Unbalanced with NO FAAB is a parsing problem: report, do not score. */
+    installFullLeague([{
       transaction_id: 'txb', type: 'trade', status: 'complete',
       created: Date.UTC(2026, 8, 10), status_updated: Date.UTC(2026, 8, 10),
       roster_ids: [1, 2],
-      /* Star added to Alpha but never dropped by anyone: value from nowhere. */
-      adds: { '100': 1 }, drops: { '200': 2 }
-    };
-    installLeague([broken]);
+      adds: { '100': 1 }, drops: { '300': 2 }
+    }]);
     return M.msRun('L2', false);
   }).then(function (res) {
-    ok(res !== null, 'a broken trade does not crash the page');
-    if (!res) return;
+    if (!res) { ok(false, 'broken trade produced no result'); return; }
     const t = res.audit.trades[0];
     ok(t.unbalanced === true, 'an unexplained imbalance is detected');
     ok(t.scored === false, 'and the trade is NOT scored');
     ok(res.meta.nTradesUnbalanced === 1, 'unbalanced trades are counted');
     ok(res.managers.every(function (m) { return m.trade.n === 0; }),
        'nobody is credited from an unbalanced trade');
+  }).then(function () {
+    /* 4. Value artifact missing entirely -> explain, do not score. */
+    global.fetch = function (url) {
+      if (url === 'managerscore_values.json') {
+        return Promise.resolve({ ok: false, json: function () {
+          return Promise.reject(new Error('nope')); } });
+      }
+      return jsonResp(null, false);
+    };
+    return M.msRun('L2', false);
+  }).then(function (res) {
+    ok(res === null, 'no result when the value artifact is missing');
+    ok(/KeepTradeCut values are unavailable/.test(
+         document.getElementById('ms-status').innerHTML),
+       'missing artifact is explained on the page');
+    ok(document.getElementById('ms-results').style.display === 'none',
+       'results stay hidden rather than showing an empty table');
+  }).then(function () {
+    /* 5. Series missing while values exist: nothing is priceable. */
+    global.fetch = function (url) {
+      if (url === 'managerscore_values.json') return jsonResp(VALUES);
+      if (url === 'managerscore_series.json') return jsonResp(null, false);
+      if (url === 'https://api.sleeper.app/v1/league/L2') return jsonResp(LG_CUR);
+      if (/\/users$/.test(url)) return jsonResp(USERS);
+      if (/\/rosters$/.test(url)) return jsonResp(ROSTERS_CUR);
+      if (/\/drafts$/.test(url)) return jsonResp(DRAFTS);
+      if (/\/draft\/d-2026\/picks$/.test(url)) return jsonResp(draftPicks());
+      if (/\/transactions\/\d+$/.test(url)) return jsonResp([]);
+      return jsonResp(null, false);
+    };
+    return M.msRun('L2', false);
+  }).then(function (res) {
+    ok(res !== null, 'a missing series does not crash the page');
+    if (!res) return;
+    ok(res.meta.nPicksScored === 0, 'nothing is scored without the series');
+    ok(res.managers.every(function (m) { return m.index === M.MS_INDEX_CENTER; }),
+       'everyone sits at the league centre');
+    const basis = document.getElementById('ms-basis');
+    ok(/No dated value history available/.test(basis.innerHTML),
+       'and the banner says the history is missing',
+       basis.innerHTML.slice(0, 80));
+  }).then(function () {
+    /* 6. League not found on Sleeper. */
+    global.fetch = function (url) {
+      if (url === 'managerscore_values.json') return jsonResp(VALUES);
+      if (url === 'managerscore_series.json') return jsonResp(SERIES);
+      return jsonResp(null, false);
+    };
+    return M.msRun('NOPE', false);
+  }).then(function (res) {
+    ok(res === null, 'a missing league does not score');
+    ok(/Could not score that league/.test(
+         document.getElementById('ms-status').innerHTML),
+       'a missing league is reported, not crashed on');
   });
-}
-
-/* Reinstall the stub league with a specific transaction list, no history. */
-function installLeague(week0) {
-  global.fetch = function (url) {
-    function json(p, okFlag) {
-      return Promise.resolve({ ok: okFlag === undefined ? true : okFlag,
-        json: function () { return Promise.resolve(p); } });
-    }
-    if (url === 'managerscore_values.json') {
-      const v = JSON.parse(JSON.stringify(VALUES));
-      v.history = { available: false, count: 0, dates: [], earliest: null,
-                    latest: null, dir: 'ktc_history',
-                    file_template: 'ktc_values_{date}.json' };
-      return json(v);
-    }
-    if (url === 'https://api.sleeper.app/v1/league/L2') {
-      return json({ league_id: 'L2', name: 'Bare', season: '2026',
-                    previous_league_id: null });
-    }
-    if (/\/users$/.test(url)) return json(USERS);
-    if (/\/rosters$/.test(url)) return json(ROSTERS_CUR);
-    if (/\/drafts$/.test(url)) return json([]);
-    if (/\/transactions\/0$/.test(url)) return json(week0);
-    if (/\/transactions\/\d+$/.test(url)) return json([]);
-    return json(null, false);
-  };
 }
 
 function report() {
