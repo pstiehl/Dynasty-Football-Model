@@ -2352,8 +2352,28 @@ def generate_site(
     try:
         from .crossleague import load_corpus, write_corpus_artifact
         from .crossleague_page import build_cross_league
+        from . import manager_detail as _md
         _corpus = load_corpus(Path("data/cross_league/corpus.json"))
         if _corpus:
+            # Per-manager drill-down shards, from whatever league audits the
+            # build cache still holds (data/cross_league/detail/, gitignored
+            # and carried between CI runs). The crawl republishes these after
+            # it scores, so this copy is what a site build with no crawl --
+            # a local run, or a day the crawl step failed -- serves.
+            #
+            # An empty or evicted detail store is not an error: every shard
+            # is still written, each league inside it marked as evidence
+            # missing, so the page says so instead of rendering an empty
+            # panel that reads as no activity.
+            try:
+                _details = _md.read_league_details(
+                    _md.detail_dir(Path("data/cross_league")))
+                _corpus["manager_detail"] = _md.publish_manager_details(
+                    out_root, _corpus, _details)
+            except Exception as _exc:  # noqa: BLE001
+                import logging
+                logging.getLogger(__name__).warning(
+                    "manager drill-down artifacts not published: %s", _exc)
             write_corpus_artifact(out_root, _corpus)
         else:
             import logging

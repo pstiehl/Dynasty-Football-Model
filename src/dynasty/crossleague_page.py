@@ -43,6 +43,27 @@ tr.xl-row:hover { background: var(--hover); cursor: pointer; }
   padding: 5px 8px; }
 .xl-note { background: #f8fafc; border: 1px solid var(--border);
   border-radius: 8px; padding: 14px 18px; font-size: 13px; }
+/* ---- manager drill-down ---- */
+.xl-evidence { margin-top: 14px; border-top: 1px solid var(--border);
+  padding-top: 12px; }
+.xl-evidence h4 { font-size: 13px; margin: 16px 0 6px 0; }
+.xl-h5 { font-size: 12px; margin: 12px 0 4px 0; color: var(--muted);
+  text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+/* The pick ledger is wide by necessity -- nine columns is what it takes to
+ * show a valuation, its basis, the baseline and the resulting surplus. It
+ * scrolls sideways rather than collapsing, so no column is hidden on a
+ * narrow screen. */
+.xl-picks { display: block; overflow-x: auto; white-space: nowrap;
+  max-width: 100%; }
+.xl-table tfoot td { border-top: 2px solid var(--border);
+  border-bottom: none; background: #f8fafc; }
+.xl-math { background: #f8fafc; border-left: 3px solid var(--border);
+  padding: 8px 12px; margin: 8px 0 4px 0; white-space: normal; }
+.xl-warn { font-size: 12px; background: #fffbeb; border: 1px solid #fcd34d;
+  border-radius: 6px; padding: 8px 12px; margin: 8px 0; color: #78350f; }
+.xl-basis { font-size: 11px; color: var(--muted); }
+.xl-basis-cur { color: #92400e; border-bottom: 1px dotted #92400e;
+  cursor: help; }
 .xl-note code { background: #eef2ff; padding: 1px 5px; border-radius: 4px; }
 .xl-board { margin: 6px 0 26px 0; }
 h4 { font-size: 14px; margin: 18px 0 8px 0; }

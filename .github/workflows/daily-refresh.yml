@@ -58,6 +58,17 @@ jobs:
       # raw third-party data (~24 MB of verbatim Sleeper responses) and is
       # fully regenerable -- the SCORES persist in corpus.json, so an evicted
       # cache costs one slower crawl, never an indexed league. See .gitignore.
+      #
+      # data/cross_league/detail is the per-league transaction audit behind
+      # the Best Managers drill-down. Same bargain again: it is bulk and
+      # derived, so it must not go in git (an audit inside the
+      # daily-committed corpus.json is the exact regression PR #72 fixed),
+      # but the crawl only re-scores a bounded number of leagues per run, so
+      # without persistence the drill-down would only ever explain today's
+      # ~40 leagues. Carried here, evidence accumulates run over run exactly
+      # as the corpus does. An eviction costs explanation, never a score:
+      # the page reports a league whose audit is absent as "not in this
+      # build" rather than rendering it as no activity.
       - name: Restore scraped-page cache
         uses: actions/cache@v4
         with:
@@ -65,6 +76,7 @@ jobs:
             data/pfr_cache
             data/sr_cache
             data/cross_league/cache
+            data/cross_league/detail
           key: scrape-cache-${{ github.run_id }}
           restore-keys: |
             scrape-cache-
