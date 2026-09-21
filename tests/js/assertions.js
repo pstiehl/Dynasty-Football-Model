@@ -70,18 +70,80 @@ function eq(got, want, label) {
   ok(queue.every(q => q.clip.in_window === true),
      'no out-of-window clip leads the default reel');
 
+  // "Show every week" no longer pours older film into the flat queue --
+  // it materialises the older week buckets, which render as collapsed
+  // <details> beneath the lead week. `queue` stays the lead week, because
+  // that is what the "watch all on YouTube" playlist sends.
   document.getElementById('opt-all').checked = true;
   rebuildQueue();
   ids = queue.map(q => q.videoId).sort();
-  eq(JSON.stringify(ids),
+  eq(JSON.stringify(ids), JSON.stringify(['chase_in', 'dak_in']),
+     'the flat queue stays the lead week even with every week shown');
+
+  const bucketed = [];
+  buckets.forEach(b => b.cutups.concat(b.recaps)
+                        .forEach(e => bucketed.push(e.videoId)));
+  eq(JSON.stringify(bucketed.sort()),
      JSON.stringify(['chase_in', 'dak_in', 'dak_old', 'dart_old']),
-     '"every clip" toggle still reaches out-of-window film');
-  ok(document.getElementById('queue-list').innerHTML.indexOf('older') >= 0,
-     'out-of-window clips are labelled "older" in the queue');
-  ok(document.getElementById('queue-list').innerHTML.indexOf('Sep 14') >= 0,
+     'older film is still reachable, now via its own week bucket');
+  ok(buckets.length > 1, 'older film gets its own bucket, not the lead one');
+  ok(buckets[0].lead === true, 'the lead bucket is rendered first');
+  ok(buckets.slice(1).every(b => !b.lead),
+     'exactly one bucket is the lead');
+
+  const qhtml = document.getElementById('queue-list').innerHTML;
+  ok(qhtml.indexOf('<details') >= 0,
+     'older weeks render collapsed beneath the lead week');
+  ok(qhtml.indexOf('most recent complete week') >= 0,
+     'the lead bucket says why it leads');
+  ok(qhtml.indexOf('Sep 14') >= 0,
      'queue shows the publish date, not just a week number');
   document.getElementById('opt-all').checked = false;
   rebuildQueue();
+
+  // ---------------------------------------------------- link-out, not embed
+  //
+  // The reel used to hand these ids to a YouTube IFrame player. It does
+  // not any more, and these checks exist so that cannot come back by
+  // accident: the owner hit "An error occurred. Please try again later."
+  // on the embedded path repeatedly, and linking out is what fixed it.
+  console.log('\n-- clips link out to YouTube, nothing is embedded --');
+
+  const html = document.getElementById('queue-list').innerHTML;
+  ok(html.indexOf('youtube.com/watch?v=') >= 0,
+     'clip cards link to youtube.com/watch');
+  ok(html.indexOf('target="_blank"') >= 0, 'clips open in a new tab');
+  ok(html.indexOf('rel="noopener noreferrer"') >= 0,
+     'link-outs carry rel=noopener noreferrer');
+  ok(html.indexOf('i.ytimg.com') >= 0, 'thumbnails are still rendered');
+  ok(html.indexOf('<iframe') < 0, 'no iframe is rendered into the queue');
+  ok(typeof YT === 'undefined' || !YT,
+     'the page never constructs a YouTube IFrame player');
+  ok(typeof onYouTubeIframeAPIReady === 'undefined',
+     'the IFrame API ready hook is gone');
+  ok(typeof startAt === 'undefined' && typeof jumpTo === 'undefined',
+     'the embedded playback entry points are gone');
+  ok(typeof unplayable === 'undefined',
+     'the unplayable/onError bookkeeping is gone');
+
+  // The "whole roster in sequence" affordance, preserved without embedding.
+  const watchAll = document.getElementById('play-all');
+  const href = watchAll.getAttribute('href') || '';
+  ok(href.indexOf('youtube.com/watch_videos?video_ids=') >= 0,
+     'watch-all builds a YouTube playlist URL');
+  queue.forEach(q => ok(href.indexOf(q.videoId) >= 0,
+     'watch-all playlist contains ' + q.videoId));
+  ok(watchAll.className.indexOf('btn-disabled') < 0,
+     'watch-all is enabled when the queue has clips');
+
+  // YouTube silently plays nothing when handed more than 50 ids, so the
+  // cap has to be enforced rather than hoped for.
+  const many = [];
+  for (let i = 0; i < 80; i++) many.push('id' + i);
+  const capped = playlistUrl(many);
+  eq(capped.split('video_ids=')[1].split(',').length, 50,
+     'the ad-hoc playlist is capped at YouTube\'s 50-video limit');
+  eq(playlistUrl([]), '', 'an empty queue produces no playlist URL');
 
   console.log('\n-- rosterPlayerIds includes IR and taxi (reel.js) --');
   eq(JSON.stringify(rosterPlayerIds(
@@ -175,6 +237,137 @@ function eq(got, want, label) {
   ok(document.getElementById('clips-pane-body').innerHTML
        .indexOf('No highlight index yet') >= 0,
      'missing highlights.json explains itself');
+  HL = realHL;
+
+  // ------------------------------------------------ current artifact shape
+  //
+  // Everything above runs against the pre-bucketing fixture, which proves
+  // the backward-compatible fallback. This block swaps in an artifact of
+  // the shape the build now writes -- weeks[], lead_week_start,
+  // bucket_start, view_count, trusted -- and asserts the primary path,
+  // including the case the owner specified: Monday 2026-09-21, where
+  // week 2 has film but is not finished, so week 1 leads.
+  console.log('\n-- week buckets, current artifact shape --');
+
+  const BUCKETED = {
+    generated_at: '2026-09-21T16:36:00Z',
+    resolved_as_of: '2026-09-21T16:36:00+00:00',
+    lead_week: 1,
+    lead_week_start: '2026-09-10',
+    lead_week_label: 'Sep 10\u201314',
+    weeks: [
+      { start_date: '2026-09-17', label: 'Sep 17\u201321', week: 2,
+        complete: false, lead: false, clip_count: 1 },
+      { start_date: '2026-09-10', label: 'Sep 10\u201314', week: 1,
+        complete: true, lead: true, clip_count: 2 }
+    ],
+    players: {
+      '7564': { name: "Ja'Marr Chase", position: 'WR', team: 'CIN', rank: 1 },
+      '3294': { name: 'Dak Prescott', position: 'QB', team: 'DAL', rank: 41 }
+    },
+    by_gsis: {},
+    clips: {
+      '7564': [
+        { video_id: 'w1_cut', title: "Ja'Marr Chase Week 1 | Every Target",
+          channel_title: 'Curtain Call Replays', published_at: '2026-09-14T22:00:00Z',
+          duration_seconds: 260, kind: 'player_cutup', confidence: 0.9,
+          bucket_week: 1, bucket_start: '2026-09-10',
+          view_count: 1500000, trusted: true },
+        { video_id: 'w2_cut', title: "Ja'Marr Chase Week 2 | Every Target",
+          channel_title: 'Curtain Call Replays', published_at: '2026-09-21T10:00:00Z',
+          duration_seconds: 245, kind: 'player_cutup', confidence: 0.9,
+          bucket_week: 2, bucket_start: '2026-09-17', view_count: 4200 }
+      ],
+      // No cut-up in week 1 -- only a recap. This is the player the
+      // "recaps only when there is no cut-up" rule is about.
+      '3294': [
+        { video_id: 'w1_recap', title: 'Cowboys vs Giants | Week 1 Game Highlights',
+          channel_title: 'NFL', published_at: '2026-09-14T23:30:00Z',
+          duration_seconds: 1080, kind: 'team_game', confidence: 0.6,
+          bucket_week: 1, bucket_start: '2026-09-10', view_count: 900000 }
+      ]
+    }
+  };
+
+  HL = BUCKETED;
+  buildRoster(['7564', '3294']);
+  document.getElementById('opt-all').checked = false;
+  document.getElementById('opt-team').checked = true;
+  rebuildQueue();
+
+  eq(leadWeekKey(), '2026-09-10',
+     'the build\'s lead week is honoured, not recomputed');
+
+  // Regression guard on a contradiction this page can produce once the
+  // window anchor and the completeness rule disagree, which they do on a
+  // Monday: the header must caption the week the page is grouped by, not
+  // the window the film came from.
+  BUCKETED.window = { label: 'Sep 17\u201321', week: 2, window_days: 5,
+                      start: '2026-09-17T00:00:00+00:00' };
+  BUCKETED.window_start = '2026-09-17T00:00:00+00:00';
+  await loadHighlights();
+  const hdr = document.getElementById('hl-meta').textContent;
+  ok(hdr.indexOf('Sep 10\u201314') >= 0,
+     'header captions the lead week, not the resolved window');
+  ok(hdr.indexOf('Sep 17\u201321') < 0,
+     'header does not advertise the in-progress week as current');
+  ok(hdr.indexOf('(week 1)') >= 0, 'header carries the lead week number');
+  delete BUCKETED.window;
+  delete BUCKETED.window_start;
+  HL = BUCKETED;
+  eq(weekHeading('2026-09-10'), 'Week 1 \u00b7 Sep 10\u201314',
+     'a bucket is labelled with both its week number and its date range');
+  eq(weekIsComplete('2026-09-17'), false,
+     'week 2 is known to be unfinished');
+
+  const lead = buckets.find(b => b.lead);
+  eq(lead.key, '2026-09-10',
+     'week 1 leads on Monday even though week 2 film is indexed');
+  eq(JSON.stringify(lead.cutups.map(e => e.videoId)), JSON.stringify(['w1_cut']),
+     'player cut-ups lead the bucket');
+  eq(JSON.stringify(lead.recaps.map(e => e.videoId)), JSON.stringify(['w1_recap']),
+     'a recap surfaces for the player with no cut-up that week');
+
+  // Chase has a week 1 cut-up, so no recap may be attached to him.
+  ok(lead.recaps.every(e => e.sid !== '7564'),
+     'no recap is attached to a player who already has a cut-up');
+
+  const bhtml = document.getElementById('queue-list').innerHTML;
+  ok(bhtml.indexOf('Player highlights') >= 0, 'cut-ups get their own group');
+  ok(bhtml.indexOf('Game recaps') >= 0, 'recaps get a separate labelled group');
+  ok(bhtml.indexOf('Player highlights') < bhtml.indexOf('Game recaps'),
+     'player highlights are rendered before game recaps');
+  ok(bhtml.indexOf('Week 1 \u00b7 Sep 10\u201314') >= 0,
+     'the lead bucket is labelled with week number and dates');
+  ok(bhtml.indexOf('1.5M views') >= 0, 'view counts are surfaced');
+  ok(bhtml.indexOf('q-trust') >= 0, 'curated-channel clips are badged');
+
+  // Week 2 exists and is reachable, but must not be presented as current.
+  document.getElementById('opt-all').checked = true;
+  rebuildQueue();
+  const wk2 = buckets.find(b => b.key === '2026-09-17');
+  ok(!!wk2, 'the in-progress week is still shown');
+  eq(wk2.lead, false, 'the in-progress week does not lead');
+  ok(document.getElementById('queue-list').innerHTML
+       .indexOf('still in progress') >= 0,
+     'the in-progress week is labelled as unfinished');
+  document.getElementById('opt-all').checked = false;
+
+  // The My Team tab groups the same way, off the same helpers.
+  console.log('\n-- My Team highlights tab, same buckets --');
+  renderAll(['7564', '3294']);
+  const mt = document.getElementById('clips-pane-body').innerHTML;
+  ok(mt.indexOf('youtube.com/watch?v=') >= 0,
+     'My Team clips link out to YouTube');
+  ok(mt.indexOf('<button') < 0 || mt.indexOf('mt-clip" href') >= 0,
+     'My Team clip cards are anchors, not buttons');
+  ok(mt.indexOf('Week 1 \u00b7 Sep 10\u201314') >= 0,
+     'My Team uses the same week heading as the reel');
+  ok(mt.indexOf('most recent complete week') >= 0,
+     'My Team marks the same lead week');
+  ok(mt.indexOf('Player highlights') < mt.indexOf('Game recaps'),
+     'My Team also leads with player highlights');
+
   HL = realHL;
 
   console.log('\n-- team-strength metric (myteam.js) --');

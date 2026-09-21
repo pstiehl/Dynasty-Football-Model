@@ -1,27 +1,39 @@
-"""reel.html — "watch my whole roster's week in 9 minutes".
+"""reel.html — "watch my whole roster's week", as a link-out queue.
 
 Takes a Sleeper username (or a raw league id, or a hand-typed roster), joins
-the roster against ``highlights.json``, and plays every matched clip back to
-back in one YouTube IFrame player.
+the roster against ``highlights.json``, and renders an ordered, scannable
+queue of clip cards. Every card opens on YouTube in a new tab.
 
-Why a playlist rather than one embed per player
------------------------------------------------
-``player.loadPlaylist({playlist: [id, id, ...]})`` hands YouTube an ordered
-list of arbitrary video ids and it handles continuation, buffering and the
-next/prev controls natively. One iframe, one network warm-up, and the user
-never clicks between clips. Rendering an iframe per player instead would
-mean 15+ simultaneous embeds, each pulling its own player bundle — the page
-would crawl and nothing would autoplay in sequence.
+Why this page no longer embeds anything
+---------------------------------------
+It used to play the whole roster back to back in one YouTube IFrame player
+via ``loadPlaylist``. On paper that is the better experience; in practice
+the owner hit *"An error occurred. Please try again later."* repeatedly,
+while the highlights section of the site worked reliably for the single
+reason that it sent the user to YouTube instead.
 
-Two failure modes this handles explicitly, because both look like "the site
-is broken" to a user:
+Embedded playback fails for causes we do not control and cannot detect in
+advance: the uploader disables embedding (error 101/150), the video is
+made private or removed (100), rights-holder restrictions apply to a
+region, or the item is a Short, which reports ``embeddable: true`` and
+then fails anyway inside a playlist. Each one was patched around
+individually — an ingest-time embeddability drop, a 75-second duration
+floor, a runtime ``onError`` skip-forward, an ``unplayable`` set. The
+errors kept arriving, because the list of reasons is open-ended.
 
-1. **Non-embeddable videos.** Error 150/101 mid-playlist stalls everything.
-   The ingest script drops known-bad videos, but embeddability can change
-   after we index it, so ``onError`` also skips forward at runtime.
-2. **Autoplay blocking.** Browsers refuse programmatic playback with sound
-   unless it follows a user gesture, so the playlist is only ever loaded
-   from inside a click handler — never on page load.
+So the decision, from the owner directly: if embedding is restricted, stop
+embedding. Linking out removes the entire class of failure rather than
+another instance of it, and it deletes the three workarounds above with
+it. Views and ad revenue still land with the original uploader, which was
+always the reason for using the official player.
+
+What replaces "watch it all in sequence"
+----------------------------------------
+Two things. The queue itself stays ordered and scannable — best player
+first, one card per player per week — so clicking through it in order is
+the same journey it always was. And ``watch_videos?video_ids=...`` hands
+YouTube the whole roster as an anonymous playlist, so the sequence can
+still be watched end to end, on YouTube's side, where playback works.
 
 The page is built as a string here rather than in ``report.py`` purely to
 keep that 2,000-line module from growing another 300 lines of JS.
@@ -40,15 +52,26 @@ from typing import Optional
 _REEL_JS = r"""
 const SLEEPER = 'https://api.sleeper.app/v1';
 const THUMB = id => 'https://i.ytimg.com/vi/' + id + '/mqdefault.jpg';
+const WATCH = id => 'https://www.youtube.com/watch?v=' + encodeURIComponent(id);
+
+// YouTube's anonymous-playlist endpoint. Hands an ordered list of ids to
+// youtube.com and plays them in sequence there -- the "whole roster in one
+// go" behaviour, on the side of the wire where playback actually works.
+// The endpoint takes at most 50 ids, and silently plays nothing at all if
+// given more, so the cap is enforced rather than hoped for.
+const YT_PLAYLIST_MAX = 50;
+function playlistUrl(ids) {
+  const list = (ids || []).filter(Boolean).slice(0, YT_PLAYLIST_MAX);
+  if (!list.length) return '';
+  return 'https://www.youtube.com/watch_videos?video_ids=' + list.join(',');
+}
 
 let HL = null;           // highlights.json
 let NAME_LOOKUP = null;  // match-key -> sleeper_id, built lazily
 let userId = null;
 let roster = [];         // [{sid, name, pos, team, rank, clips:[]}]
-let queue = [];          // [{videoId, sid, name, clip}]
-let ytPlayer = null, ytReady = false, pendingLoad = null;
-let currentIdx = -1;
-const unplayable = new Set();
+let queue = [];          // flat lead-week queue: [{videoId, sid, name, clip}]
+let buckets = [];        // [{key, label, week, complete, lead, cutups, recaps}]
 
 // ---------------------------------------------------------------- utilities
 
@@ -105,6 +128,119 @@ function hasWindow() {
   return !!windowLabel();
 }
 
+// ------------------------------------------------------------ week buckets
+//
+// The build decides which week leads and publishes it on the artifact.
+// Neither page recomputes it. That matters for two reasons: the rule is
+// "the week whose last game has been played", which is a fact about the
+// NFL schedule in UTC and not about the viewer's clock; and reel.js and
+// myteam.js both read these helpers, so a single answer keeps the two
+// pages from labelling the same clips differently.
+
+function weekMeta() {
+  const ws = (HL && HL.weeks) || [];
+  return ws.filter(w => w && w.start_date);
+}
+
+// The bucket the pages open on: the most recent COMPLETE week.
+//
+// Four sources, in descending order of authority. The first two are the
+// build's own answer and are what a current artifact hits. The last two
+// exist because highlights.json is generated by a scheduled job and the
+// pages are served from a CDN: a page can be live against an artifact
+// built before week bucketing existed, and it has to degrade to sensible
+// grouping rather than to an empty reel.
+function leadWeekKey() {
+  // 1. Published outright by the build.
+  if (HL && HL.lead_week_start) return HL.lead_week_start;
+
+  // 2. Flagged on the bucket list.
+  const ws = weekMeta();
+  const lead = ws.find(w => w.lead) || ws.find(w => w.complete) || ws[0];
+  if (lead) return lead.start_date;
+
+  // 3. Pre-bucketing artifact: the resolved window's start is a slate
+  //    Thursday, which is exactly a bucket key.
+  if (HL && HL.window_start) return String(HL.window_start).slice(0, 10);
+
+  // 4. Nothing at all to go on -- group on the newest slate any indexed
+  //    clip belongs to, so the page still shows film.
+  let newest = '';
+  const all = (HL && HL.clips) || {};
+  for (const sid of Object.keys(all)) {
+    (all[sid] || []).forEach(c => {
+      const k = clipWeekKey(c);
+      if (k > newest) newest = k;
+    });
+  }
+  return newest;
+}
+
+// "Sep 10–14" from a bucket key, for artifacts whose weeks[] does not
+// carry a label (or does not exist at all).
+function slateRangeLabel(key) {
+  if (!key) return '';
+  const start = new Date(key + 'T00:00:00Z');
+  if (isNaN(start)) return key;
+  const span = (HL && HL.window && HL.window.window_days) || 5;
+  const end = new Date(start.getTime() + (span - 1) * 86400000);
+  const a = MONTHS[start.getUTCMonth()] + ' ' + start.getUTCDate();
+  const b = start.getUTCMonth() === end.getUTCMonth()
+    ? String(end.getUTCDate())
+    : MONTHS[end.getUTCMonth()] + ' ' + end.getUTCDate();
+  return a + '\u2013' + b;
+}
+
+function weekLabelFor(key) {
+  const w = weekMeta().find(x => x.start_date === key);
+  if (w && w.label) return w.label;
+  return slateRangeLabel(key) || key || 'Undated';
+}
+
+// NFL week number for a bucket, or null.
+function weekNumberFor(key) {
+  const w = weekMeta().find(x => x.start_date === key);
+  if (w && w.week) return w.week;
+  // Pre-bucketing artifact: the resolved window carries the number for
+  // its own slate, and that slate is the fallback lead bucket.
+  const ws = (HL && HL.window_start)
+    ? String(HL.window_start).slice(0, 10) : '';
+  if (key && key === ws) {
+    return (HL.window && HL.window.week) || HL.expected_week || null;
+  }
+  return null;
+}
+
+// "Week 1 · Sep 10–14". Both halves, per the spec: the number is what a
+// fantasy manager thinks in, the dates are what makes it unambiguous.
+function weekHeading(key) {
+  const lbl = weekLabelFor(key);
+  const wk = weekNumberFor(key);
+  return wk ? 'Week ' + wk + ' \u00b7 ' + lbl : lbl;
+}
+
+function weekIsComplete(key) {
+  const w = weekMeta().find(x => x.start_date === key);
+  // Unknown buckets are treated as complete: an artifact with no week
+  // metadata should render as ordinary history, not as "in progress".
+  return w ? !!w.complete : true;
+}
+
+// Bucket key for one clip. Prefers what the build computed; falls back to
+// the publish date so a pre-bucketing artifact still groups into
+// something sensible rather than collapsing into one pile.
+function clipWeekKey(c) {
+  if (c && c.bucket_start) return c.bucket_start;
+  const ts = c && c.published_at ? new Date(c.published_at) : null;
+  if (!ts || isNaN(ts)) return '';
+  // Mirror of highlights.slate_start_for: shift back a day, then take the
+  // Thursday on or before.
+  const d = new Date(ts.getTime() - 24 * 3600 * 1000);
+  const back = (d.getUTCDay() - 4 + 7) % 7;
+  d.setUTCDate(d.getUTCDate() - back);
+  return d.toISOString().slice(0, 10);
+}
+
 // A clip counts as current when the build said so. With no window in the
 // artifact every clip is treated as current, which is the pre-windowing
 // behaviour and keeps an older highlights.json usable.
@@ -149,11 +285,16 @@ async function loadHighlights() {
     return false;
   }
   const n = Object.keys(HL.clips || {}).length;
-  const lbl = windowLabel();
-  // The date window leads. A week number is a label the channels type and
-  // frequently get wrong or omit, so it trails in parentheses when the
-  // build was able to derive one at all.
-  const wk = (HL.window && HL.window.week) || HL.expected_week;
+  // Label the header with the LEAD WEEK, not the resolved window.
+  //
+  // Those are the same slate most days and deliberately differ on a
+  // Monday: the window tracks where the film is, the lead week tracks
+  // which week has finished, and the page is grouped by the latter.
+  // Sourcing this line from the window would caption a page whose first
+  // section reads "Week 1 · Sep 10–14" with a different week entirely.
+  const leadKey = leadWeekKey();
+  const lbl = weekLabelFor(leadKey) || windowLabel();
+  const wk = weekNumberFor(leadKey);
   const win = lbl
     ? ' · clips from ' + lbl + (wk ? ' (week ' + wk + ')' : '')
     : (wk ? ' · week ' + wk : '');
@@ -341,16 +482,25 @@ function buildRoster(sleeperIds) {
   // Best players first — a reel that opens on your WR5 feels wrong.
   roster.sort((a, b) => a.rank - b.rank);
 
+  // Summarise against the lead week -- the bucket the page opens on --
+  // rather than the film-availability window. Those are the same slate
+  // most days and deliberately differ on a Monday, and quoting the
+  // window here would caption a page grouped by completed week with a
+  // different week's label.
   const total = sleeperIds.length;
-  const inWin = roster.filter(p => p.clips.some(inWindow)).length;
-  const onlyOld = roster.length - inWin;
-  const lbl = windowLabel();
+  const leadKey = leadWeekKey();
+  const leadHeading = weekHeading(leadKey);
+  const inLead = roster.filter(
+    p => (p.clips || []).some(c => clipWeekKey(c) === leadKey)
+  ).length;
+  const otherWeeks = roster.length - inLead;
   const summaryEl = document.getElementById('roster-summary');
   if (summaryEl) {
-    summaryEl.textContent = lbl
-      ? (inWin + ' of ' + total + ' rostered players have film from ' + lbl +
-         (onlyOld ? ' · ' + onlyOld + ' more have older clips — tick “every ' +
-                    'clip per player” to queue them' : ''))
+    summaryEl.textContent = leadKey
+      ? (inLead + ' of ' + total + ' rostered players have film from ' +
+         leadHeading +
+         (otherWeeks ? ' · ' + otherWeeks + ' more have film from other ' +
+                       'weeks — tick “show every week”' : ''))
       : (roster.length + ' of ' + total + ' rostered players have clips');
   }
 
@@ -380,146 +530,216 @@ function buildRoster(sleeperIds) {
   }
 }
 
+// -------------------------------------------------------------- queue build
+//
+// Two structures come out of here:
+//
+//   ``buckets``  every week the roster has film for, lead week first,
+//                each split into player cut-ups and game recaps.
+//   ``queue``    the lead week's cards, flat and ordered. Kept because the
+//                My Team page and the "watch all" playlist both want one
+//                ordered list, and because a flat queue is what "watch my
+//                whole roster" means.
+
+// Order one player's clips inside a single week.
+//
+// Confidence first, then view count. That ordering is the whole point of
+// treating views as a *secondary* signal: a 400-view cut-up of the player
+// you rostered outranks a 2-million-view clip the matcher was less sure
+// about, because being the right player's film matters more than being
+// popular film. Views only separate clips we are equally confident in.
+function rankClip(a, b) {
+  const kind = (a.kind === 'player_cutup' ? 0 : 1) - (b.kind === 'player_cutup' ? 0 : 1);
+  if (kind) return kind;
+  const conf = (b.confidence || 0) - (a.confidence || 0);
+  if (Math.abs(conf) > 1e-9) return conf;
+  const trust = (b.trusted ? 1 : 0) - (a.trusted ? 1 : 0);
+  if (trust) return trust;
+  const views = (b.view_count || 0) - (a.view_count || 0);
+  if (views) return views;
+  return String(b.published_at || '').localeCompare(String(a.published_at || ''));
+}
+
+function buildBuckets(includeTeam, allWeeks) {
+  const leadKey = leadWeekKey();
+  const byKey = {};
+  const order = [];
+  function bucketFor(key) {
+    if (!byKey[key]) { byKey[key] = { cutups: [], recaps: [] }; order.push(key); }
+    return byKey[key];
+  }
+
+  // Materialise the lead bucket even when it is empty. "No film indexed
+  // for week 1 yet" is a thing the page has to be able to say; dropping
+  // the bucket would silently promote an in-progress week to the top.
+  bucketFor(leadKey);
+
+  // roster is already in model-rank order, so pushing in iteration order
+  // gives each bucket best-player-first without a second sort.
+  roster.forEach(p => {
+    const byWeek = {};
+    (p.clips || []).forEach(c => {
+      const k = clipWeekKey(c);
+      if (!k) return;
+      (byWeek[k] = byWeek[k] || []).push(c);
+    });
+    Object.keys(byWeek).forEach(k => {
+      if (!allWeeks && k !== leadKey) return;
+      const mine = byWeek[k].slice().sort(rankClip);
+      const cutups = mine.filter(c => c.kind === 'player_cutup');
+      const recaps = mine.filter(c => c.kind === 'team_game');
+      const b = bucketFor(k);
+      if (cutups.length) {
+        (allWeeks ? cutups : cutups.slice(0, 1))
+          .forEach(c => b.cutups.push(entryFor(p, c)));
+      } else if (includeTeam && recaps.length) {
+        // A recap surfaces for a player ONLY when that player has no
+        // cut-up that week. With a cut-up present the recap is strictly
+        // worse film for this roster slot, and mixing the two is what
+        // made the old reel feel like it was padding.
+        b.recaps.push(entryFor(p, recaps[0]));
+      }
+    });
+  });
+
+  const rest = order.filter(k => k !== leadKey).sort().reverse();
+  return [leadKey].concat(rest).map(k => ({
+    key: k,
+    heading: weekHeading(k),
+    complete: weekIsComplete(k),
+    lead: k === leadKey,
+    cutups: byKey[k].cutups,
+    recaps: byKey[k].recaps
+  }));
+}
+
+function entryFor(p, c) {
+  return { videoId: c.video_id, sid: p.sid, name: p.name, pos: p.pos, clip: c };
+}
+
 function rebuildQueue() {
   const includeTeam = document.getElementById('opt-team').checked;
-  const allClips = document.getElementById('opt-all').checked;
-  queue = [];
-  roster.forEach(p => {
-    let clips = p.clips.filter(c => includeTeam || c.kind === 'player_cutup');
-    // Default view is the completed slate only. Clips from earlier windows
-    // stay in the index and stay reachable — they are exactly what the
-    // "every clip per player" toggle is for — but a reel that silently
-    // mixes in a three-week-old cut-up is the bug this replaces.
-    if (!allClips) {
-      clips = clips.filter(inWindow).slice(0, 1);
-    }
-    clips.forEach(c => queue.push({ videoId: c.video_id, sid: p.sid, name: p.name, pos: p.pos, clip: c }));
-  });
+  const allWeeks = document.getElementById('opt-all').checked;
 
-  const secs = queue.reduce((a, q) => a + (q.clip.duration_seconds || 0), 0);
-  const btn = document.getElementById('play-all');
-  if (queue.length) {
-    btn.disabled = false;
-    btn.textContent = '▶  Play all ' + queue.length + ' clips' + (secs ? ' · ' + fmtTotal(secs) : '');
-  } else {
-    btn.disabled = true;
-    btn.textContent = 'No clips for this roster yet';
-  }
-  renderQueue();
+  buckets = buildBuckets(includeTeam, allWeeks);
+  const lead = buckets.find(b => b.lead) || buckets[0] || { cutups: [], recaps: [] };
+  queue = lead.cutups.concat(lead.recaps);
+
+  updateWatchAll(lead);
+  renderBuckets();
 }
 
-function renderQueue() {
-  const box = document.getElementById('queue-list');
-  if (!queue.length) {
-    const lbl = windowLabel();
-    const older = roster.some(p => p.clips.some(c => !inWindow(c)));
-    box.innerHTML = '<div class="empty">' + (lbl
-      ? 'Nothing indexed for these players from ' + escapeHtml(lbl) + '. '
-      : 'Nothing indexed for these players yet. ') +
-      (older
-        ? 'They do have older film — tick “every clip per player” to queue it.'
-        : 'Try enabling game recaps above.') + '</div>';
+// The "watch the whole roster" affordance, rebuilt as a link-out. It hands
+// YouTube the lead week's ids in order; sequencing then happens there,
+// where it works, instead of here, where it did not.
+function updateWatchAll(lead) {
+  const el = document.getElementById('play-all');
+  if (!el) return;
+  const ids = queue.map(q => q.videoId);
+  const url = playlistUrl(ids);
+  const secs = queue.reduce((a, q) => a + (q.clip.duration_seconds || 0), 0);
+  if (!url) {
+    el.removeAttribute('href');
+    el.className = 'btn btn-lg btn-disabled';
+    el.textContent = 'No clips for this roster yet';
     return;
   }
-  box.innerHTML = queue.map((q, i) => {
-    const c = q.clip;
-    const bits = [];
-    // Published date first: it is the field selection and ordering are
-    // built on, and it is present on every clip. The title's week number
-    // follows it as a label where the channel bothered to type one.
-    const day = fmtDay(c.published_at);
-    if (day) bits.push(day);
-    if (c.week) bits.push('Wk ' + c.week);
-    if (!inWindow(c)) bits.push('older');
-    if (c.opponent) bits.push('vs ' + c.opponent);
-    if (c.duration_seconds) bits.push(fmtDuration(c.duration_seconds));
-    if (c.kind === 'team_game') bits.push('game recap');
-    const cls = 'q-item' + (i === currentIdx ? ' active' : '') +
-                (unplayable.has(q.videoId) ? ' dead' : '') +
-                (inWindow(c) ? '' : ' stale');
-    return '<button class="' + cls + '" data-idx="' + i + '">' +
-      '<img loading="lazy" src="' + THUMB(q.videoId) + '" alt="">' +
-      '<span class="q-body"><span class="q-name">' + escapeHtml(q.name) +
-      (q.pos ? ' <em>' + q.pos + '</em>' : '') + '</span>' +
-      '<span class="q-meta">' + bits.join(' · ') + '</span></span></button>';
-  }).join('');
-  box.querySelectorAll('.q-item').forEach(b => {
-    b.addEventListener('click', () => jumpTo(+b.dataset.idx));
-  });
+  el.setAttribute('href', url);
+  el.className = 'btn btn-lg';
+  const capped = ids.length > YT_PLAYLIST_MAX;
+  el.textContent = '\u25B6  Watch all ' +
+    Math.min(ids.length, YT_PLAYLIST_MAX) + ' on YouTube' +
+    (secs && !capped ? ' \u00b7 ' + fmtTotal(secs) : '');
+  const note = document.getElementById('play-all-note');
+  if (note) {
+    note.textContent = capped
+      ? 'YouTube caps an ad-hoc playlist at ' + YT_PLAYLIST_MAX +
+        ' videos, so the first ' + YT_PLAYLIST_MAX + ' are queued.'
+      : 'Opens ' + (lead && lead.heading ? lead.heading : 'this week') +
+        ' as a playlist on YouTube, in this order.';
+  }
 }
 
-// ---------------------------------------------------------------- yt player
+// ------------------------------------------------------------------ render
 
-function onYouTubeIframeAPIReady() {
-  ytPlayer = new YT.Player('yt-frame', {
-    // The IFrame API is served from youtube.com. Constructing the player
-    // against the youtube-nocookie host while loading the API from
-    // youtube.com mixes origins, and the player reports it as the generic
-    // "An error occurred. Please try again later." Keep both on one host.
-    //
-    // origin is what the API asks embedders to send; omitting it is the
-    // other common cause of that same message.
-    playerVars: {
-      rel: 0,
-      modestbranding: 1,
-      playsinline: 1,
-      origin: window.location.origin
-    },
-    events: {
-      onReady: () => {
-        ytReady = true;
-        if (pendingLoad) { const p = pendingLoad; pendingLoad = null; startAt(p); }
-      },
-      onStateChange: e => {
-        if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) {
-          const i = ytPlayer.getPlaylistIndex();
-          if (i >= 0 && i !== currentIdx) { currentIdx = i; renderQueue(); updateNowPlaying(); }
-        }
-      },
-      onError: e => {
-        // 101/150 = embedding disabled by the uploader, 100 = removed.
-        // Skip rather than stall; the index can go stale between refreshes.
-        const q = queue[currentIdx];
-        if (q) unplayable.add(q.videoId);
-        renderQueue();
-        if (currentIdx < queue.length - 1) {
-          setTimeout(() => ytPlayer.nextVideo(), 250);
-        } else {
-          status('Last clip could not be embedded (error ' + e.data + ').', true);
-        }
-      }
+function fmtViews(n) {
+  if (!n && n !== 0) return '';
+  if (n >= 1e6) return (n / 1e6).toFixed(n >= 1e7 ? 0 : 1).replace(/\.0$/, '') + 'M views';
+  if (n >= 1e3) return Math.round(n / 1e3) + 'K views';
+  return n + ' views';
+}
+
+// One clip card. An anchor, not a button: middle-click, cmd-click and
+// "open in new tab" all have to behave the way they do everywhere else,
+// and a click handler calling window.open would break all three.
+function clipCard(e) {
+  const c = e.clip;
+  const bits = [];
+  const day = fmtDay(c.published_at);
+  if (day) bits.push(escapeHtml(day));
+  if (c.opponent) bits.push('vs ' + escapeHtml(c.opponent));
+  if (c.duration_seconds) bits.push(escapeHtml(fmtDuration(c.duration_seconds)));
+  if (c.view_count) bits.push(escapeHtml(fmtViews(c.view_count)));
+  if (c.channel_title) bits.push(escapeHtml(c.channel_title));
+
+  return '<a class="q-item" href="' + escapeHtml(WATCH(e.videoId)) + '" ' +
+    'target="_blank" rel="noopener noreferrer">' +
+    '<span class="q-thumb"><img loading="lazy" src="' +
+      escapeHtml(THUMB(e.videoId)) + '" alt=""></span>' +
+    '<span class="q-body">' +
+      '<span class="q-name">' + escapeHtml(e.name) +
+        (e.pos ? ' <em>' + escapeHtml(e.pos) + '</em>' : '') +
+        (c.trusted ? ' <span class="q-trust" title="Curated channel">\u2713</span>' : '') +
+      '</span>' +
+      '<span class="q-title">' + escapeHtml(c.title) + '</span>' +
+      '<span class="q-meta">' + bits.join(' \u00b7 ') + '</span>' +
+    '</span></a>';
+}
+
+function groupHtml(title, note, entries) {
+  if (!entries.length) return '';
+  return '<div class="q-group">' +
+    '<div class="q-group-head">' + escapeHtml(title) +
+      ' <span class="q-count">' + entries.length + '</span></div>' +
+    (note ? '<div class="q-group-note">' + escapeHtml(note) + '</div>' : '') +
+    '<div class="q-list">' + entries.map(clipCard).join('') + '</div></div>';
+}
+
+// Player highlights lead; recaps are a separate, labelled group underneath
+// and are never interleaved with cut-ups.
+function bucketBody(b) {
+  if (!b.cutups.length && !b.recaps.length) {
+    return '<div class="empty">No film indexed for ' + escapeHtml(b.heading) +
+      ' yet.</div>';
+  }
+  return groupHtml('Player highlights', '', b.cutups) +
+    groupHtml('Game recaps', 'Shown only for players with no individual ' +
+      'cut-up this week.', b.recaps);
+}
+
+function renderBuckets() {
+  const box = document.getElementById('queue-list');
+  if (!box) return;
+  if (!buckets.length) { box.innerHTML = ''; return; }
+
+  const html = buckets.map(b => {
+    const status = b.lead
+      ? '<span class="wk-tag wk-lead">most recent complete week</span>'
+      : (b.complete ? '' : '<span class="wk-tag wk-live">still in progress</span>');
+    const n = b.cutups.length + b.recaps.length;
+    // The lead week is open; everything else is a collapsed <details>, so
+    // older weeks are present without burying the week being asked about.
+    if (b.lead) {
+      return '<section class="wk wk-open"><h3 class="wk-head">' +
+        escapeHtml(b.heading) + status + '</h3>' + bucketBody(b) + '</section>';
     }
-  });
-}
-window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+    return '<details class="wk"><summary class="wk-head">' +
+      escapeHtml(b.heading) + status +
+      '<span class="q-count">' + n + '</span></summary>' +
+      bucketBody(b) + '</details>';
+  }).join('');
 
-function startAt(idx) {
-  if (!queue.length) return;
-  if (!ytReady) { pendingLoad = idx; return; }
-  show('player-wrap', true);
-  currentIdx = idx;
-  // loadPlaylist autoplays — only ever called from a click handler, so the
-  // browser's gesture requirement is satisfied and audio isn't blocked.
-  ytPlayer.loadPlaylist({ playlist: queue.map(q => q.videoId), index: idx });
-  renderQueue();
-  updateNowPlaying();
-}
-
-function jumpTo(idx) {
-  if (!ytReady || currentIdx < 0) { startAt(idx); return; }
-  ytPlayer.playVideoAt(idx);
-  currentIdx = idx;
-  renderQueue();
-  updateNowPlaying();
-}
-
-function updateNowPlaying() {
-  const q = queue[currentIdx];
-  const el = document.getElementById('now-playing');
-  if (!q) { el.textContent = ''; return; }
-  el.innerHTML = '<strong>' + escapeHtml(q.name) + '</strong> · ' +
-    escapeHtml(q.clip.title) + ' <span class="np-idx">' +
-    (currentIdx + 1) + ' of ' + queue.length + '</span>';
+  box.innerHTML = html;
 }
 
 function escapeHtml(s) {
@@ -554,7 +774,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (id) { userId = null; loadRoster(id); }
   });
   document.getElementById('load-custom').addEventListener('click', loadCustomRoster);
-  document.getElementById('play-all').addEventListener('click', () => startAt(0));
+  // No handler for #play-all: it is an anchor to YouTube now, and its
+  // href is rewritten by updateWatchAll whenever the queue changes.
   document.getElementById('opt-team').addEventListener('change', rebuildQueue);
   document.getElementById('opt-all').addEventListener('change', rebuildQueue);
 
@@ -567,12 +788,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Keyboard: the reel is meant to be watched, not clicked through.
-  document.addEventListener('keydown', e => {
-    if (currentIdx < 0 || /^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) return;
-    if (e.key === 'ArrowRight' && currentIdx < queue.length - 1) jumpTo(currentIdx + 1);
-    if (e.key === 'ArrowLeft' && currentIdx > 0) jumpTo(currentIdx - 1);
-  });
+  // The arrow-key handler went with the embedded player. Playback is on
+  // YouTube now, so next/previous are YouTube's controls; binding the
+  // arrows here would only fight the page's own scrolling.
 });
 """
 
@@ -607,28 +825,59 @@ _REEL_CSS = """
 .lg-meta { font-size: 11px; opacity: .6; }
 .reel-opts { display: flex; gap: 18px; flex-wrap: wrap; align-items: center;
   margin: 14px 0; font-size: 13px; opacity: .85; }
-.reel-grid { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 20px;
-  align-items: start; margin-top: 16px; }
-@media (max-width: 900px) { .reel-grid { grid-template-columns: 1fr; } }
-.player-box { position: relative; width: 100%; aspect-ratio: 16 / 9;
-  background: #000; border-radius: 12px; overflow: hidden; }
-.player-box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
-#now-playing { font-size: 13px; margin-top: 10px; line-height: 1.5; }
-.np-idx { opacity: .55; font-size: 12px; margin-left: 6px; }
-#queue-list { display: flex; flex-direction: column; gap: 6px;
-  max-height: 560px; overflow-y: auto; }
+/* The player column is gone, so the queue is the page rather than a
+   320px sidebar next to an embed. Cards get real width and the grid
+   becomes responsive columns of clips. */
+#queue-list { display: flex; flex-direction: column; gap: 18px; margin-top: 16px; }
+#play-all-note { font-size: 12px; opacity: .6; margin-top: 6px; }
+.btn-disabled { opacity: .45; pointer-events: none; }
+a.btn, a.btn:hover { text-decoration: none; display: inline-block; }
+
+/* ---- week buckets ---- */
+.wk { border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px;
+  background: rgba(127,127,127,.04); }
+.wk-open { border-color: var(--accent); }
+.wk-head { font-size: 15px; font-weight: 700; margin: 0 0 10px;
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; cursor: pointer; }
+.wk-open .wk-head { cursor: default; }
+details.wk > summary { list-style: none; }
+details.wk > summary::-webkit-details-marker { display: none; }
+details.wk > summary::before { content: '\25B8'; opacity: .5; font-size: 12px; }
+details.wk[open] > summary::before { content: '\25BE'; }
+.wk-tag { font-size: 10px; font-weight: 700; letter-spacing: .04em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+.wk-lead { background: var(--accent); color: #fff; }
+.wk-live { background: rgba(127,127,127,.18); opacity: .8; }
+
+/* ---- groups: cut-ups lead, recaps are visibly a different thing ---- */
+.q-group { margin-top: 12px; }
+.q-group-head { font-size: 12px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .05em; opacity: .7; display: flex; align-items: center; gap: 8px; }
+.q-group-note { font-size: 11px; opacity: .55; margin-top: 2px; }
+.q-count { font-size: 11px; font-weight: 600; opacity: .55;
+  background: rgba(127,127,127,.15); border-radius: 999px; padding: 1px 7px; }
+.q-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px; margin-top: 8px; }
+
+/* ---- clip card: an anchor, styled as a card ---- */
 .q-item { display: flex; gap: 10px; align-items: center; text-align: left;
   background: var(--card); border: 1px solid var(--border); color: inherit;
-  border-radius: 10px; padding: 6px; cursor: pointer; }
+  border-radius: 10px; padding: 6px; text-decoration: none; }
 .q-item:hover { border-color: var(--accent); }
-.q-item.active { border-color: var(--accent); background: rgba(127,127,127,.10); }
-.q-item.dead { opacity: .4; }
-.q-item.stale { opacity: .72; border-style: dashed; }
+.q-thumb { position: relative; flex: none; }
+/* Play glyph on the thumbnail: the card opens YouTube, and it should
+   look like it does before it is clicked. */
+.q-thumb::after { content: '\25B6'; position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,.8); opacity: .85; }
 .q-item img { width: 76px; height: 43px; object-fit: cover; border-radius: 6px;
-  background: #222; flex: none; }
+  background: #222; display: block; }
 .q-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .q-name { font-size: 13px; font-weight: 600; }
 .q-name em { font-style: normal; opacity: .55; font-size: 11px; }
+.q-trust { color: var(--accent); font-size: 11px; }
+.q-title { font-size: 11px; opacity: .75; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; }
 .q-meta { font-size: 11px; opacity: .6; }
 .empty { font-size: 13px; opacity: .6; padding: 16px; }
 """
@@ -651,9 +900,10 @@ def build_reel(latest_ts: datetime, league_label: str) -> str:
     body = """<div class="container">
 
 <h2>Roster <span class="accent">Reel</span></h2>
-<p class="lede reel-intro">Import a Sleeper roster and watch every rostered
-player's cut-up from the most recently completed slate, back to back. One
-player, one queue, no clicking between clips.</p>
+<p class="lede reel-intro">Import a Sleeper roster and get every rostered
+player's cut-up from the most recently completed week, in one ordered queue.
+Every clip opens on YouTube — or send the whole week there as a playlist and
+watch it end to end.</p>
 <div class="hl-meta" id="hl-meta">Loading highlight index…</div>
 
 <div class="tabs">
@@ -692,31 +942,32 @@ player, one queue, no clicking between clips.</p>
 
   <div class="reel-opts">
     <label><input type="checkbox" id="opt-team"> include game recaps when no cut-up exists</label>
-    <label><input type="checkbox" id="opt-all"> every clip per player, including older windows</label>
+    <label><input type="checkbox" id="opt-all"> show every week, not just the latest complete one</label>
   </div>
 
-  <button class="btn btn-lg" id="play-all" disabled>Play all</button>
+  <a class="btn btn-lg btn-disabled" id="play-all" target="_blank"
+     rel="noopener noreferrer">Watch all on YouTube</a>
+  <div id="play-all-note"></div>
 
-  <div class="reel-grid">
-    <div>
-      <div class="player-box" id="player-wrap" style="display:none"><div id="yt-frame"></div></div>
-      <div id="now-playing"></div>
-    </div>
-    <div id="queue-list"></div>
-  </div>
+  <div id="queue-list"></div>
 </div>
 
-<p style="font-size:12px;opacity:.55;margin-top:28px">The reel defaults to the
-most recently <em>completed</em> Thursday-to-Monday slate, so on a Monday you
-still get last week's finished film rather than a week nothing has been
-uploaded for yet. Clips are matched to players automatically from public
-YouTube uploads and embedded via the YouTube player, so views and ad revenue
-stay with the original uploader. Rosters are read live from Sleeper's public
-API in your browser — nothing is sent to this site.</p>
+<p style="font-size:12px;opacity:.55;margin-top:28px">Clips open on YouTube in
+a new tab rather than playing in an embedded player. Embedded playback fails
+for reasons outside this site's control — uploaders disable embedding,
+rights-holders restrict regions, Shorts refuse to play in a playlist — and
+each one surfaced as <em>“An error occurred. Please try again later.”</em>
+Linking out removes that failure entirely, and <em>Watch all on YouTube</em>
+still queues the whole week in order. Weeks are grouped newest
+<em>complete</em> week first: a week becomes eligible only once its final game
+has been played, so on a Monday you get last week's finished film rather than
+a week that is still being played. Clips are matched to players automatically
+from public YouTube uploads; views and ad revenue stay with the original
+uploader. Rosters are read live from Sleeper's public API in your browser —
+nothing is sent to this site.</p>
 
 </div>
 <style>__CSS__</style>
-<script src="https://www.youtube.com/iframe_api"></script>
 <script>__JS__</script>
 """.replace("__CSS__", _REEL_CSS).replace("__JS__", _REEL_JS)
 

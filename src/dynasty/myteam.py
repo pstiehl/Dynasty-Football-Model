@@ -580,6 +580,10 @@ function renderRankingsTab() {
   box.innerHTML = html;
 }
 
+// The My Team highlights tab. Shares the reel's bucketing helpers
+// (leadWeekKey / weekHeading / clipWeekKey / rankClip) rather than
+// re-deriving any of it, so the two pages group and label identically --
+// reel.js is concatenated ahead of this file in the built page.
 function renderHighlightsTab() {
   const box = document.getElementById('clips-pane-body');
   const haveIndex = typeof HL !== 'undefined' && HL && HL.clips &&
@@ -592,7 +596,6 @@ function renderHighlightsTab() {
       'work normally and this tab stays empty.');
     return;
   }
-  const winLbl = (typeof windowLabel === 'function') ? windowLabel() : '';
   const withClips = MT.roster.filter(p => p.clips.length)
     .sort((a, b) => (a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank));
   if (!withClips.length) {
@@ -600,56 +603,117 @@ function renderHighlightsTab() {
       'clips right now. Enable game recaps above to fall back to team film.</div>';
     return;
   }
-  const intro = winLbl
-    ? '<p class="mt-sub" style="margin:0 0 14px">Film from <strong>' +
-      esc(winLbl) + '</strong>, the most recently completed Thursday-to-Monday ' +
-      'slate. Clips marked <em>older</em> come from an earlier window and are ' +
-      'kept out of the reel unless you ask for every clip.</p>'
-    : '';
-  box.innerHTML = intro + withClips.map(p =>
-    '<div class="mt-player"><div class="mt-player-head">' +
-      posBadge(p.pos) +
-      '<span class="mt-player-name">' + playerCell(p) + '</span>' +
-      '<span class="mt-player-meta">' + esc(p.team || '') +
-      (p.rank == null ? '' : ' · model #' + p.rank) + '</span></div>' +
-    '<div class="mt-clips">' + p.clips.map(c =>
-      '<button class="mt-clip" data-video="' + esc(c.video_id) + '">' +
-        '<img loading="lazy" src="' + THUMB(c.video_id) + '" alt="">' +
-        '<span class="mt-clip-body">' +
-          '<span class="mt-clip-title">' + esc(c.title) + '</span>' +
-          '<span class="mt-clip-meta">' + [
-            (typeof fmtDay === 'function' ? fmtDay(c.published_at) : ''),
-            c.week ? 'Wk ' + esc(c.week) : '',
-            (typeof inWindow === 'function' && !inWindow(c)) ? 'older' : '',
-            c.opponent ? 'vs ' + esc(c.opponent) : '',
-            c.duration_seconds ? fmtDuration(c.duration_seconds) : '',
-            c.kind === 'team_game' ? 'game recap' : '',
-            esc(c.channel_title || '')
-          ].filter(Boolean).join(' · ') + '</span>' +
-        '</span></button>'
-    ).join('') + '</div></div>'
-  ).join('');
 
-  box.querySelectorAll('.mt-clip').forEach(b => {
-    b.addEventListener('click', () => playClip(b.dataset.video));
+  const leadKey = (typeof leadWeekKey === 'function') ? leadWeekKey() : '';
+  const keyOf = (typeof clipWeekKey === 'function')
+    ? clipWeekKey : (c => (c && c.bucket_start) || '');
+  const headingOf = (typeof weekHeading === 'function')
+    ? weekHeading : (k => k);
+  const completeOf = (typeof weekIsComplete === 'function')
+    ? weekIsComplete : (() => true);
+  const order = (typeof rankClip === 'function') ? rankClip : (() => 0);
+
+  // week key -> {cutups: [{p, c}], recaps: [{p, c}]}
+  const byWeek = {};
+  const seen = [];
+  function bucket(k) {
+    if (!byWeek[k]) { byWeek[k] = { cutups: [], recaps: [] }; seen.push(k); }
+    return byWeek[k];
+  }
+  if (leadKey) bucket(leadKey);
+
+  withClips.forEach(p => {
+    const mine = {};
+    p.clips.forEach(c => {
+      const k = keyOf(c);
+      if (!k) return;
+      (mine[k] = mine[k] || []).push(c);
+    });
+    Object.keys(mine).forEach(k => {
+      const sorted = mine[k].slice().sort(order);
+      const cut = sorted.filter(c => c.kind === 'player_cutup');
+      const rec = sorted.filter(c => c.kind === 'team_game');
+      const b = bucket(k);
+      if (cut.length) {
+        cut.forEach(c => b.cutups.push({ p: p, c: c }));
+      } else if (rec.length) {
+        // Same rule as the reel: a recap stands in for a player only
+        // when that player has no cut-up of their own that week.
+        b.recaps.push({ p: p, c: rec[0] });
+      }
+    });
   });
+
+  const rest = seen.filter(k => k !== leadKey).sort().reverse();
+  const keys = (leadKey ? [leadKey] : []).concat(rest);
+
+  const intro = '<p class="mt-sub" style="margin:0 0 14px">Grouped by week, ' +
+    'most recent <strong>complete</strong> week first \u2014 a week qualifies ' +
+    'only once its last game has been played. Clips open on YouTube in a new ' +
+    'tab.</p>';
+
+  box.innerHTML = intro + keys.map(k => {
+    const b = byWeek[k];
+    const n = b.cutups.length + b.recaps.length;
+    const tag = k === leadKey
+      ? '<span class="wk-tag wk-lead">most recent complete week</span>'
+      : (completeOf(k) ? '' : '<span class="wk-tag wk-live">still in progress</span>');
+    const body = n
+      ? mtGroup('Player highlights', '', b.cutups) +
+        mtGroup('Game recaps',
+                'Shown only for players with no individual cut-up this week.',
+                b.recaps)
+      : '<div class="empty">No film indexed for ' + esc(headingOf(k)) +
+        ' yet.</div>';
+    if (k === leadKey) {
+      return '<section class="wk wk-open"><h3 class="wk-head">' +
+        esc(headingOf(k)) + tag + '</h3>' + body + '</section>';
+    }
+    return '<details class="wk"><summary class="wk-head">' +
+      esc(headingOf(k)) + tag + '<span class="q-count">' + n +
+      '</span></summary>' + body + '</details>';
+  }).join('');
 }
 
-// Hand off to the embedded reel when the clip is in its queue; otherwise
-// the clip exists in the index but is filtered out of the current queue
-// (a recap with recaps switched off, say), so open it on YouTube instead
-// of silently doing nothing.
-function playClip(videoId) {
-  const q = (typeof queue !== 'undefined' && queue) || [];
-  const idx = q.findIndex(x => x.videoId === videoId);
-  if (idx >= 0 && typeof startAt === 'function') {
-    startAt(idx);
-    document.getElementById('step-reel')
-      .scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else {
-    window.open('https://www.youtube.com/watch?v=' + encodeURIComponent(videoId),
-                '_blank', 'noopener');
-  }
+function mtGroup(title, note_, rows) {
+  if (!rows.length) return '';
+  return '<div class="q-group">' +
+    '<div class="q-group-head">' + esc(title) +
+      ' <span class="q-count">' + rows.length + '</span></div>' +
+    (note_ ? '<div class="q-group-note">' + esc(note_) + '</div>' : '') +
+    '<div class="mt-clips">' + rows.map(r => mtClipCard(r.p, r.c)).join('') +
+    '</div></div>';
+}
+
+// An anchor straight to YouTube. This replaces playClip(), which tried to
+// hand the video to the embedded player first and only fell back to
+// opening a tab. There is no embedded player any more, and the fallback
+// path was the one that always worked.
+function mtClipCard(p, c) {
+  const meta = [
+    (typeof fmtDay === 'function' ? fmtDay(c.published_at) : ''),
+    c.opponent ? 'vs ' + esc(c.opponent) : '',
+    c.duration_seconds ? fmtDuration(c.duration_seconds) : '',
+    (typeof fmtViews === 'function' && c.view_count) ? fmtViews(c.view_count) : '',
+    esc(c.channel_title || '')
+  ].filter(Boolean).join(' \u00b7 ');
+
+  const href = (typeof WATCH === 'function')
+    ? WATCH(c.video_id)
+    : ('https://www.youtube.com/watch?v=' + encodeURIComponent(c.video_id));
+
+  return '<a class="mt-clip" href="' + esc(href) + '" target="_blank" ' +
+    'rel="noopener noreferrer">' +
+    '<span class="q-thumb"><img loading="lazy" src="' +
+      esc(THUMB(c.video_id)) + '" alt=""></span>' +
+    '<span class="mt-clip-body">' +
+      '<span class="mt-clip-who">' + posBadge(p.pos) + ' ' +
+        esc(p.name || '') +
+        (c.trusted ? ' <span class="q-trust" title="Curated channel">\u2713</span>' : '') +
+      '</span>' +
+      '<span class="mt-clip-title">' + esc(c.title) + '</span>' +
+      '<span class="mt-clip-meta">' + meta + '</span>' +
+    '</span></a>';
 }
 
 // ---------------------------------------------------------------- league
@@ -893,13 +957,17 @@ _MYTEAM_CSS = """
 .mt-player-meta { font-size: 12px; color: var(--muted); }
 .mt-clips { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 8px; }
+/* An anchor now, not a button: cmd-click and middle-click must open a
+   tab the way every other link on the web does. */
 .mt-clip { display: flex; gap: 10px; align-items: center; text-align: left;
   background: var(--bg); border: 1px solid var(--border); color: inherit;
-  border-radius: 8px; padding: 6px; cursor: pointer; font: inherit; }
+  border-radius: 8px; padding: 6px; font: inherit; text-decoration: none; }
 .mt-clip:hover { border-color: var(--accent); }
 .mt-clip img { width: 76px; height: 43px; object-fit: cover; border-radius: 6px;
-  background: #222; flex: none; }
+  background: #222; display: block; }
 .mt-clip-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mt-clip-who { font-size: 12px; font-weight: 700; display: flex;
+  align-items: center; gap: 5px; }
 .mt-clip-title { font-size: 12px; font-weight: 600; line-height: 1.35;
   display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   overflow: hidden; }
@@ -990,39 +1058,37 @@ Sleeper's public API in your browser — nothing is sent to this site.</p>
     <div id="clips-pane-body"></div>
 
     <h3>Roster Reel</h3>
-    <p class="mt-sub">Every clip above, queued back to back in model order.</p>
+    <p class="mt-sub">The same film as one ordered queue — or send the whole
+    week to YouTube as a playlist and watch it end to end.</p>
 
     <div id="step-reel" style="display:none">
       <div id="roster-summary" style="font-size:13px;opacity:.75;margin-top:10px"></div>
 
       <div class="reel-opts">
         <label><input type="checkbox" id="opt-team"> include game recaps when no cut-up exists</label>
-        <label><input type="checkbox" id="opt-all"> every clip per player, including older windows</label>
+        <label><input type="checkbox" id="opt-all"> show every week, not just the latest complete one</label>
       </div>
 
-      <button class="btn btn-lg" id="play-all" disabled>Play all</button>
+      <a class="btn btn-lg btn-disabled" id="play-all" target="_blank"
+         rel="noopener noreferrer">Watch all on YouTube</a>
+      <div id="play-all-note"></div>
 
-      <div class="reel-grid">
-        <div>
-          <div class="player-box" id="player-wrap" style="display:none"><div id="yt-frame"></div></div>
-          <div id="now-playing"></div>
-        </div>
-        <div id="queue-list"></div>
-      </div>
+      <div id="queue-list"></div>
     </div>
   </div>
 </div>
 
 <p style="font-size:12px;opacity:.55;margin-top:28px">Clips are matched to
-players automatically from public YouTube uploads and embedded via the
-YouTube player, so views and ad revenue stay with the original uploader.
+players automatically from public YouTube uploads and open on YouTube in a new
+tab rather than in an embedded player — embedding is restricted for reasons
+outside this site's control and produced repeated playback errors. Views and
+ad revenue stay with the original uploader.
 Model ranks come from the same engine that powers the Dynasty Rankings tab.
 League standings are computed in your browser from the rosters Sleeper
 returns; the method is documented on the League tab.</p>
 
 </div>
 <style>__REEL_CSS____MYTEAM_CSS__</style>
-<script src="https://www.youtube.com/iframe_api"></script>
 <script>__REEL_JS__</script>
 <script>__MYTEAM_JS__</script>
 """
