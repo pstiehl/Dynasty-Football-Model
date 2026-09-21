@@ -93,6 +93,11 @@ header.site nav a {
 header.site nav a:hover { opacity: 1; text-decoration: none; }
 header.site nav a.active { opacity: 1; border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
 header.site .meta { opacity: 0.6; font-size: 12px; margin-top: 4px; }
+/* Reference pages: still reachable, deliberately quiet. */
+header.site .row.secondary-nav { margin-top: 10px; justify-content: flex-end; gap: 0; }
+header.site nav.secondary a { font-size: 12px; opacity: 0.45; margin-left: 18px; font-weight: 400; }
+header.site nav.secondary a:hover { opacity: 0.8; }
+header.site nav.secondary a.active { opacity: 0.9; }
 .container { max-width: 1240px; margin: 0 auto; padding: 28px 36px; }
 .container.narrow { max-width: 900px; }
 h2 { color: var(--text); font-size: 22px; margin-top: 32px; font-weight: 600; }
@@ -202,6 +207,20 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
         cls = ' class="active"' if key == active else ""
         return f'<a href="{href}"{cls}>{label}</a>'
 
+    # Nav is deliberately short. Methodology, Sources and Prospects are
+    # still built and still reachable by direct link and from the footer -
+    # they are just not competing for attention up top. The value of this
+    # site is the highlights, the manager score and the similarity work,
+    # so those are what the nav points at.
+    secondary = "".join(
+        link(href, label, key)
+        for href, label, key in (
+            ("methodology.html", "Methodology", "methodology"),
+            ("sources.html", "Sources", "sources"),
+            ("prospects.html", "Prospects", "prospects"),
+        )
+    )
+
     return f"""<header class="site">
   <div class="row">
     <div>
@@ -209,14 +228,14 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
       <div class="meta">Fantasy Football · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
     </div>
     <nav>
-      {link("rankings.html", "Similarity Scores", "rankings")}
-      {link("league.html", "Dynasty Rankings", "league")}
-      {link("methodology.html", "Methodology", "methodology")}
-      {link("sources.html", "Sources", "sources")}
-      {link("prospects.html", "Prospects", "prospects")}
       {link("myteam.html", "My Team", "myteam")}
       {link("reel.html", "Roster Reel", "reel")}
+      {link("rankings.html", "Similarity Scores", "rankings")}
+      {link("league.html", "Dynasty Rankings", "league")}
     </nav>
+  </div>
+  <div class="row secondary-nav">
+    <nav class="secondary">{secondary}</nav>
   </div>
 </header>"""
 
