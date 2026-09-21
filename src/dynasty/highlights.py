@@ -71,29 +71,91 @@ _CUTUP_MARKERS = (
     "route running", "full game", "game highlights",
 )
 
-# Shorts and micro-clips.
+# Micro-clips.
 #
-# YouTube Shorts report ``status.embeddable: true``, so the ingest-time
-# embeddability check does not catch them - the live index had
-# ``videos_unembeddable: 0`` while 51 of its 80 videos were Shorts. They
-# then fail inside an IFrame *playlist* with "An error occurred. Please try
-# again later", which is what the user sees.
+# HISTORY, because this number moved for a specific reason. It was 75s,
+# set when the reel played clips back to back inside a YouTube IFrame
+# *playlist*: Shorts report ``status.embeddable: true`` but still fail in
+# a playlist with "An error occurred. Please try again later", so the only
+# reliable defence was to refuse anything short enough to be a Short.
 #
-# They are also not what a roster reel is for. The live index was carrying
-# 7-19 second clips titled "Taylor Swift is a proud wife after Travis
-# Kelce's td" and "Fred Warner, one punch man". A genuine single-player
-# cut-up essentially never runs under ~75s.
-MIN_CLIP_SECONDS = 75
+# The reel no longer embeds anything - it links out to YouTube, where
+# Shorts play perfectly well. The playback reason for the floor is gone,
+# and it was costing us the clips the reel is most wanted for: a live run
+# dropped 167 videos as "Shorts", among them genuine single-player
+# cut-ups that simply run 40-70 seconds.
+#
+# What survives is a floor low enough to exclude only things no highlight
+# can be - a 12-second sting, an intro bumper, a reaction gif with audio.
+# Everything above it is kept and *classified* on duration rather than
+# gated by it. Junk in the 15-75s band is now rejected on what the title
+# says (``_MEME_MARKERS``), which is the honest test: a 19-second clip of
+# a player's only touch of the game is a highlight, and a padded 90-second
+# meme montage never was.
+MIN_CLIP_SECONDS = 15
+
+#: Duration bands used as *classification* input (see :func:`classify`).
+#: Neither one drops a video.
+#:
+#: At or under this, a clip is short-form: one play, one touch, one
+#: sequence. Structurally incapable of being a 15-minute game recap, so
+#: this protects genuine cut-ups from the recap heuristics below.
+SHORT_FORM_MAX_SECONDS = 180
+#: At or over this, a multi-team video is a game recap rather than one
+#: player's cut-up. Condensed games run 8-12 minutes; full recaps 15-20.
+#: A single player's week almost never yields seven minutes of film.
+RECAP_MIN_SECONDS = 420
 
 # Reaction/meme uploads that name a player but show a moment, not a game.
-# Matched on the title because duration alone lets a padded 90s montage
-# through. Deliberately narrow: these are phrasings, not single words, so
-# "Chiefs react to the win" is dropped and "Reception" is untouched.
+# Matched on the title, which is now the *primary* junk filter rather than
+# a supplement to the duration floor - lowering that floor to 15s is what
+# makes this list load-bearing.
+#
+# Deliberately phrasings rather than single words, so "Chiefs react to the
+# win" is dropped and "Reception" is untouched. The first block is what the
+# live index was actually caught carrying; the second generalises the same
+# shapes (celebration, crowd, sideline, off-field) without reaching so far
+# that it eats football language.
 _MEME_MARKERS = (
+    # Observed in the live index.
     "is a proud", "was hype", "one punch man", "locked in",
     "showing how it", "heard the chatter", "with the perfect call",
     "calm fist pump", "proud wife", "reacts to", "reaction to",
     "caught on mic", "mic'd up", "micd up",
+    # Same shapes, generalised.
+    "is hyped", "goes crazy", "can't believe", "cant believe",
+    "loses it", "lost it after", "savage", "trash talk", "trolls",
+    "shades", "claps back", "fires back at", "hilarious", "funny moment",
+    "best moments off", "dance", "celebration compilation", "tunnel walk",
+    "pregame outfit", "arrives in style", "wholesome", "emotional moment",
+    "crowd goes", "fan reaction", "sideline moment", "caught cursing",
+    "gets emotional", "speechless", "is a vibe", "unreal moment",
+)
+
+# Phrases that mean the video is a full-game or team recap, whoever it
+# happens to name. Checked before the "a player was matched" branch so a
+# recap whose description-derived title mentions a star does not get filed
+# as that star's cut-up. Specific multi-word shapes only: bare
+# "highlights" is what cut-ups are called too.
+_RECAP_MARKERS = (
+    "game highlights", "full game", "game recap", "condensed game",
+    "full highlights", "every play of the game", "all scoring plays",
+    "first half highlights", "second half highlights",
+    "overtime highlights", "final drive",
+)
+# Deliberately NOT here: "week N highlights" and "highlights week N".
+# Cut-up channels title their single-player videos exactly that way
+# ("Amon-Ra St. Brown Week 2 Highlights vs Bills"), so matching on it
+# would refile the best clips in the index as game recaps.
+
+# Phrases that can only describe one player's cut-up. Presence vetoes the
+# recap heuristics entirely - "Every Target and Catch" is never a recap,
+# however long it runs or however many teams the title names.
+_CUTUP_STRONG_MARKERS = (
+    "every touch", "every target", "every catch", "every carry",
+    "every throw", "every play", "every reception", "every rush",
+    "all touches", "all targets", "all catches", "all carries",
+    "route running", "film room", "every snap",
 )
 
 # Phrases that mean this is talk, not football. Strong negative signal -
@@ -154,9 +216,21 @@ class Video:
     channel_title: str
     published_at: str            # ISO-8601
     duration_seconds: Optional[int] = None
-    #: False when ``status.embeddable`` is explicitly false. Non-embeddable
-    #: videos are dropped at index time — they'd 150-error mid-reel.
+    #: Retained from ``status.embeddable`` for provenance, but no longer a
+    #: reason to drop anything: the pages link out to YouTube instead of
+    #: embedding, so a video the uploader blocked from embedding plays
+    #: perfectly well on youtube.com. Dropping these was costing us clips
+    #: for no remaining benefit.
     embeddable: bool = True
+    #: ``statistics.viewCount`` from the same ``videos.list`` call that
+    #: supplies duration. A secondary ranking signal, never a filter - the
+    #: only cut-up of your TE3's two targets is the right clip for him at
+    #: 400 views.
+    view_count: Optional[int] = None
+    #: True when the upload came from a channel curated in
+    #: ``data/highlights/channels.json``. Those channels were each
+    #: inspected by hand, so provenance is a real quality signal.
+    trusted_channel: bool = False
 
 
 @dataclass
@@ -177,6 +251,18 @@ class Clip:
     #: how a consumer tells "no window was applied" apart from "this clip
     #: is outside the window".
     in_window: Optional[bool] = None
+    #: NFL week of the *slate this upload covers*, derived from
+    #: ``published_at`` (see :func:`slate_start_for`) - not from the title.
+    #: This is what the week buckets group on.
+    bucket_week: Optional[int] = None
+    #: ISO date of that slate's opening Thursday. Groups uploads even in a
+    #: preseason/postseason stretch where no week number can be derived.
+    bucket_start: Optional[str] = None
+    #: ``statistics.viewCount``, carried through for secondary ranking.
+    view_count: Optional[int] = None
+    #: True when the source channel is curated. Omitted when it is not, so
+    #: the artifact does not grow a false flag on every untrusted clip.
+    trusted: Optional[bool] = None
 
     def to_json(self) -> dict:
         d = asdict(self)
@@ -453,6 +539,182 @@ def resolve_game_window(
 
 
 # --------------------------------------------------------------------------
+# Week buckets
+# --------------------------------------------------------------------------
+#
+# Completeness is not availability
+# --------------------------------
+# ``resolve_game_window`` answers "which slate should the reel default to
+# so that film actually exists for it". Its grace period is tuned to when
+# the cut-up channels have finished *posting*.
+#
+# The week buckets answer a different question, and the owner was explicit
+# about it: a week is eligible to lead only once its final game has been
+# *played*. Those two questions have different answers on exactly the day
+# this was specified. Monday 2026-09-21 16:36 UTC:
+#
+#   * Film availability says the Sep 17-21 slate is where the uploads are.
+#   * Completeness says Sep 17-21 is still in progress - Monday night
+#     football kicks off at 00:15 UTC and ends around 03:30 UTC - so the
+#     most recent *complete* week is Sep 10-14, week 1.
+#
+# Both are right about their own question. This section deliberately does
+# not touch the window anchor; it adds the completeness rule alongside it,
+# and the bucket list is what the pages group and order on.
+
+#: Hours after the start of a slate's final day (Monday 00:00 UTC) before
+#: that slate counts as complete. Monday night football ends around 03:30
+#: UTC on Tuesday, so 30h - Tuesday 06:00 UTC - clears it with margin
+#: without waiting so long that Tuesday's viewers are stuck a week back.
+COMPLETION_HOURS_AFTER_FINAL_DAY = 30.0
+
+#: A slate's film is attributed by publish time, and uploads lag the games
+#: they cover. Thursday night's game kicks off at 00:15 UTC Friday, so
+#: anything published before Friday 00:00 UTC is covering the *previous*
+#: slate. Shifting back a day before locating the slate's Thursday puts
+#: Tuesday and Wednesday clean-up uploads in the week they belong to.
+SLATE_ATTRIBUTION_LAG_HOURS = 24.0
+
+
+def _thursday_on_or_before(ts: datetime) -> datetime:
+    """Midnight UTC on the Thursday at or before ``ts``."""
+    return (ts - timedelta(days=(ts.weekday() - 3) % 7)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+
+def slate_start_for(
+    published_at: Optional[str],
+    *,
+    lag_hours: float = SLATE_ATTRIBUTION_LAG_HOURS,
+) -> Optional[datetime]:
+    """The opening Thursday of the slate an upload covers, or ``None``.
+
+    Attribution is by publish timestamp, never by the week number in the
+    title: the title's week is absent from a large share of uploads and
+    wrong in some of the rest, and bucketing on it would scatter a week's
+    film across the page.
+
+    ``lag_hours`` shifts the timestamp back before the Thursday is found,
+    so an upload's slate is the one whose games it can actually show::
+
+        Fri 09-18 06:00  (TNF cut-up)      -> Thu 09-17   week 2
+        Mon 09-14 20:00  (Sunday cut-up)   -> Thu 09-10   week 1
+        Tue 09-15 08:00  (MNF cut-up)      -> Thu 09-10   week 1
+        Thu 09-17 14:00  (pre-TNF upload)  -> Thu 09-10   week 1
+    """
+    ts = parse_ts(published_at)
+    if ts is None:
+        return None
+    return _thursday_on_or_before(ts - timedelta(hours=float(lag_hours)))
+
+
+@dataclass
+class Slate:
+    """One Thursday->Monday week, as a grouping unit for the UI."""
+    start: datetime
+    end: datetime
+    week: Optional[int] = None
+    #: When this slate's final game finishes. Past ``as_of`` -> complete.
+    complete_at: Optional[datetime] = None
+    complete: bool = False
+    #: How many clip rows landed in this bucket. Set by
+    #: :func:`build_week_buckets`; 0 for a lead slate with no film yet.
+    clip_count: int = 0
+    #: True for the single bucket the pages open on.
+    lead: bool = False
+
+    @property
+    def label(self) -> str:
+        """``"Sep 10-14"``, matching :attr:`GameWindow.label`."""
+        s, e = self.start, self.end
+        left = f"{_MONTH_ABBR[s.month - 1]} {s.day}"
+        right = (f"{e.day}" if (s.month, s.year) == (e.month, e.year)
+                 else f"{_MONTH_ABBR[e.month - 1]} {e.day}")
+        return f"{left}\u2013{right}"
+
+    def to_json(self) -> dict:
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "start_date": self.start.date().isoformat(),
+            "label": self.label,
+            "week": self.week,
+            "complete": self.complete,
+            "complete_at": (self.complete_at.isoformat()
+                            if self.complete_at else None),
+            "clip_count": self.clip_count,
+            "lead": self.lead,
+        }
+
+
+def slate_for_start(
+    start: datetime,
+    *,
+    as_of: datetime,
+    window_days: int = DEFAULT_WINDOW_DAYS,
+    season_start: Optional[datetime] = None,
+    completion_hours: float = COMPLETION_HOURS_AFTER_FINAL_DAY,
+) -> Slate:
+    """Build a :class:`Slate` for a known opening Thursday."""
+    window_days = max(1, int(window_days))
+    end = start + timedelta(days=window_days) - timedelta(seconds=1)
+    complete_at = (start + timedelta(days=window_days - 1)
+                   + timedelta(hours=float(completion_hours)))
+    return Slate(
+        start=start,
+        end=end,
+        week=week_number_for(start, season_start),
+        complete_at=complete_at,
+        complete=complete_at <= as_of,
+    )
+
+
+def most_recent_complete_slate(
+    as_of: Optional[datetime] = None,
+    *,
+    window_days: int = DEFAULT_WINDOW_DAYS,
+    season_start: Optional[datetime] = None,
+    completion_hours: float = COMPLETION_HOURS_AFTER_FINAL_DAY,
+) -> Slate:
+    """The newest slate whose final game has been played.
+
+    **This is the single source of truth for "most recent complete week".**
+    The artifact publishes its result and both pages read it from there,
+    so the reel and My Team cannot drift apart or re-derive it in JS from
+    the viewer's local clock.
+
+    Worked example - Monday 2026-09-21 16:36 UTC, the case this exists
+    for::
+
+        candidate Thu 09-17 (week 2)  completes Tue 09-22 06:00  future
+        candidate Thu 09-10 (week 1)  completes Tue 09-15 06:00  past
+                                      -> lead bucket Sep 10-14, week 1
+
+    Week 2's Monday night game has not kicked off yet, so week 2 is not
+    eligible to lead however much week 2 film is already indexed.
+    """
+    as_of = (as_of or datetime.now(timezone.utc))
+    if as_of.tzinfo is None:
+        as_of = as_of.replace(tzinfo=timezone.utc)
+    as_of = as_of.astimezone(timezone.utc)
+
+    thursday = _thursday_on_or_before(as_of)
+    for _ in range(12):
+        slate = slate_for_start(
+            thursday, as_of=as_of, window_days=window_days,
+            season_start=season_start, completion_hours=completion_hours,
+        )
+        if slate.complete:
+            return slate
+        thursday -= timedelta(days=7)
+    return slate_for_start(
+        thursday, as_of=as_of, window_days=window_days,
+        season_start=season_start, completion_hours=completion_hours,
+    )
+
+
+# --------------------------------------------------------------------------
 # Title parsing
 # --------------------------------------------------------------------------
 
@@ -644,11 +906,16 @@ def match_players(
 # --------------------------------------------------------------------------
 
 def is_short(video: Video, min_seconds: int = MIN_CLIP_SECONDS) -> bool:
-    """True for Shorts / micro-clips that break playlist playback.
+    """True only for sub-:data:`MIN_CLIP_SECONDS` micro-clips.
 
-    Unknown duration is *not* treated as a Short: the duration comes from a
-    separate ``videos.list`` call that can legitimately be missing, and
-    discarding everything unenriched would silently empty the index.
+    This used to mean "is a YouTube Short", because Shorts broke IFrame
+    playlist playback. Nothing embeds any more, so the floor is now just a
+    sanity bound below which no highlight can exist. Shorts themselves are
+    kept: see :data:`MIN_CLIP_SECONDS`.
+
+    Unknown duration is *not* treated as too short: the duration comes
+    from a separate ``videos.list`` call that can legitimately be missing,
+    and discarding everything unenriched would silently empty the index.
     """
     dur = video.duration_seconds
     if dur is None:
@@ -656,12 +923,85 @@ def is_short(video: Video, min_seconds: int = MIN_CLIP_SECONDS) -> bool:
     return dur < min_seconds
 
 
+def _title_leads_with_player(
+    video: Video, matched: Sequence[PlayerRef]
+) -> bool:
+    """True when a matched player's surname opens the title.
+
+    Title *shape*, which is what separates the two kinds far more reliably
+    than any single keyword. Cut-up channels lead with the subject -
+    "Jahmyr Gibbs Week 1 Highlights vs Saints" - while recaps lead with
+    the fixture - "Lions vs Saints | Week 1 Game Highlights". Checked over
+    the first four tokens so a channel prefix or an emoji does not defeat
+    it.
+    """
+    if not matched:
+        return False
+    head = set(tokenize(video.title)[:4])
+    if not head:
+        return False
+    return any(
+        tok in head
+        for p in matched
+        for tok in tokenize(p.name)[-1:]  # surname carries the signal
+    )
+
+
+def looks_like_recap(video: Video, matched: Sequence[PlayerRef]) -> bool:
+    """True when this is a game recap rather than one player's cut-up.
+
+    Evaluated *before* "a player was matched", because the failure this
+    fixes is a 17-minute Lions/Saints recap being filed as Jahmyr Gibbs'
+    cut-up simply because his name appears in the title.
+
+    Three signals, in order of how much they are trusted:
+
+    1. **An explicit cut-up phrase vetoes everything.** "Every Target and
+       Catch" is never a recap, at any length.
+    2. **Two teams plus a recap phrase.** "Game Highlights", "Full Game",
+       "Condensed Game" - the fixture-shaped titles.
+    3. **Two teams plus recap-length runtime.** Catches recaps whose
+       titles use none of the stock phrasing. A title that leads with a
+       matched player, or that is short-form, is exempt: those are
+       cut-ups that happen to name both sides of the game.
+    """
+    folded = _fold(video.title)
+    if _has_any(folded, _CUTUP_STRONG_MARKERS):
+        return False
+
+    dur = video.duration_seconds
+    if dur is not None and dur <= SHORT_FORM_MAX_SECONDS:
+        return False
+
+    teams = find_teams(video.title)
+    if len(teams) >= 2 and _has_any(folded, _RECAP_MARKERS):
+        return True
+
+    if dur is not None and dur >= RECAP_MIN_SECONDS:
+        if _title_leads_with_player(video, matched):
+            return False
+        if len(teams) >= 2 or not matched:
+            return True
+
+    return False
+
+
 def classify(video: Video, matched: Sequence[PlayerRef]) -> str:
+    """``KIND_PLAYER`` / ``KIND_TEAM`` / ``KIND_OTHER`` for one upload.
+
+    Order matters. Junk is rejected first, then recaps are separated from
+    cut-ups, and only then does a name match decide. Putting the recap
+    test ahead of the match test is the bifurcation the UI relies on: the
+    two kinds are rendered as separate groups, so anything misfiled here
+    shows up in the wrong section of the page.
+    """
     folded = _fold(video.title)
     if _has_any(folded, _NON_GAME_MARKERS):
         return KIND_OTHER
     if _has_any(folded, _MEME_MARKERS):
         return KIND_OTHER
+    if looks_like_recap(video, matched):
+        return KIND_TEAM
     if matched:
         return KIND_PLAYER
     if len(find_teams(video.title)) >= 2 and _has_any(folded, _CUTUP_MARKERS):
@@ -713,6 +1053,21 @@ def score_confidence(
     if in_window:
         score += 0.10
 
+    # Channel provenance. Every channel in data/highlights/channels.json
+    # was resolved and had its recent uploads inspected by hand before
+    # being enabled, so "this came from a curated source" is a stronger
+    # statement about the clip than any title keyword. Worth the same as
+    # naming the player's own team, and deliberately no more: a trusted
+    # channel still posts the occasional thing we do not want.
+    if video.trusted_channel:
+        score += 0.08
+
+    # Duration as a shape signal rather than a gate. A cut-up that runs
+    # recap-length is more likely a misfile than a very thorough cut-up.
+    dur = video.duration_seconds
+    if dur is not None and kind == KIND_PLAYER and dur >= RECAP_MIN_SECONDS:
+        score -= 0.05
+
     # Several players named -> it's a shared compilation, so any single
     # player gets less screen time than a dedicated cut-up.
     if n_matched > 1:
@@ -754,6 +1109,12 @@ def _sort_clips(clips: List[Clip]) -> None:
             0 if c.kind == KIND_PLAYER else 1,
             -(ts.timestamp() if ts else 0.0),
             -c.confidence,
+            # View count, below every correctness signal above it. It
+            # breaks ties between clips that are otherwise equally good;
+            # it must never promote a popular recap over the cut-up of
+            # the player you actually rostered, which is why it sits
+            # beneath both the kind and the confidence keys.
+            -(c.view_count or 0),
             -(c.week or 0),
         )
 
@@ -770,6 +1131,9 @@ def build_index(
     window: Optional[GameWindow] = None,
     include_team_fallback: bool = True,
     min_clip_seconds: int = MIN_CLIP_SECONDS,
+    trusted_channel_ids: Optional[Iterable[str]] = None,
+    as_of: Optional[datetime] = None,
+    season_start: Optional[datetime] = None,
 ) -> dict:
     """Build the full highlights artifact.
 
@@ -792,9 +1156,18 @@ def build_index(
     older film on request rather than disappearing.
 
     ``stats`` buckets every dropped video into exactly one counter
-    (``videos_unembeddable`` / ``videos_ambiguous`` / ``videos_non_game`` /
+    (``videos_too_short`` / ``videos_ambiguous`` / ``videos_non_game`` /
     ``videos_unmatched``), so the four drop counts plus the videos that
     produced clips account for ``videos_seen``.
+
+    ``videos_embed_blocked`` is reported but is **not** a drop count any
+    more. Nothing embeds, so a video whose uploader disabled embedding
+    plays perfectly well on the link-out; excluding it only cost clips.
+
+    ``weeks`` is the week-bucket list, newest first, with ``lead_week``
+    naming the most recent *complete* one. Both pages group on this and
+    neither re-derives it, so the reel and My Team cannot disagree about
+    which week leads.
 
     Keyed on ``sleeper_id`` because that's the canonical id in this project
     and what a Sleeper roster hands back. ``by_gsis`` exists because
@@ -802,6 +1175,8 @@ def build_index(
     per-player pages need the crosswalk to find their clips.
     """
     name_index = build_name_index(players)
+    trusted = {str(c) for c in (trusted_channel_ids or ()) if c}
+    as_of = as_of or datetime.now(timezone.utc)
 
     # Team -> fantasy-relevant players, for the game-recap fallback. A recap
     # names no player, so without this it would be indexed against nobody and
@@ -815,18 +1190,22 @@ def build_index(
 
     by_player: Dict[str, List[Clip]] = {}
 
-    n_seen = n_unembeddable = n_unmatched = n_other = n_ambiguous = 0
+    n_seen = n_embed_blocked = n_unmatched = n_other = n_ambiguous = 0
     n_shorts = 0
 
     for video in videos:
         n_seen += 1
         if not video.embeddable:
-            # Would throw a 150 error mid-playlist and stall the reel.
-            n_unembeddable += 1
-            continue
+            # Counted for visibility, deliberately not dropped. This was a
+            # drop when the reel embedded clips - error 150 stalled the
+            # whole playlist. The pages link out to YouTube now, where the
+            # uploader's embed setting is irrelevant, so dropping these
+            # would discard perfectly playable film for a problem that no
+            # longer exists.
+            n_embed_blocked += 1
 
-        # Shorts pass the embeddable check but break playlist playback,
-        # and a 12-second reaction clip is not a highlight reel anyway.
+        # A floor, not a Shorts filter. Shorts are wanted now; a
+        # sub-15-second sting still cannot be a highlight.
         if is_short(video, min_seconds=min_clip_seconds):
             n_shorts += 1
             continue
@@ -866,6 +1245,12 @@ def build_index(
 
         teams = find_teams(video.title)
         in_window = window.contains(video.published_at) if window else None
+        video.trusted_channel = (
+            video.trusted_channel or video.channel_id in trusted
+        )
+        bucket_start = slate_start_for(video.published_at)
+        bucket_week = (week_number_for(bucket_start, season_start)
+                       if bucket_start else None)
         for player in matched:
             conf = score_confidence(
                 video, player, kind,
@@ -893,6 +1278,11 @@ def build_index(
                     season=parse_season(video.title),
                     opponent=opponent,
                     in_window=in_window,
+                    bucket_week=bucket_week,
+                    bucket_start=(bucket_start.date().isoformat()
+                                  if bucket_start else None),
+                    view_count=video.view_count,
+                    trusted=True if video.trusted_channel else None,
                 )
             )
 
@@ -934,6 +1324,11 @@ def build_index(
         1 for cl in clips_out.values() if any(c.get("in_window") for c in cl)
     )
 
+    lead = most_recent_complete_slate(as_of, season_start=season_start)
+    weeks = build_week_buckets(
+        clips_out, as_of=as_of, season_start=season_start, lead=lead,
+    )
+
     return {
         "clips": clips_out,
         "by_gsis": by_gsis,
@@ -943,10 +1338,18 @@ def build_index(
         # reader does not have to know the nested shape to label a reel.
         "window_start": window.start.isoformat() if window else None,
         "window_end": window.end.isoformat() if window else None,
+        # Week buckets. ``lead_week`` is the most recent COMPLETE slate --
+        # a different question from ``window``, which is about where the
+        # film is. See the "Week buckets" section for why both exist.
+        "weeks": [w.to_json() for w in weeks],
+        "lead_week": lead.week,
+        "lead_week_start": lead.start.date().isoformat(),
+        "lead_week_label": lead.label,
+        "resolved_as_of": as_of.isoformat(),
         "stats": {
             "videos_seen": n_seen,
-            "videos_unembeddable": n_unembeddable,
-            "videos_shorts": n_shorts,
+            "videos_embed_blocked": n_embed_blocked,
+            "videos_too_short": n_shorts,
             "min_clip_seconds": min_clip_seconds,
             "videos_non_game": n_other,
             "videos_unmatched": n_unmatched,
@@ -955,8 +1358,75 @@ def build_index(
             "total_clips": sum(len(v) for v in clips_out.values()),
             "clips_in_window": n_window_clips,
             "players_with_window_clips": n_window_players,
+            "clips_trusted_channel": sum(
+                1 for cl in clips_out.values() for c in cl if c.get("trusted")
+            ),
+            "clips_player_cutup": sum(
+                1 for cl in clips_out.values() for c in cl
+                if c.get("kind") == KIND_PLAYER
+            ),
+            "clips_game_recap": sum(
+                1 for cl in clips_out.values() for c in cl
+                if c.get("kind") == KIND_TEAM
+            ),
+            "weeks_bucketed": len(weeks),
         },
     }
+
+
+def build_week_buckets(
+    clips_out: Dict[str, List[dict]],
+    *,
+    as_of: datetime,
+    season_start: Optional[datetime] = None,
+    lead: Optional[Slate] = None,
+) -> List[Slate]:
+    """Week buckets present in the index, newest slate first.
+
+    The list is built from the slates the clips actually landed in, plus
+    the lead slate whether or not it has film - a lead bucket that is
+    empty is information ("nothing indexed for week 1 yet"), and dropping
+    it would silently promote an incomplete week to the top of the page.
+
+    Incomplete slates are still returned, carrying ``complete: False``, so
+    the UI can show week 2 as in-progress underneath rather than pretend
+    the film does not exist.
+    """
+    lead = lead or most_recent_complete_slate(as_of, season_start=season_start)
+
+    starts: Dict[str, datetime] = {}
+    counts: Dict[str, int] = {}
+    for cl in clips_out.values():
+        for c in cl:
+            key = c.get("bucket_start")
+            if not key:
+                continue
+            if key not in starts:
+                try:
+                    starts[key] = datetime.fromisoformat(key).replace(
+                        tzinfo=timezone.utc
+                    )
+                except ValueError:
+                    continue
+            counts[key] = counts.get(key, 0) + 1
+
+    starts.setdefault(lead.start.date().isoformat(), lead.start)
+
+    out: List[Slate] = []
+    for key, start in starts.items():
+        slate = slate_for_start(start, as_of=as_of, season_start=season_start)
+        out.append(slate)
+
+    # Newest first. The lead bucket is not necessarily out[0]: a slate in
+    # progress sorts above it by date, which is correct -- it renders
+    # below the lead but keeps its real chronology in the data.
+    out.sort(key=lambda s: s.start, reverse=True)
+    lead_key = lead.start.date().isoformat()
+    for slate in out:
+        key = slate.start.date().isoformat()
+        slate.clip_count = counts.get(key, 0)
+        slate.lead = key == lead_key
+    return out
 
 
 def load_players_from_db(rank_by_gsis: Optional[Dict[str, int]] = None) -> List[PlayerRef]:

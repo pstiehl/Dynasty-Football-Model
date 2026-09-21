@@ -49,10 +49,12 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 from dynasty.highlights import (  # noqa: E402
     DEFAULT_GRACE_HOURS,
     DEFAULT_WINDOW_DAYS,
+    MIN_CLIP_SECONDS,
     PlayerRef,
     Video,
     build_index,
     load_players_from_db,
+    most_recent_complete_slate,
     parse_ts,
     resolve_game_window,
     window_containing,
@@ -187,13 +189,33 @@ def fetch_channel_uploads(
     return [v for v in out if v.get("video_id")][:max_videos]
 
 
-def enrich_videos(client, rows: List[dict], api_key: str, quota: Quota) -> List[Video]:
-    """Add duration + embeddable in batches of 50 (1 unit per batch).
+def _as_int(value) -> Optional[int]:
+    """YouTube returns counts as strings, and omits them when hidden."""
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
-    ``status.embeddable`` matters more than it looks: a non-embeddable video
-    throws error 150 in the IFrame player, and in a playlist that stalls the
-    whole reel. Cheaper to drop them here than to handle it in the browser.
+
+def enrich_videos(
+    client,
+    rows: List[dict],
+    api_key: str,
+    quota: Quota,
+    trusted_ids: Optional[set] = None,
+) -> List[Video]:
+    """Add duration, embeddability and view count in batches of 50.
+
+    **Still 1 quota unit per batch.** ``videos.list`` is charged per call,
+    not per ``part``, so adding ``statistics`` alongside ``contentDetails``
+    and ``status`` costs nothing extra -- the alternative, a second pass
+    for view counts, would have doubled this stage's quota.
+
+    ``status.embeddable`` is now recorded rather than acted on. The pages
+    link out to YouTube, so a video the uploader blocked from embedding is
+    perfectly watchable and there is no longer a reason to drop it.
     """
+    trusted_ids = trusted_ids or set()
     by_id = {r["video_id"]: r for r in rows}
     ids = list(by_id)
     out: List[Video] = []
@@ -202,7 +224,8 @@ def enrich_videos(client, rows: List[dict], api_key: str, quota: Quota) -> List[
         batch = ids[i:i + 50]
         data = _get(
             client, "videos",
-            {"part": "contentDetails,status", "id": ",".join(batch), "key": api_key},
+            {"part": "contentDetails,status,statistics",
+             "id": ",".join(batch), "key": api_key},
             quota, 1,
         )
         for item in data.get("items", []):
@@ -219,6 +242,10 @@ def enrich_videos(client, rows: List[dict], api_key: str, quota: Quota) -> List[
                     item.get("contentDetails", {}).get("duration")
                 ),
                 embeddable=bool(item.get("status", {}).get("embeddable", True)),
+                view_count=_as_int(
+                    item.get("statistics", {}).get("viewCount")
+                ),
+                trusted_channel=row["channel_id"] in trusted_ids,
             ))
     return out
 
@@ -233,6 +260,21 @@ def load_channels() -> List[dict]:
         return []
     data = json.loads(CHANNELS_CONFIG.read_text())
     return [c for c in data.get("channels", []) if c.get("enabled", True)]
+
+
+def trusted_channel_ids() -> set:
+    """Channel ids treated as curated provenance.
+
+    Every entry in ``channels.json`` was resolved and had its recent
+    uploads read before being enabled, so membership of that file *is* the
+    trust signal -- there is no separate allow-list to keep in sync. A
+    channel can opt out with ``"trusted": false`` if it is ever enabled
+    for coverage without being vouched for.
+    """
+    return {
+        c["channel_id"] for c in load_channels()
+        if c.get("channel_id") and c.get("trusted", True)
+    }
 
 
 def load_fixture(path: Path) -> List[Video]:
@@ -319,6 +361,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--max-per-channel", type=int, default=200)
     ap.add_argument("--min-confidence", type=float, default=0.5)
     ap.add_argument("--max-clips", type=int, default=5)
+    ap.add_argument("--min-clip-seconds", type=int, default=MIN_CLIP_SECONDS,
+                    help="Hard floor on clip duration (default "
+                         f"{MIN_CLIP_SECONDS}). This is a sanity bound, not "
+                         "a Shorts filter -- the pages link out to YouTube, "
+                         "where Shorts play fine, and short single-player "
+                         "cut-ups are wanted. Duration above the floor is a "
+                         "classification input, not a gate.")
     ap.add_argument("--season-start", type=parse_season_start, default=None,
                     metavar="YYYY-MM-DD",
                     help="Override week-1 kickoff (default: "
@@ -359,6 +408,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  publish cutoff ......... {window.publish_cutoff.isoformat()} "
           f"(+{window.grace_hours:g}h grace)")
     print(f"  resolved as of ......... {as_of.isoformat()}")
+
+    # Separate question from the window above: the window is about where
+    # the film is, this is about which week has actually finished. They
+    # disagree on a Monday, and the buckets follow this one.
+    lead = most_recent_complete_slate(as_of, season_start=season_start)
+    print(f"  lead (complete) week ... {lead.label}"
+          f"{f' (week {lead.week})' if lead.week else ''} "
+          f"— completed {lead.complete_at.isoformat()}")
 
     quota = Quota()
     videos: List[Video] = []
@@ -407,9 +464,12 @@ def main(argv: Optional[List[str]] = None) -> int:
                     # One dead channel must never fail the whole refresh.
                     print(f"  WARN {label}: {exc}")
 
-            print(f"\n[2/3] Enriching {len(rows)} videos (duration + embeddable)...")
+            print(f"\n[2/3] Enriching {len(rows)} videos "
+                  f"(duration + embeddable + views)...")
             with httpx.Client() as client2:
-                videos = enrich_videos(client2, rows, api_key, quota)
+                videos = enrich_videos(
+                    client2, rows, api_key, quota, trusted_channel_ids()
+                )
 
     print(f"\n[{'2' if args.fixture else '3'}/3] Matching to canonical players...")
     if args.players:
@@ -427,6 +487,10 @@ def main(argv: Optional[List[str]] = None) -> int:
             max_clips_per_player=args.max_clips,
             expected_week=win.week,
             window=win,
+            min_clip_seconds=args.min_clip_seconds,
+            trusted_channel_ids=trusted_channel_ids(),
+            as_of=as_of,
+            season_start=season_start,
         )
 
     index = build(window)
@@ -474,7 +538,9 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     s = index["stats"]
     print(f"\n  videos seen ............ {s['videos_seen']:,}")
-    print(f"  dropped (non-embeddable) {s['videos_unembeddable']:,}")
+    print(f"  embed-blocked (KEPT) ... {s['videos_embed_blocked']:,}")
+    print(f"  dropped (under {s['min_clip_seconds']}s) ... "
+          f"{s['videos_too_short']:,}")
     print(f"  dropped (not a game) ... {s['videos_non_game']:,}")
     print(f"  no player matched ...... {s['videos_unmatched']:,}")
     print(f"  ambiguous name ......... {s['videos_ambiguous']:,}")
@@ -482,7 +548,16 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  ... inside the window .. {s['players_with_window_clips']:,}")
     print(f"  total clips ............ {s['total_clips']:,}")
     print(f"  ... inside the window .. {s['clips_in_window']:,}")
-    print(f"  quota spent ............ {quota.report()}")
+    print(f"  ... player cut-ups ..... {s['clips_player_cutup']:,}")
+    print(f"  ... game recaps ........ {s['clips_game_recap']:,}")
+    print(f"  ... trusted channel .... {s['clips_trusted_channel']:,}")
+    print("\n  week buckets (newest first):")
+    for w in index["weeks"]:
+        flag = "LEAD" if w["lead"] else ("" if w["complete"] else "in progress")
+        print(f"    {w['label']:<14} "
+              f"{('week ' + str(w['week'])) if w['week'] else 'week ?':<8} "
+              f"{w['clip_count']:>6,} clips  {flag}")
+    print(f"\n  quota spent ............ {quota.report()}")
 
     if args.dry_run:
         print("\n  --dry-run: nothing written.")

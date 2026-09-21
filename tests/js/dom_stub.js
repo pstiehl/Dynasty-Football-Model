@@ -34,7 +34,24 @@ function makeEl(id) {
     scrollIntoView() {},
     appendChild() {},
     querySelector() { return null; },
-    querySelectorAll() { return []; }
+    querySelectorAll() { return []; },
+    // Attribute access, added when the reel stopped embedding: the
+    // "watch all" control is an anchor now, so the page sets and clears
+    // href rather than toggling a button's disabled property. Backed by
+    // a plain map and mirrored onto the element for `el.href` reads.
+    attributes: {},
+    setAttribute(name, value) {
+      this.attributes[name] = String(value);
+      this[name] = String(value);
+    },
+    getAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(this.attributes, name)
+        ? this.attributes[name] : null;
+    },
+    removeAttribute(name) {
+      delete this.attributes[name];
+      delete this[name];
+    }
   };
   return el;
 }
@@ -76,6 +93,11 @@ function fetch(url) {
   return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
 }
 
-// The IFrame API is never constructed here; the reel only touches YT from
-// inside a click handler, and no assertion drives playback.
-const YT = { Player: function () {}, PlayerState: { PLAYING: 1, CUED: 5 } };
+// No YT stub, deliberately.
+//
+// There used to be one here, because the reel constructed a YouTube
+// IFrame player. The pages link out to youtube.com now, so nothing
+// should touch a `YT` global at all -- and leaving a stand-in would let
+// an embed creep back in with the harness still green. Without it, any
+// reintroduced `new YT.Player(...)` fails loudly as a ReferenceError,
+// which is the signal we want. assertions.js checks the global is absent.

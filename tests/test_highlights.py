@@ -230,25 +230,34 @@ def test_drop_buckets_are_disjoint_and_account_for_every_video():
         vid("d1", "Ja'Marr Chase Highlights Week 3 vs Vikings"),   # clips
         vid("d2", "Michael Thomas Highlights Week 5"),             # ambiguous
         vid("d3", "Ja'Marr Chase Trade Rumors | Podcast"),         # non-game
-        vid("d4", "Ja'Marr Chase Highlights", embeddable=False),   # unembeddable
+        vid("d4", "Ja'Marr Chase Highlights", duration_seconds=4),  # too short
     ]
     idx = build_index(PLAYERS, videos)
     s = idx["stats"]
 
-    dropped = (s["videos_unembeddable"] + s["videos_non_game"]
+    dropped = (s["videos_too_short"] + s["videos_non_game"]
                + s["videos_unmatched"] + s["videos_ambiguous"])
     assert s["videos_seen"] == 4
     assert dropped == 3
     assert s["videos_ambiguous"] == 1
     assert s["videos_non_game"] == 1
-    assert s["videos_unembeddable"] == 1
+    assert s["videos_too_short"] == 1
 
 
-def test_non_embeddable_videos_are_dropped():
+def test_non_embeddable_videos_are_kept_now_that_nothing_embeds():
+    """Embeddability stopped being a reason to drop a video.
+
+    It was one when the reel played clips in an IFrame player: error 150
+    mid-playlist stalled the whole queue. The pages link out to YouTube
+    now, where the uploader's embed setting has no effect on whether the
+    viewer can watch it, so dropping these only cost us film.
+
+    The counter survives as telemetry, which is why it is asserted on.
+    """
     videos = [vid("v1", "Ja'Marr Chase Highlights Week 3", embeddable=False)]
     idx = build_index(PLAYERS, videos)
-    assert idx["clips"] == {}
-    assert idx["stats"]["videos_unembeddable"] == 1
+    assert idx["clips"]["7564"][0]["video_id"] == "v1"
+    assert idx["stats"]["videos_embed_blocked"] == 1
 
 
 def test_duplicate_video_ids_deduped():
