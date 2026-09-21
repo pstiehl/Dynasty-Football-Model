@@ -212,7 +212,46 @@ jobs:
             echo "YOUTUBE_API_KEY not set - skipping highlights refresh."
             exit 0
           fi
-          python scripts/refresh_highlights.py
+          # --gap-fill adds the targeted search.list layer for players the
+          # curated channels missed. Budget note: search.list lives in its
+          # OWN quota bucket of 100 calls/project/day (1 unit each) since
+          # the 2026-06-01 granular-quota change - it does NOT draw on the
+          # 10,000-unit pool the base layer uses, so an exhausted search
+          # budget can no longer blank the reel.
+          #
+          # The default budget is 40 per run precisely because this
+          # workflow can run twice on an in-season Tuesday (11:00 UTC
+          # daily + 16:00 UTC Tuesday). 40 x 2 = 80 < 100, leaving 20
+          # calls spare for a manual re-run.
+          python scripts/refresh_highlights.py --gap-fill
+
+      # Retain the permanent (player, season, week) search record.
+      #
+      # This is what makes gap-fill affordable rather than ruinous. A
+      # player's week-N film does not change once week N is over, so a
+      # search is bought once and reused forever - but only if the record
+      # survives the runner, and the runner is ephemeral. Committing it is
+      # the only persistence available to a static GitHub Pages site.
+      #
+      # Losing this file is not catastrophic but it IS expensive: every
+      # (player, week) already answered would be re-asked, and with a hard
+      # ceiling of 100 searches/day that is days of allowance to rebuild.
+      # Misses matter as much as hits here - an empty result is a question
+      # we already paid for.
+      - name: Retain the highlight search cache
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ -z "$(git status --porcelain data/highlights/search_cache.json 2>/dev/null)" ]; then
+            echo "No new highlight searches to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/highlights/search_cache.json
+          git commit -m "chore(highlights): retain gap-fill search cache [skip ci]"
+          git pull --rebase --autostash origin main || exit 0
+          git push origin HEAD:main
 
       - name: Upload site as a GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
