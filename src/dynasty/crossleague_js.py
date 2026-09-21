@@ -78,6 +78,37 @@ function xlProvenanceSentence(corpus) {
          'each run reaches further into the league graph.';
 }
 
+/* How much is QUEUED, not just how much is done.
+ *
+ * "12 leagues indexed" and "12 indexed, 488 found and waiting" describe
+ * very different systems: one looks finished, the other is visibly still
+ * filling up. Discovery is cheap and scoring is expensive, so the queue is
+ * normally far larger than the index, and hiding that would make a working
+ * crawl look like a stalled one. */
+function xlQueueSentence(corpus) {
+  var c = (corpus && corpus.crawl) || {};
+  var queued = c.n_never_scored || 0;
+  if (!queued) return '';
+  return xlEsc(queued.toLocaleString()) + ' more dynasty league' +
+         (queued === 1 ? '' : 's') + ' discovered and queued — the daily ' +
+         'crawl scores a bounded number per run, so the board keeps filling ' +
+         'in.';
+}
+
+/* The link that gets a league into the corpus from a static page.
+ *
+ * There is no backend here, so nothing typed into this page can be saved.
+ * A pre-filled GitHub issue is the one inbox a static site can offer, and
+ * the label that routes it is applied by the issue TEMPLATE rather than a
+ * ?labels= parameter, because that parameter silently fails for anyone
+ * without write access to the repository. */
+function xlSubmitUrl(corpus) {
+  var repo = (corpus && corpus.submission && corpus.submission.repo) ||
+             'pstiehl/Dynasty-Football-Model';
+  return 'https://github.com/' + repo +
+         '/issues/new?template=league-submission.yml';
+}
+
 function xlRenderCoverage(corpus) {
   var box = xlEl('xl-coverage');
   if (!box) return;
@@ -92,6 +123,7 @@ function xlRenderCoverage(corpus) {
     return;
   }
   var cov = corpus.coverage || {};
+  var queue = xlQueueSentence(corpus);
   box.className = 'callout';
   box.style.display = 'block';
   box.innerHTML =
@@ -101,10 +133,21 @@ function xlRenderCoverage(corpus) {
     xlEsc(cov.n_league_seasons_scored || 0) + ' league-seasons scored · ' +
     'seasons ' + xlEsc((cov.seasons || []).join(', ') || '—') + ' · ' +
     xlProvenanceSentence(corpus) + '</p>' +
+    (queue ? '<p class="xl-sub" style="margin:6px 0 0 0">' + queue + '</p>'
+           : '') +
     '<p class="xl-sub" style="margin:6px 0 0 0"><strong>This is not all of ' +
-    'Sleeper.</strong> Sleeper publishes no way to list leagues, so a corpus ' +
-    'can only be built by walking from known leagues outward. What you see ' +
-    'here is a deliberately bounded sample, not a census.</p>';
+    'Sleeper, and it is not a random sample of it.</strong> Sleeper ' +
+    'publishes no way to list leagues, so a corpus can only be built by ' +
+    'walking outward from leagues we already know: a league tells us its ' +
+    'members, and a member tells us their other leagues. That reaches ' +
+    'leagues <em>socially near the ones we started from</em> and nothing ' +
+    'else. Treat these ranks as a ranking within this sample, never as a ' +
+    'census of Sleeper.</p>' +
+    '<p class="xl-sub" style="margin:8px 0 0 0">' +
+    '<a href="' + xlEsc(xlSubmitUrl(corpus)) + '" target="_blank" ' +
+    'rel="noopener">Add your dynasty league to the corpus →</a> ' +
+    'Opens a pre-filled GitHub issue; a daily job checks the id against ' +
+    'Sleeper and queues it.</p>';
 }
 
 /* ---------------------------------------------------------- draft board */

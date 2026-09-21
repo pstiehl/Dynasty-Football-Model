@@ -97,3 +97,27 @@ data/engine_v3/prospects_*.json
 
 data/tankathon_cache/
 data/pfr_cache/draft_class/
+
+# v3.11 Sleeper immutable-response cache for the cross-league corpus crawl.
+#
+# Completed NFL seasons never change, so their transactions, box scores,
+# drafts and rosters are fetched once and kept forever -- that is what lets a
+# daily run spend its budget on leagues it has never seen instead of re-buying
+# history it already has (measured: 313 calls cold, 107 warm, for the same
+# four leagues).
+#
+# NOT COMMITTED, for two reasons:
+#
+#  1. It is raw third-party data. Sleeper's API is free for non-commercial
+#     use; caching responses to avoid hammering it is ordinary good
+#     behaviour, but committing ~24 MB of verbatim transaction logs and box
+#     scores into a public repository is republishing their data, which is a
+#     different act and not one this project needs to make.
+#  2. It is regenerable. Losing it costs calls, never correctness: the scores
+#     themselves live in the `retained` block of corpus.json, which IS
+#     committed, so an evicted cache means a slower crawl for a day, not a
+#     smaller corpus.
+#
+# Restored in CI by actions/cache, exactly like data/pfr_cache above. The
+# daily schedule keeps it inside the 7-day eviction window.
+data/cross_league/cache/

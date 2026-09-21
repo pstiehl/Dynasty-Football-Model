@@ -1,0 +1,56 @@
+name: Add my dynasty league to the corpus
+description: >-
+  Submit a Sleeper dynasty league id so it gets indexed on the Best Dynasty
+  Managers board.
+title: "[league] add my dynasty league"
+# The label is declared HERE, by the template, rather than being passed in a
+# ?labels= query parameter from the site. That query parameter only works for
+# people with write access to this repository; for everyone else GitHub drops
+# it or errors. A template-declared label is applied no matter who opens the
+# issue, which is the whole point -- the submitters are visitors, not
+# collaborators.
+labels: ["league-submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for adding a league.
+
+        **What happens next.** An automated job reads this issue, checks the id
+        against Sleeper's public API, and — if it is a real NFL **dynasty**
+        league — adds it to the crawl's seed registry and closes this issue.
+        The league is then scored on one of the next daily runs. There is a
+        queue, so it may not appear on the board immediately.
+
+        **What we read and store.** Only Sleeper's public, read-only,
+        unauthenticated API: league settings, members' pseudonymous handles,
+        draft picks, trades and waiver claims. No login, no private data, no
+        real names. Full detail is on the
+        [Best Dynasty Managers](https://pstiehl.github.io/Dynasty-Football-Model/crossleague.html)
+        page.
+
+        **Only submit a league you are in.** Everyone in it ends up on a public
+        leaderboard under their Sleeper handle. If your leaguemates would not
+        want that, do not submit it.
+
+  - type: input
+    id: league_id
+    attributes:
+      label: Sleeper league id
+      description: >-
+        The long number in your league's Sleeper URL:
+        https://sleeper.com/leagues/**1316222126914539520**/team — digits only.
+      placeholder: "1316222126914539520"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Confirmation
+      options:
+        - label: >-
+            This is a Sleeper **dynasty** league I am a member of, and I
+            understand my leaguemates' Sleeper handles will appear on a public
+            leaderboard.
+          required: true

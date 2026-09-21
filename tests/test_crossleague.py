@@ -369,14 +369,76 @@ class TestCompaction(unittest.TestCase):
         self.assertEqual(out["lineage_ids"], ["L1"])
 
     def test_committed_corpus_stays_small_if_present(self):
-        """Guards the real artifact against regrowing."""
+        """Guards the real artifact against regrowing.
+
+        This budget is **per indexed manager**, not absolute, and the change
+        from a flat 1 MB cap is deliberate rather than a threshold being
+        relaxed to make a red test green.
+
+        The regression this guard exists to catch is the per-transaction
+        audit coming back: the first real run shipped 2.3 MB for 56 managers
+        (~41,000 bytes each) because it carried 510 picks, 219 trades and
+        1,310 waiver claims per league. Compaction took that to ~2,100 bytes
+        per manager. A flat cap could not tell those two apart once the
+        corpus itself was allowed to grow -- it would fail identically for
+        "the audit is back" and for "we indexed twenty times more leagues,
+        exactly as asked". A per-manager budget only fires on the first.
+
+        Measured at 110 leagues / 1,283 managers: 1,664,465 bytes, or ~1,297
+        bytes per manager. The 2,500-byte budget leaves room for the score
+        distribution to fill out while still tripping at ~1.9x, long before
+        anything audit-shaped (16x) could land.
+
+        The absolute ceiling is a separate, cruder backstop on repository
+        growth, since this file is rewritten and committed every single day.
+        Reaching it is not a licence to raise it: it means the retained block
+        should move to its own artifact, or the published leaderboard should
+        stop carrying a full per-league breakdown for every manager.
+        """
         path = REPO_ROOT / "data" / "cross_league" / "corpus.json"
         if not path.exists():
             self.skipTest("no committed corpus in this checkout")
-        mb = path.stat().st_size / 1e6
-        self.assertLess(mb, 1.0,
-                        f"committed corpus is {mb:.2f} MB — it is rewritten "
-                        "daily, so keep the retained block compact")
+        size = path.stat().st_size
+        mb = size / 1e6
+
+        corpus = json.loads(path.read_text(encoding="utf-8"))
+        n_managers = (corpus.get("coverage") or {}).get("n_managers") or 0
+        if n_managers:
+            per_manager = size / n_managers
+            self.assertLess(
+                per_manager, 2500,
+                f"committed corpus is {per_manager:,.0f} bytes per indexed "
+                f"manager ({mb:.2f} MB / {n_managers:,} managers). That is "
+                f"audit-shaped: check that compact_result() is still "
+                f"dropping the per-transaction detail.")
+
+        self.assertLess(
+            mb, 8.0,
+            f"committed corpus is {mb:.2f} MB and is rewritten daily. Split "
+            f"the retained block into its own artifact rather than raising "
+            f"this number.")
+
+    def test_published_artifact_omits_crawler_state(self):
+        """Visitors must not download the crawler's resumption state.
+
+        ``retained`` exists so the NEXT crawl can re-aggregate leagues that
+        fell outside today's budget. The page never reads it, and at 110
+        leagues it was ~450 KB -- a quarter of the artifact -- on every page
+        load.
+        """
+        import tempfile as _tf
+        corpus = crossleague.build_corpus([
+            league("L1", "Alpha", [manager_row("m1", "alice", draft=(10, 1.0))]),
+        ])
+        corpus["retained"] = [{"league_id": "L1", "result": {"managers": []}}]
+        with _tf.TemporaryDirectory() as td:
+            path = crossleague.write_corpus_artifact(Path(td), corpus)
+            published = json.loads(path.read_text(encoding="utf-8"))
+        self.assertNotIn("retained", published)
+        self.assertEqual(published["retained_omitted"]["n_leagues"], 1)
+        # Everything the page actually renders must survive.
+        for key in ("coverage", "leaderboard", "draft_board", "leagues"):
+            self.assertIn(key, published)
 
     def test_committed_corpus_carries_no_audit_block(self):
         path = REPO_ROOT / "data" / "cross_league" / "corpus.json"
@@ -676,7 +738,19 @@ class TestPageRender(unittest.TestCase):
                         "the draft board must come before the overall board")
 
     def test_links_back_to_the_per_league_page(self):
-        self.assertIn("managerscore.html", self.html)
+        """The cross-league board must point at the per-league metric.
+
+        The target moved: the rebrand (#69) folded the standalone
+        ``managerscore.html`` into a section of ``myteam.html`` and updated
+        the page, but not this assertion, so it has been red on main since
+        that merge. What the test is actually for -- "this board must not
+        become an orphan; a reader has to be able to reach the per-league
+        metric it aggregates" -- is unchanged, so only the href moves.
+        """
+        self.assertIn("myteam.html", self.html)
+        self.assertNotIn(
+            "managerscore.html", self.html,
+            "managerscore.html no longer exists; a link to it would 404")
 
 
 class TestSiteWiring(unittest.TestCase):

@@ -108,11 +108,30 @@ there is no id space to sweep. The only way to find a league is to already
 know its id, or to find it through a person: a league tells you its members,
 and a member tells you their other leagues.</p>
 
-<p>So the corpus is built by walking outward from a small set of known
-leagues, a bounded number of hops, under a hard cap on both leagues and API
-calls. Every run reports the budget it used. <strong>This is a sample, and a
-small one. It is never a census of Sleeper, and this page never claims
-otherwise.</strong></p>
+<p>So the corpus is built by walking outward from a set of known leagues, a
+bounded number of hops per run, under hard caps on API calls, on leagues
+scored, and on wall-clock time. Every run reports the budget it used.
+<strong>This is a sample. It is never a census of Sleeper, and this page
+never claims otherwise.</strong></p>
+
+<p><strong>It is not a random sample either</strong>, and that matters more
+than its size. A social-graph crawl reaches leagues that are socially near
+the leagues it started from &mdash; friends of friends, and people who play
+in several leagues with the same crowd. Whatever is true of that
+neighbourhood is over-represented here, and a league with no connection to it
+is not merely under-sampled but unreachable. More crawling does not fix that;
+only new, unrelated seeds do, which is what the submission path below is
+for.</p>
+
+<p><strong>The crawl compounds instead of repeating.</strong> The frontier,
+the leagues already examined and the scoring ledger are all committed to the
+repository, so each daily run resumes the walk rather than re-running it.
+Completed seasons are cached permanently &mdash; a 2023 transaction log is
+final &mdash; so re-scoring a league already in the corpus costs only its live
+season, and the daily budget goes to leagues we have never seen. Discovery is
+cheap (hundreds of leagues for about a hundred calls); scoring is the
+expensive half, which is why far more leagues are queued than indexed at any
+moment.</p>
 
 <p><strong>What we read.</strong> Only Sleeper's public, read-only,
 unauthenticated API — the same data any visitor to a league page can see:
@@ -139,6 +158,38 @@ are real people playing a game with their friends.</p>
 licence from Sleeper. This project is non-commercial, and that constraint is
 recorded in <code>docs/CROSS-LEAGUE-CORPUS.md</code> so it survives any
 future change of plan.</p>
+</div>
+
+<h2>Get <span class="accent">your</span> league indexed</h2>
+<div class="xl-note">
+<p style="margin-top:0"><a href="https://github.com/pstiehl/Dynasty-Football-Model/issues/new?template=league-submission.yml"
+target="_blank" rel="noopener"><strong>Submit your league id &rarr;</strong></a>
+That link opens a pre-filled GitHub issue. A daily job reads it, checks the id
+against Sleeper, adds it to the crawl's seed registry if it is a real NFL
+dynasty league, and closes the issue saying what happened. Your league is then
+scored on one of the following runs.</p>
+
+<p><strong>Why a GitHub issue and not a box on this page.</strong> This site
+is a static GitHub Pages build. There is no server and no database behind it
+&mdash; every page here is a file, and your browser cannot write to a file. A
+text box that accepted your league id would have nowhere to send it, so it
+would be a form that quietly threw your input away. A GitHub issue is the only
+inbox a static site can offer that actually reaches us, and it has the side
+benefit of being a public, revertible audit trail: every accepted league is one
+line in <code>data/cross_league/seeds.json</code> carrying the issue number
+that introduced it.</p>
+
+<p><strong>What is still not possible.</strong> Typing a league id into the
+<a href="myteam.html">Manager Score</a> section does <em>not</em> add it
+here, and cannot. That page reads Sleeper live in your browser and shows you
+your own league; nothing it does can reach this corpus, because the only thing
+that can write to the corpus is a job running in CI. Getting indexed therefore
+takes the deliberate step above &mdash; it does not happen as a side effect of
+using the site.</p>
+
+<p><strong>Only submit a league you are in.</strong> Everyone in it will appear
+on a public leaderboard under their Sleeper handle. If a league is submitted
+that should not have been, say so on the issue and it will be removed.</p>
 </div>
 
 <h2>What this <span class="accent">cannot</span> tell you</h2>

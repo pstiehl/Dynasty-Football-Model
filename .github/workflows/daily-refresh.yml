@@ -51,12 +51,20 @@ jobs:
       # Rolling cache: the run-id key never hits, so every run saves a fresh
       # copy, while restore-keys pulls the newest previous one. Daily access
       # keeps it clear of the 7-day eviction window.
+      #
+      # data/cross_league/cache is the same idea for Sleeper: completed NFL
+      # seasons never change, so their transactions and box scores are
+      # fetched once and kept. It lives here rather than in git because it is
+      # raw third-party data (~24 MB of verbatim Sleeper responses) and is
+      # fully regenerable -- the SCORES persist in corpus.json, so an evicted
+      # cache costs one slower crawl, never an indexed league. See .gitignore.
       - name: Restore scraped-page cache
         uses: actions/cache@v4
         with:
           path: |
             data/pfr_cache
             data/sr_cache
+            data/cross_league/cache
           key: scrape-cache-${{ github.run_id }}
           restore-keys: |
             scrape-cache-
@@ -119,14 +127,63 @@ jobs:
       # continue-on-error: a Sleeper hiccup, a rate limit or a budget
       # exhaustion must never block the deploy. The page degrades to the last
       # committed corpus, or to "nothing indexed yet" if there is none.
+      #
+      # THE BUDGET, AND WHY IT IS SHAPED LIKE THIS
+      #
+      #   --max-calls 3000        hard ceiling on Sleeper calls for the run.
+      #   --min-delay 0.15        floor on the gap between call starts. With
+      #                           the harness's concurrency of 3 this paces
+      #                           at most ~400 calls/minute, against
+      #                           Sleeper's published guidance of under
+      #                           1000/minute. Deliberately ~40% of the
+      #                           limit: being a good citizen on a free,
+      #                           unauthenticated, read-only API costs us
+      #                           nothing but wall time.
+      #   --max-seconds 1200      wall clock. 3000 throttled calls is ~12
+      #                           minutes; this stops a stalled league from
+      #                           holding the deploy open. The harness stops
+      #                           between leagues AND mid-league on expiry,
+      #                           discarding any partial read.
+      #   --max-discovery-calls   discovery is cheap per call but unbounded
+      #     300                   in breadth (every league fans out to ~12
+      #                           users, every user to all their leagues).
+      #                           Without a sub-cap a wide frontier eats the
+      #                           whole budget before a league is scored.
+      #   --max-discover 150      new dynasty leagues QUEUED per run. Not the
+      #                           scoring cap: ~100 calls of discovery finds
+      #                           hundreds of leagues, and they are worked
+      #                           through over the following days.
+      #   --max-leagues 40        leagues SCORED per run.
+      #   --new-league-share 0.7  share of the scoring budget reserved for
+      #                           leagues never scored before. This is the
+      #                           setting that makes the corpus grow: the
+      #                           first build spent its entire budget
+      #                           re-reading the same five leagues and had
+      #                           nothing left to find a sixth.
+      #
+      # Two committed artifacts make each run cheaper than the last:
+      # data/cross_league/crawl_state.json (resume the walk instead of
+      # repeating it) and data/cross_league/cache/ (completed seasons are
+      # final, so they are fetched once and kept forever). Re-scoring an
+      # indexed league costs only its live season. Measured on a real run:
+      # 313 calls cold, 107 warm for the same four leagues.
+      #
+      # --update-seeds writes every confirmed dynasty league back into the
+      # seed registry, so a lost or reset crawl state cannot cost coverage.
       - name: Refresh the cross-league manager corpus
         continue-on-error: true
         run: |
           python scripts/crawl_cross_league.py \
             --max-hops 2 \
-            --max-leagues 12 \
-            --max-calls 600 \
-            --min-delay 0.25 \
+            --max-leagues 40 \
+            --max-discover 150 \
+            --max-calls 3000 \
+            --max-discovery-calls 300 \
+            --max-seconds 1200 \
+            --new-league-share 0.7 \
+            --min-delay 0.15 \
+            --max-cache-mb 256 \
+            --update-seeds \
             --write-corpus \
             --site-out dynasty_site
 
@@ -178,6 +235,21 @@ jobs:
       # crawls and ranks, and the page says "indexed in this build only"
       # instead of claiming a growing index. That degradation is by design and
       # covered by tests -- see docs/CROSS-LEAGUE-CORPUS.md section 7.
+      #
+      # `git add data/cross_league` now also picks up crawl_state.json -- the
+      # frontier and scoring ledger that let tomorrow's run RESUME the walk
+      # instead of repeating it. That file is what stopped the crawl being a
+      # treadmill, so it has to survive the runner.
+      #
+      # data/cross_league/cache/ is gitignored and deliberately NOT committed
+      # (raw third-party data, and regenerable); it is restored by the
+      # actions/cache step at the top of this job instead.
+      #
+      # --max-cache-mb 256 bounds that Actions cache. A past league-season
+      # costs ~63 KB gzipped (~235 KB raw; real transaction + matchup JSON
+      # compresses 5.8x), so indexing the whole ~400-league queue lands near
+      # 95 MB. Past the ceiling the crawl still runs and still SERVES
+      # everything already cached -- it just stops banking new history.
       - name: Retain the cross-league corpus
         continue-on-error: true
         run: |
