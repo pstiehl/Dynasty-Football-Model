@@ -77,8 +77,17 @@ Thumbs.db
 .idea/
 *.swp
 
-# Consensus snapshots: dated history is regenerated daily, keep only the
-# latest pointer + the crosswalk in git so the site builds offline.
+# Consensus snapshots: the full dated snapshot (~360 KB/day) is a build
+# artifact, keep only the latest pointer + the crosswalk in git so the site
+# builds offline.
+#
+# NOTE: this pattern is anchored to data/consensus/ and deliberately does NOT
+# match data/consensus/history/ktc_values_*.json. Those are the compact
+# (~6 KB/day) dated value records that make point-in-time transaction pricing
+# possible on the Manager Score page, and they ARE committed -- the daily
+# workflow appends one per run. Before "tidying" this rule into something
+# broader, read dynasty/ktc_history.py: history cannot be backfilled, so
+# ignoring it again would silently destroy the only copy.
 data/consensus/ktc_[0-9]*-[0-9]*-[0-9]*.json
 
 # v3.0 engine artifacts — regenerable by scripts/build_prospect_engine.py
