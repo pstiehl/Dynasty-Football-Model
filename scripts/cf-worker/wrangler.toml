@@ -9,3 +9,51 @@ workers_dev = true
 
 [observability]
 enabled = true
+
+# ---------------------------------------------------------------------------
+# Cross-league corpus backend (D1)
+# ---------------------------------------------------------------------------
+#
+# The worker runs FINE without this binding: /health reports
+# `corpus: "disabled"`, the read proxy behaves exactly as before, and every
+# /corpus/* endpoint answers 501 with an explanation instead of erroring.
+# That is deliberate — the existing MFL/Sleeper proxy must not stop working
+# because the corpus half is not set up yet.
+#
+# To activate, ONE TIME:
+#
+#   cd scripts/cf-worker
+#   npx wrangler d1 create dynasty-corpus
+#
+# Wrangler prints a `database_id`. Paste it below, uncomment the block, then:
+#
+#   npx wrangler d1 execute dynasty-corpus --remote \
+#     --file=migrations/0001_corpus_init.sql
+#   npx wrangler deploy
+#
+# [[d1_databases]]
+# binding = "CORPUS_DB"
+# database_name = "dynasty-corpus"
+# database_id = "PASTE-THE-ID-WRANGLER-PRINTED"
+
+# ---------------------------------------------------------------------------
+# Secrets — set with `wrangler secret put`, NEVER committed here
+# ---------------------------------------------------------------------------
+#
+#   npx wrangler secret put IP_HASH_SALT
+#   npx wrangler secret put RECONCILE_TOKEN
+#
+# IP_HASH_SALT    any long random string. Client IPs are never stored; they
+#                 are hashed with this salt and the UTC date purely so the
+#                 rate limiter can count same-day submissions. Rotating it
+#                 resets the counters and is otherwise harmless.
+#
+# RECONCILE_TOKEN bearer token for GET /corpus/pending and
+#                 POST /corpus/reconcile — the only way a league can reach
+#                 'confirmed' and become publicly visible. Put the SAME value
+#                 in the GitHub repository secret CORPUS_RECONCILE_TOKEN so
+#                 the daily workflow can authenticate.
+#
+# Generate one with:  openssl rand -hex 32
+#
+# Neither value belongs in this file, in the repo, or in a chat message.

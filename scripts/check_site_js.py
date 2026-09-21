@@ -54,6 +54,11 @@ def blobs() -> "list[tuple[str, str]]":
         MANAGERSCORE_CORE_JS,
         MANAGERSCORE_UI_JS,
     )
+    from dynasty.corpus_submit_js import corpus_submit_js
+
+    # Checked with a URL spliced in: the unconfigured build is a strict
+    # substring of it, so this is the strictly harder parse.
+    corpus_js = corpus_submit_js("https://corpus.example.workers.dev")
 
     reel_js, _ = reel_assets()
     myteam_js = _MYTEAM_JS.replace("__POS_COLOR__", pos_color_json())
@@ -66,14 +71,22 @@ def blobs() -> "list[tuple[str, str]]":
         ("myteam.py:_MYTEAM_JS", myteam_js),
         ("managerscore_js.py:MANAGERSCORE_CORE_JS", MANAGERSCORE_CORE_JS),
         ("managerscore_js.py:MANAGERSCORE_UI_JS", MANAGERSCORE_UI_JS),
+        ("corpus_submit_js.py:CORPUS_SUBMIT_JS", corpus_js),
         # The pages load these in one document, so also check them
         # concatenated: a duplicate top-level ``const`` across two blobs is
         # legal in isolation and a SyntaxError in the browser. myteam.html
-        # now carries four scripts, Manager Score having moved into it.
+        # now carries five scripts: Manager Score moved into it, and the
+        # corpus submit script moved in with Manager Score.
+        #
+        # Order here matches what report._page actually emits -- the shared
+        # highlight blob goes LAST, after the body, not first. Parsing does
+        # not care, but a reader comparing this against the page should not
+        # be told a different order than the one that ships. Whether that
+        # order also *runs* is tests/js/myteam_script_order_tests.mjs.
         (
-            "myteam.html (highlights + reel + myteam + managerscore)",
-            "\n".join([hl_js, reel_js, myteam_js,
-                       MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS]),
+            "myteam.html (reel + myteam + managerscore + corpus + highlights)",
+            "\n".join([reel_js, myteam_js, MANAGERSCORE_CORE_JS,
+                       MANAGERSCORE_UI_JS, corpus_js, hl_js]),
         ),
     ]
 

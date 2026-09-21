@@ -978,10 +978,18 @@ def build_my_team(latest_ts: datetime, league_label: str) -> str:
     """
     from .report import _page, _site_header  # local: avoids a cycle
     from .reel import reel_assets
-    from .managerscore import manager_score_assets, manager_score_section
+    from .managerscore import (
+        manager_score_assets,
+        manager_score_corpus_js,
+        manager_score_section,
+    )
 
     reel_js, reel_css = reel_assets()
     ms_css, ms_core_js, ms_ui_js = manager_score_assets()
+    # Optional, and last on purpose: it only defines csOnScored, which the
+    # UI script calls from msRun on a user action. Inert when the build has
+    # no DFM_CORPUS_URL. See managerscore.manager_score_corpus_js.
+    ms_corpus_js = manager_score_corpus_js()
 
     body = """<div class="container">
 
@@ -1083,6 +1091,7 @@ returns; the method is documented on the League tab.</p>
 <script>__MYTEAM_JS__</script>
 <script>__MANAGER_SCORE_CORE_JS__</script>
 <script>__MANAGER_SCORE_UI_JS__</script>
+<script>__MANAGER_SCORE_CORPUS_JS__</script>
 """
     body = (body
             .replace("__MANAGER_SCORE__", manager_score_section())
@@ -1093,7 +1102,8 @@ returns; the method is documented on the League tab.</p>
             .replace("__MYTEAM_JS__",
                      _MYTEAM_JS.replace("__POS_COLOR__", _pos_color_json()))
             .replace("__MANAGER_SCORE_CORE_JS__", ms_core_js)
-            .replace("__MANAGER_SCORE_UI_JS__", ms_ui_js))
+            .replace("__MANAGER_SCORE_UI_JS__", ms_ui_js)
+            .replace("__MANAGER_SCORE_CORPUS_JS__", ms_corpus_js))
 
     return _page(
         page_title("Input Sleeper Team"),
