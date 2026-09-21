@@ -214,6 +214,8 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
       {link("methodology.html", "Methodology", "methodology")}
       {link("sources.html", "Sources", "sources")}
       {link("prospects.html", "Prospects", "prospects")}
+      {link("myteam.html", "My Team", "myteam")}
+      {link("reel.html", "Roster Reel", "reel")}
     </nav>
   </div>
 </header>"""
@@ -2050,6 +2052,43 @@ def _load_sleeper_teams() -> Dict[str, str]:
         return {}
 
 
+def _load_sleeper_player_index() -> Dict[str, list]:
+    """``sleeper_id -> [full_name, position, nfl_team, gsis_id]``.
+
+    The My Team page starts from a Sleeper roster, which is a bare list of
+    sleeper ids. ``engine_rankings.json`` is keyed by gsis id and
+    ``highlights.json`` only knows the players that happen to have film, so
+    without this crosswalk a rostered player with no clips can't be named,
+    let alone ranked.
+
+    Stored as positional lists rather than objects: this covers the whole
+    player table, and the array form is roughly half the bytes over the
+    wire for an artifact the browser downloads on every visit.
+
+    Returns an empty dict when the DB isn't initialised; the page degrades
+    to the ``by_gsis`` crosswalk in ``highlights.json``.
+    """
+    try:
+        from .db.session import get_session
+        from .db.models import Player
+        from sqlalchemy import select
+        out: Dict[str, list] = {}
+        with get_session() as session:
+            for p in session.execute(select(Player)).scalars():
+                sid = getattr(p, "sleeper_id", None)
+                if not sid:
+                    continue
+                out[str(sid)] = [
+                    getattr(p, "full_name", None) or "",
+                    getattr(p, "position", None) or "",
+                    getattr(p, "nfl_team", None) or getattr(p, "team", None) or "",
+                    getattr(p, "gsis_id", None) or "",
+                ]
+        return out
+    except Exception:  # noqa: BLE001
+        return {}
+
+
 def generate_site(
     output_dir: str = "dynasty_site",
     league_format: str = "sf_ppr",
@@ -2099,6 +2138,47 @@ def generate_site(
     )
     (out_root / "prospects.html").write_text(
         _build_prospects(latest_ts, label),
+        encoding="utf-8",
+    )
+
+    # Roster Reel + My Team. Imported here rather than at module scope
+    # because both modules import _page/_site_header/_footer back out of
+    # this one. Each page degrades to an on-page explanation when
+    # highlights.json hasn't been generated yet, so a missing index never
+    # breaks the build or the page.
+    try:
+        from .reel import build_reel
+        (out_root / "reel.html").write_text(
+            build_reel(latest_ts, label), encoding="utf-8"
+        )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning("reel page build failed: %s", exc)
+
+    try:
+        from .myteam import build_my_team
+        (out_root / "myteam.html").write_text(
+            build_my_team(latest_ts, label), encoding="utf-8"
+        )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning("my-team page build failed: %s", exc)
+
+    # sleeper_id -> [name, position, team, gsis_id] crosswalk consumed by
+    # myteam.html. Always written, with an explicit ``available`` flag, so
+    # the page can tell "the build ran but the DB was empty" apart from
+    # "this artifact was never generated" and say the right thing.
+    _sleeper_index = _load_sleeper_player_index()
+    (out_root / "roster_index.json").write_text(
+        json.dumps(
+            {
+                "generated_at": latest_ts.isoformat(),
+                "available": bool(_sleeper_index),
+                "fields": ["name", "position", "team", "gsis_id"],
+                "players": _sleeper_index,
+            },
+            separators=(",", ":"),
+        ),
         encoding="utf-8",
     )
 

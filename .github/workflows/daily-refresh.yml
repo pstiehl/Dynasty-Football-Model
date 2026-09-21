@@ -5,6 +5,10 @@ on:
   # Every day at 11:00 UTC (6 AM Central / 4 AM Pacific)
   schedule:
     - cron: '0 11 * * *'
+    # Second in-season pass: Tuesday 16:00 UTC (11 AM Central), after Monday
+    # night football has settled and the cut-up channels have posted. The
+    # reel is only as good as how fast it sees last night's game.
+    - cron: '0 16 * * 2'
   # Also run when you push changes to main
   push:
     branches: [main]
@@ -29,6 +33,28 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@v4
 
+      # The scrapers cache every fetched page under data/pfr_cache and
+      # data/sr_cache and short-circuit on a cache hit. Those directories are
+      # gitignored (~60 MB), so without this step every CI run starts cold and
+      # re-scrapes the entire history from Pro Football Reference. Measured on
+      # run 30819066222: 198 min wall time, 196 of it inside the PFR scraper,
+      # 431 fetch exceptions, 42 min of pure backoff sleeping, and 127 Wayback
+      # fallbacks - all of it re-fetching seasons that have not changed since
+      # they were played.
+      #
+      # Rolling cache: the run-id key never hits, so every run saves a fresh
+      # copy, while restore-keys pulls the newest previous one. Daily access
+      # keeps it clear of the 7-day eviction window.
+      - name: Restore scraped-page cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            data/pfr_cache
+            data/sr_cache
+          key: scrape-cache-${{ github.run_id }}
+          restore-keys: |
+            scrape-cache-
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -44,6 +70,22 @@ jobs:
       - name: Run the model end-to-end
         run: |
           python -m dynasty.launcher_headless
+
+      # Must run AFTER the model build: it reads dynasty_site/engine_rankings.json
+      # for model ranks and writes dynasty_site/highlights.json alongside it.
+      # continue-on-error because a YouTube quota blip must never block the
+      # rankings deploy — myteam.html and reel.html degrade to an on-page
+      # message when the index is absent.
+      - name: Refresh YouTube highlight index
+        continue-on-error: true
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          if [ -z "$YOUTUBE_API_KEY" ]; then
+            echo "YOUTUBE_API_KEY not set - skipping highlights refresh."
+            exit 0
+          fi
+          python scripts/refresh_highlights.py
 
       - name: Upload site as a GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
