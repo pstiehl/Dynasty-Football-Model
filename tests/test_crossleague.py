@@ -738,7 +738,19 @@ class TestPageRender(unittest.TestCase):
                         "the draft board must come before the overall board")
 
     def test_links_back_to_the_per_league_page(self):
-        self.assertIn("managerscore.html", self.html)
+        """The cross-league board must point at the per-league metric.
+
+        The target moved: the rebrand (#69) folded the standalone
+        ``managerscore.html`` into a section of ``myteam.html`` and updated
+        the page, but not this assertion, so it has been red on main since
+        that merge. What the test is actually for -- "this board must not
+        become an orphan; a reader has to be able to reach the per-league
+        metric it aggregates" -- is unchanged, so only the href moves.
+        """
+        self.assertIn("myteam.html", self.html)
+        self.assertNotIn(
+            "managerscore.html", self.html,
+            "managerscore.html no longer exists; a link to it would 404")
 
 
 class TestSiteWiring(unittest.TestCase):

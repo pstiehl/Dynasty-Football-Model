@@ -180,7 +180,7 @@ line in <code>data/cross_league/seeds.json</code> carrying the issue number
 that introduced it.</p>
 
 <p><strong>What is still not possible.</strong> Typing a league id into the
-<a href="managerscore.html">Manager Score</a> page does <em>not</em> add it
+<a href="myteam.html">Manager Score</a> section does <em>not</em> add it
 here, and cannot. That page reads Sleeper live in your browser and shows you
 your own league; nothing it does can reach this corpus, because the only thing
 that can write to the corpus is a job running in CI. Getting indexed therefore
