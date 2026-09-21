@@ -55,6 +55,7 @@ from dynasty.highlights import (  # noqa: E402
     load_players_from_db,
     parse_ts,
     resolve_game_window,
+    window_containing,
 )
 
 API_BASE = "https://www.googleapis.com/youtube/v3"
@@ -419,13 +420,50 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not players:
         return 1
 
-    index = build_index(
-        players, videos,
-        min_confidence=args.min_confidence,
-        max_clips_per_player=args.max_clips,
-        expected_week=window.week,
-        window=window,
-    )
+    def build(win):
+        return build_index(
+            players, videos,
+            min_confidence=args.min_confidence,
+            max_clips_per_player=args.max_clips,
+            expected_week=win.week,
+            window=win,
+        )
+
+    index = build(window)
+
+    # Safety net. The ingest is capped at ``--max-per-channel`` uploads,
+    # not purely by date, and the configured channel posts mostly Shorts,
+    # so a correctly-resolved completed slate can hold no film whatsoever.
+    # That happened for real: every one of the 28 surviving videos in the
+    # 2026-09-21 index was published Sep 20-21, so a Sep 10-14 window
+    # matched 0 of 737 clip rows. Shipping that would blank the reel.
+    #
+    # Rather than widen the window and quietly blend slates, fall back to
+    # the slate the newest film actually belongs to, and record that it
+    # happened so the pages can say "nothing for X, showing Y".
+    if index["stats"]["total_clips"] and not index["stats"]["clips_in_window"]:
+        stamps = [
+            ts for ts in (
+                parse_ts(c.get("published_at"))
+                for clips in index["clips"].values() for c in clips
+            ) if ts is not None
+        ]
+        if stamps:
+            newest = max(stamps)
+            fallback = window_containing(
+                newest,
+                window_days=args.window_days,
+                grace_hours=args.grace_hours,
+                season_start=season_start,
+            )
+            if fallback.start != window.start:
+                print(f"\n  WARN no film indexed for {window.label}; "
+                      f"falling back to {fallback.label} "
+                      f"(newest upload {newest.isoformat()})")
+                fallback.adjusted_from = window.label
+                window = fallback
+                index = build(window)
+
     index["generated_at"] = datetime.now(timezone.utc).isoformat()
     index["resolved_as_of"] = as_of.isoformat()
     # Retained for readers that still key off a week number. It is the
