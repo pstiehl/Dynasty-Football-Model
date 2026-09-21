@@ -16,8 +16,14 @@ on:
   workflow_dispatch:
 
 # Permissions needed to publish to GitHub Pages
+# contents: write is needed by the "Retain KTC value history" step below,
+# which commits a ~6 KB/day dated value file back to main. Everything else
+# here only reads. If you would rather not grant write to this workflow, the
+# alternative is to drop that step and lose point-in-time pricing on the
+# Manager Score page -- see src/dynasty/ktc_history.py for why there is no
+# third option that actually persists.
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -95,6 +101,38 @@ jobs:
           DFM_SKIP_CAREER_STATS: '1'
         run: |
           python -m dynasty.launcher_headless
+
+      # Retain a compact dated KTC value record.
+      #
+      # The model build above runs scripts/refresh_ktc_consensus.py, which
+      # writes data/consensus/history/ktc_values_YYYY-MM-DD.json (~6 KB). The
+      # full dated snapshot written next to it is gitignored and dies with the
+      # runner, which is why this project has never retained a single day of
+      # KTC price history -- and why the Manager Score page currently has to
+      # price eight-month-old trades at today's value and say so on the page.
+      #
+      # Committing the compact record is what fixes that, one day at a time.
+      # It cannot be backfilled, so a skipped day is gone for good; the step
+      # is continue-on-error because losing a day must never block the deploy.
+      #
+      # [skip ci] matters: this workflow triggers on push to main, so without
+      # it every commit here would start another full run.
+      - name: Retain KTC value history
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ -z "$(git status --porcelain data/consensus/history 2>/dev/null)" ]; then
+            echo "No new KTC value history to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/consensus/history
+          git commit -m "chore(ktc): retain dated value snapshot [skip ci]"
+          # Another run (or a merge) may have landed first; rebase rather than
+          # force anything, and give up quietly if it still will not apply.
+          git pull --rebase --autostash origin main || exit 0
+          git push origin HEAD:main
 
       # Must run AFTER the model build: it reads dynasty_site/engine_rankings.json
       # for model ranks and writes dynasty_site/highlights.json alongside it.

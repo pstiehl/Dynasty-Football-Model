@@ -230,6 +230,7 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
     <nav>
       {link("myteam.html", "My Team", "myteam")}
       {link("reel.html", "Roster Reel", "reel")}
+      {link("managerscore.html", "Manager Score", "managerscore")}
       {link("rankings.html", "Similarity Scores", "rankings")}
       {link("league.html", "Dynasty Rankings", "league")}
     </nav>
@@ -2182,6 +2183,30 @@ def generate_site(
     except Exception as exc:  # noqa: BLE001
         import logging
         logging.getLogger(__name__).warning("my-team page build failed: %s", exc)
+
+    # Manager Score. The page reads leagues live from Sleeper in the browser
+    # (same as My Team and the reel), so all the build owes it is the KTC
+    # value artifact plus whatever dated value history has accumulated.
+    # write_values_artifact never raises on missing inputs: it emits
+    # ``available: false`` with notes, and the page explains itself rather
+    # than rendering an empty table.
+    try:
+        from .managerscore import build_manager_score, write_values_artifact
+        _values = write_values_artifact(out_root)
+        (out_root / "managerscore.html").write_text(
+            build_manager_score(latest_ts, label), encoding="utf-8"
+        )
+        if not _values.get("available"):
+            import logging
+            logging.getLogger(__name__).warning(
+                "manager-score value artifact unavailable: %s",
+                "; ".join(_values.get("notes") or []),
+            )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning(
+            "manager-score page build failed: %s", exc
+        )
 
     # sleeper_id -> [name, position, team, gsis_id] crosswalk consumed by
     # myteam.html. Always written, with an explicit ``available`` flag, so

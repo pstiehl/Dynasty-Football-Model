@@ -28,11 +28,13 @@ import httpx
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
+from dynasty import ktc_history  # noqa: E402
 from dynasty.sources.keeptradecut import (  # noqa: E402
     CONSENSUS_DIR,
     KTC_URL,
     parse_ktc_html,
     save_snapshot,
+    snapshot_to_dict,
 )
 
 DP_CROSSWALK_URL = (
@@ -98,6 +100,32 @@ def refresh(*, consensus_dir: Path = CONSENSUS_DIR, timeout: float = 30.0) -> in
             "(playersArray shape may have changed)"
         )
     save_snapshot(snap, consensus_dir=consensus_dir, dated=True)
+
+    # Retain a compact dated value record as well.
+    #
+    # ``save_snapshot(dated=True)`` above writes ``ktc_YYYY-MM-DD.json``, but
+    # that file is ~360 KB and .gitignore excludes it, and the daily workflow
+    # has no commit step -- so it is destroyed with the runner every single
+    # run and this project has never retained a single day of KTC price
+    # history. Without history, valuing a trade made eight months ago at its
+    # contemporaneous price is impossible, which is precisely what the
+    # Manager Score page needs.
+    #
+    # This record keeps only ``ktc_id -> value`` (~6 KB/day), which is small
+    # enough to commit daily and is committed back by the daily workflow. It
+    # cannot be backfilled; it starts from the first run with this deployed.
+    try:
+        point = ktc_history.save_history_point(
+            snapshot_to_dict(snap),
+            history_dir=consensus_dir / "history",
+        )
+        if point is None:
+            print("  WARN: snapshot carried no capture date; history skipped")
+        else:
+            print(f"  value history: {point}")
+    except OSError as e:  # non-fatal: the consensus refresh itself succeeded
+        print(f"  WARN: value-history write failed: {e}")
+
     return len(snap.players)
 
 
