@@ -55,12 +55,32 @@ SUPPORTED_TABLES = ("passing", "rushing", "receiving", "fantasy")
 WAYBACK_TIMESTAMPS = ("2025", "2024", "2023", "2022")
 PFR_BASE = "https://www.pro-football-reference.com"
 
-# Polite throttle. PFR's ToS floor is 1 req/sec, but the Wayback Machine
-# proxy enforces a tighter cap (empirically ~15 req/min before it starts
-# refusing TCP connections). We default to 4s between fetches; callers
-# with their own batching needs can override via the env var
-# ``PFR_SCRAPER_INTERVAL_SEC``.
+# Polite throttle. Two separate floors, because the two hosts have
+# genuinely different limits and conflating them cost us a 4x penalty.
+#
+# Wayback: empirically ~15 req/min before it refuses TCP connections.
+# PFR direct: their stated ceiling is 20 requests/minute, so 3s is inside
+# it with margin. Override either via env var.
 MIN_REQUEST_INTERVAL_SEC = float(os.environ.get("PFR_SCRAPER_INTERVAL_SEC", "4.0"))
+PFR_DIRECT_INTERVAL_SEC = float(os.environ.get("PFR_DIRECT_INTERVAL_SEC", "3.0"))
+
+# Wayback circuit breaker.
+#
+# On GitHub-hosted runners web.archive.org refuses every connection
+# (Errno 111). Run 30819066222 burned 196 minutes on 1,122 such attempts
+# for zero successful fetches, because nothing tracked that the host was
+# simply unreachable from this network. After this many consecutive
+# connection-level failures we stop trying Wayback for the rest of the
+# process and let callers fall back to (or fail over from) direct PFR.
+WAYBACK_FAILURE_THRESHOLD = int(os.environ.get("PFR_WAYBACK_FAILURE_THRESHOLD", "3"))
+
+# Set PFR_DISABLE_WAYBACK=1 to skip the archive entirely (recommended in CI).
+WAYBACK_DISABLED_BY_ENV = os.environ.get("PFR_DISABLE_WAYBACK", "").strip().lower() in (
+    "1", "true", "yes",
+)
+
+_wayback_consecutive_failures: int = 0
+_wayback_circuit_open: bool = False
 
 # Cache lives at <repo_root>/data/pfr_cache/. We resolve relative to this
 # file so the module works whether invoked from the repo root or a script
@@ -77,16 +97,62 @@ _last_request_at: float = 0.0
 # HTTP / cache plumbing
 # ---------------------------------------------------------------------------
 
-def _throttle() -> None:
-    """Block until at least MIN_REQUEST_INTERVAL_SEC has passed since last fetch."""
+def _throttle(interval: Optional[float] = None) -> None:
+    """Block until at least ``interval`` has passed since the last fetch."""
     global _last_request_at
+    if interval is None:
+        interval = MIN_REQUEST_INTERVAL_SEC
     elapsed = time.monotonic() - _last_request_at
-    if elapsed < MIN_REQUEST_INTERVAL_SEC:
-        time.sleep(MIN_REQUEST_INTERVAL_SEC - elapsed)
+    if elapsed < interval:
+        time.sleep(interval - elapsed)
     _last_request_at = time.monotonic()
 
 
-def _http_get(url: str, *, max_retries: int = 3, timeout: int = 60) -> str:
+def _is_connection_level(exc: BaseException) -> bool:
+    """True when the host refused/dropped us rather than answering.
+
+    A refused TCP connection means the host is unreachable from this
+    network. Retrying it on a backoff is pure dead time, which is exactly
+    what the 196-minute runs were doing.
+    """
+    return isinstance(exc, (requests.ConnectionError, requests.Timeout))
+
+
+def wayback_available() -> bool:
+    """False once the archive has proven unreachable (or was disabled)."""
+    return not (WAYBACK_DISABLED_BY_ENV or _wayback_circuit_open)
+
+
+def _note_wayback_outcome(*, ok: bool, exc: Optional[BaseException] = None) -> None:
+    """Track consecutive connection-level failures and trip the breaker."""
+    global _wayback_consecutive_failures, _wayback_circuit_open
+    if ok:
+        _wayback_consecutive_failures = 0
+        return
+    if exc is not None and not _is_connection_level(exc):
+        # A 403/404 is a bad snapshot, not a dead host - don't count it.
+        return
+    _wayback_consecutive_failures += 1
+    if (
+        not _wayback_circuit_open
+        and _wayback_consecutive_failures >= WAYBACK_FAILURE_THRESHOLD
+    ):
+        _wayback_circuit_open = True
+        log.warning(
+            "Wayback Machine unreachable after %d consecutive connection failures "
+            "- disabling it for the rest of this run and using PFR directly. "
+            "(web.archive.org refuses connections from GitHub-hosted runners.)",
+            _wayback_consecutive_failures,
+        )
+
+
+def _http_get(
+    url: str,
+    *,
+    max_retries: int = 3,
+    timeout: int = 60,
+    interval: Optional[float] = None,
+) -> str:
     """GET with throttle + exponential backoff on 4xx/5xx + connection errors.
 
     Wayback's 429-style response often manifests as a TCP refusal (the
@@ -101,7 +167,7 @@ def _http_get(url: str, *, max_retries: int = 3, timeout: int = 60) -> str:
     backoff = 5.0
     last_exc: Optional[Exception] = None
     for attempt in range(max_retries):
-        _throttle()
+        _throttle(interval)
         try:
             resp = requests.get(
                 url,
@@ -134,17 +200,50 @@ def _http_get(url: str, *, max_retries: int = 3, timeout: int = 60) -> str:
 
 
 def _http_get_with_timestamp_fallback(pfr_path: str) -> str:
-    """Try each Wayback timestamp in turn until one returns 200."""
+    """Fetch a PFR path: live site first, Wayback only as a fallback.
+
+    Order reversed deliberately. This previously went to Wayback *only* and
+    never contacted pro-football-reference.com at all - even for current
+    seasons - so when the archive became unreachable from CI the scraper had
+    no path to the data it was already entitled to fetch from the source.
+
+    Live PFR is the source of truth and is always fresher than a snapshot.
+    The archive stays as a genuine fallback for pre-1999 pages that PFR has
+    reorganised, guarded by a circuit breaker so an unreachable archive costs
+    a handful of seconds per run rather than three hours.
+    """
     last_exc: Optional[Exception] = None
+
+    # 1. The live site.
+    try:
+        return _http_get(f"{PFR_BASE}{pfr_path}", interval=PFR_DIRECT_INTERVAL_SEC)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Direct PFR fetch failed for %s: %s", pfr_path, exc)
+        last_exc = exc
+
+    # 2. The archive, if it hasn't already proven hopeless.
+    if not wayback_available():
+        log.info("Skipping Wayback for %s (archive unavailable this run)", pfr_path)
+        assert last_exc is not None
+        raise last_exc
+
     for ts in WAYBACK_TIMESTAMPS:
+        if not wayback_available():
+            log.info("Abandoning remaining Wayback timestamps for %s", pfr_path)
+            break
         url = f"https://web.archive.org/web/{ts}/{PFR_BASE}{pfr_path}"
         try:
-            return _http_get(url)
+            html = _http_get(url)
+            _note_wayback_outcome(ok=True)
+            return html
         except Exception as exc:  # noqa: BLE001
             log.warning("Wayback timestamp %s failed for %s: %s", ts, pfr_path, exc)
             last_exc = exc
-            # Brief cooldown before switching timestamps.
-            time.sleep(10.0)
+            _note_wayback_outcome(ok=False, exc=exc)
+            # No point cooling down before a timestamp we won't try.
+            if wayback_available():
+                time.sleep(10.0)
+
     assert last_exc is not None
     raise last_exc
 
