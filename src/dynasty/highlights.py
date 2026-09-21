@@ -44,6 +44,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass, asdict
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Sequence
 
 from .names import normalize as normalize_name
@@ -171,10 +172,217 @@ class Clip:
     week: Optional[int] = None
     season: Optional[int] = None
     opponent: Optional[str] = None
+    #: True when ``published_at`` falls inside the resolved game window.
+    #: ``None`` when the index was built without a window at all, which is
+    #: how a consumer tells "no window was applied" apart from "this clip
+    #: is outside the window".
+    in_window: Optional[bool] = None
 
     def to_json(self) -> dict:
         d = asdict(self)
         return {k: v for k, v in d.items() if v is not None}
+
+
+# --------------------------------------------------------------------------
+# Game window
+# --------------------------------------------------------------------------
+#
+# Why a date window rather than a week number
+# -------------------------------------------
+# The original build derived an NFL week number from a season-start constant
+# and compared it against a week parsed out of the video title. Both halves
+# are unreliable:
+#
+#   * The derived number counts the week *currently in progress*. Asked on
+#     Monday 2026-09-21 it returns 2, because 11 days have elapsed since the
+#     Sep 10 kickoff -- but week 2's Monday night game has not been played,
+#     let alone cut up and uploaded. The viewer wants week 1's film.
+#   * The parsed number is absent from a large share of uploads and, where
+#     present, is whatever the channel decided to type.
+#
+# So selection and ordering key off publish timestamps inside a rolling
+# Thursday->Monday window instead, and the title's week survives only as a
+# label and a last-resort tiebreak.
+
+#: Thursday..Monday inclusive. Overridable so an unusual slate can be
+#: modelled without a code change.
+DEFAULT_WINDOW_DAYS = 5
+
+#: Grace period, measured from the *start of the slate's final day* -- i.e.
+#: from Monday 00:00 UTC, the point at which every game but Monday night has
+#: been played. Two things have to be true at once and this is the number
+#: that makes both true:
+#:
+#:   * Monday morning (say 12:41 UTC) is still inside the grace period of
+#:     the slate happening around the viewer, so they are served last
+#:     week's finished film instead of a week with nothing uploaded yet.
+#:   * 36 hours later is Tuesday 12:00 UTC -- after Monday night football
+#:     has finished (~03:30 UTC) and after the cut-up channels have posted,
+#:     and before the Tuesday 16:00 UTC refresh in daily-refresh.yml. So
+#:     that second in-season pass publishes the slate it was added for.
+DEFAULT_GRACE_HOURS = 36
+
+_MONTH_ABBR = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def parse_ts(value: Optional[str]) -> Optional[datetime]:
+    """ISO-8601 (trailing ``Z`` or an offset) -> aware UTC datetime."""
+    if not value:
+        return None
+    try:
+        ts = datetime.fromisoformat(str(value).strip().replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if ts.tzinfo is None:
+        ts = ts.replace(tzinfo=timezone.utc)
+    return ts.astimezone(timezone.utc)
+
+
+@dataclass
+class GameWindow:
+    """The most recently *completed* Thursday->Monday slate.
+
+    Three boundaries, because they answer three different questions:
+
+    ``start``/``end``
+        The slate itself -- Thursday 00:00 UTC to the last instant of
+        Monday. This is what :attr:`label` renders and what the pages show.
+    ``publish_cutoff``
+        The newest ``published_at`` still counted as part of this slate.
+        Monday night football ends around 03:30 UTC on Tuesday and its
+        cut-up lands later that morning, so this runs past ``end``.
+    ``opens_at``
+        When this window became *the* window. See
+        :func:`resolve_game_window`.
+    """
+    start: datetime
+    end: datetime
+    publish_cutoff: datetime
+    opens_at: Optional[datetime] = None
+    grace_hours: float = DEFAULT_GRACE_HOURS
+    window_days: int = DEFAULT_WINDOW_DAYS
+    #: Advisory NFL week number for the slate, when a season start is known.
+    #: A label only -- nothing selects or filters on it.
+    week: Optional[int] = None
+
+    @property
+    def label(self) -> str:
+        """``"Sep 10-14"``, or ``"Sep 30-Oct 4"`` across a month boundary."""
+        s, e = self.start, self.end
+        left = f"{_MONTH_ABBR[s.month - 1]} {s.day}"
+        right = (f"{e.day}" if (s.month, s.year) == (e.month, e.year)
+                 else f"{_MONTH_ABBR[e.month - 1]} {e.day}")
+        return f"{left}\u2013{right}"
+
+    def contains(self, published_at: Optional[str]) -> bool:
+        ts = parse_ts(published_at)
+        if ts is None:
+            # An upload with no usable timestamp cannot be proven recent.
+            # Calling it in-window would let undated clips outrank genuine
+            # ones from the slate.
+            return False
+        return self.start <= ts <= self.publish_cutoff
+
+    def to_json(self) -> dict:
+        return {
+            "start": self.start.isoformat(),
+            "end": self.end.isoformat(),
+            "publish_cutoff": self.publish_cutoff.isoformat(),
+            "opens_at": self.opens_at.isoformat() if self.opens_at else None,
+            "grace_hours": self.grace_hours,
+            "window_days": self.window_days,
+            "label": self.label,
+            "week": self.week,
+        }
+
+
+def week_number_for(
+    window_start: datetime,
+    season_start: Optional[datetime],
+) -> Optional[int]:
+    """Advisory NFL week for a window, or ``None`` without a season start.
+
+    Both arguments are week-opening Thursdays, so this is exact -- unlike
+    dividing "days since kickoff" by seven partway through a week, which
+    returns the in-progress week and was the original off-by-one.
+    """
+    if season_start is None:
+        return None
+    if season_start.tzinfo is None:
+        season_start = season_start.replace(tzinfo=timezone.utc)
+    days = (window_start.date()
+            - season_start.astimezone(timezone.utc).date()).days
+    if days < 0:
+        return None
+    week = (days // 7) + 1
+    return week if 1 <= week <= 18 else None
+
+
+def resolve_game_window(
+    as_of: Optional[datetime] = None,
+    *,
+    window_days: int = DEFAULT_WINDOW_DAYS,
+    grace_hours: float = DEFAULT_GRACE_HOURS,
+    season_start: Optional[datetime] = None,
+) -> GameWindow:
+    """The most recent Thursday->Monday slate that has finished.
+
+    A slate "opens" ``grace_hours`` after the *start of its final day*, so
+    with the defaults it becomes current at Tuesday 12:00 UTC. The function
+    walks back from the Thursday on or before ``as_of`` until it finds one
+    that has opened.
+
+    Worked example -- Monday 2026-09-21 12:41 UTC, the case this exists for::
+
+        candidate Thu 09-17  final day starts Mon 09-21 00:00
+                             opens Tue 09-22 12:00   (future, skip)
+        candidate Thu 09-10  final day starts Mon 09-14 00:00
+                             opens Tue 09-15 12:00   (past, take it)
+                             -> Sep 10-14, publish cutoff Wed 09-16 11:59:59
+
+    A Monday-morning viewer therefore gets Sep 10-14 -- the Cowboys/Giants
+    games that have actually been played and uploaded -- rather than the
+    week still in progress around them. By Tuesday lunchtime, once Monday
+    night's cut-ups exist, it advances to Sep 17-21 on its own.
+    """
+    as_of = (as_of or datetime.now(timezone.utc))
+    if as_of.tzinfo is None:
+        as_of = as_of.replace(tzinfo=timezone.utc)
+    as_of = as_of.astimezone(timezone.utc)
+
+    window_days = max(1, int(window_days))
+    grace = timedelta(hours=float(grace_hours))
+
+    # Monday is 0, Thursday is 3; on a Thursday this keeps the same day.
+    thursday = (as_of - timedelta(days=(as_of.weekday() - 3) % 7)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+
+    # Grace runs from the start of the final day, not from its end: on
+    # Monday at 00:00 UTC every game except Monday night has been played,
+    # which is the moment the clock on "have the channels posted yet"
+    # actually starts.
+    def opens(thu: datetime) -> datetime:
+        return thu + timedelta(days=window_days - 1) + grace
+
+    # One step back is enough for the default grace; the bound only stops a
+    # pathological grace period from spinning.
+    for _ in range(12):
+        if opens(thursday) <= as_of:
+            break
+        thursday -= timedelta(days=7)
+
+    end = thursday + timedelta(days=window_days) - timedelta(seconds=1)
+    return GameWindow(
+        start=thursday,
+        end=end,
+        publish_cutoff=end + grace,
+        opens_at=opens(thursday),
+        grace_hours=float(grace_hours),
+        window_days=window_days,
+        week=week_number_for(thursday, season_start),
+    )
 
 
 # --------------------------------------------------------------------------
@@ -400,11 +608,17 @@ def score_confidence(
     kind: str,
     n_matched: int,
     expected_week: Optional[int] = None,
+    in_window: Optional[bool] = None,
 ) -> float:
     """Heuristic 0..1 confidence that this clip is really this player's game.
 
     Deliberately conservative. The site filters on this, so a badly-calibrated
     score shows up as either an empty reel or someone else's highlights.
+
+    ``in_window`` is the load-bearing recency signal: it comes from the
+    upload's own timestamp. ``expected_week`` is a title-text agreement
+    bonus and is deliberately worth half of it -- a channel that forgets to
+    type "Week 1" should not be ranked below one that typed the wrong week.
     """
     if kind == KIND_OTHER:
         return 0.0
@@ -427,7 +641,10 @@ def score_confidence(
     if wk is not None:
         score += 0.05
         if expected_week is not None and wk == expected_week:
-            score += 0.10
+            score += 0.05
+
+    if in_window:
+        score += 0.10
 
     # Several players named -> it's a shared compilation, so any single
     # player gets less screen time than a dedicated cut-up.
@@ -445,15 +662,35 @@ def score_confidence(
 # --------------------------------------------------------------------------
 
 def _sort_clips(clips: List[Clip]) -> None:
-    """Order clips in place: newest week first, cut-ups ahead of recaps.
+    """Order clips in place, recency-first inside the game window.
 
-    Two passes rather than one composite key because the tie-breakers sort
-    *descending* on a string (published_at) and a float (confidence), which a
-    single ascending key can't express. Python's sort is stable, so the
-    second pass preserves the first pass's ordering within each group.
+    Precedence, highest first:
+
+    1. **In the window.** Out-of-window clips keep their place in the
+       artifact -- the "every clip per player" toggle surfaces them -- but
+       they never lead.
+    2. **Cut-up over recap.** A dedicated cut-up is what the reel is for.
+    3. **Newest upload.** This replaces the old ``-(week or 0)`` key, which
+       made an unreliable, frequently-absent title field the dominant sort:
+       a clip whose title omitted the week sorted as week 0, i.e. behind
+       everything, however recent it was.
+    4. Confidence, then the title's week as a final tiebreak only.
+
+    One composite key rather than the previous two passes -- every component
+    is numeric now, so the descending tie-breakers can be expressed by
+    negation and the ordering is readable in one place.
     """
-    clips.sort(key=lambda c: (c.published_at or "", c.confidence), reverse=True)
-    clips.sort(key=lambda c: (0 if c.kind == KIND_PLAYER else 1, -(c.week or 0)))
+    def key(c: Clip):
+        ts = parse_ts(c.published_at)
+        return (
+            0 if c.in_window in (True, None) else 1,
+            0 if c.kind == KIND_PLAYER else 1,
+            -(ts.timestamp() if ts else 0.0),
+            -c.confidence,
+            -(c.week or 0),
+        )
+
+    clips.sort(key=key)
 
 
 def build_index(
@@ -463,6 +700,7 @@ def build_index(
     min_confidence: float = 0.5,
     max_clips_per_player: int = 5,
     expected_week: Optional[int] = None,
+    window: Optional[GameWindow] = None,
     include_team_fallback: bool = True,
     min_clip_seconds: int = MIN_CLIP_SECONDS,
 ) -> dict:
@@ -474,8 +712,17 @@ def build_index(
           "clips":   { "<sleeper_id>": [clip, ...] },
           "by_gsis": { "<gsis_id>": "<sleeper_id>" },
           "players": { "<sleeper_id>": {name, position, team, rank} },
+          "window":  {start, end, publish_cutoff, label, week, ...} | None,
+          "window_start": "<iso>" | None,
+          "window_end":   "<iso>" | None,
           "stats":   {...}
         }
+
+    ``window`` decides ordering, not membership: clips published outside it
+    are still indexed and still reachable from the "every clip per player"
+    toggle, they simply sort after everything from the completed slate. A
+    player whose channel has not posted this week therefore degrades to
+    older film on request rather than disappearing.
 
     ``stats`` buckets every dropped video into exactly one counter
     (``videos_unembeddable`` / ``videos_ambiguous`` / ``videos_non_game`` /
@@ -551,6 +798,7 @@ def build_index(
             continue
 
         teams = find_teams(video.title)
+        in_window = window.contains(video.published_at) if window else None
         for player in matched:
             conf = score_confidence(
                 video, player, kind,
@@ -558,6 +806,7 @@ def build_index(
                 # genuine multi-player cut-up compilations for split focus.
                 1 if kind == KIND_TEAM else len(matched),
                 expected_week=expected_week,
+                in_window=in_window,
             )
             if conf < min_confidence:
                 continue
@@ -576,6 +825,7 @@ def build_index(
                     week=parse_week(video.title),
                     season=parse_season(video.title),
                     opponent=opponent,
+                    in_window=in_window,
                 )
             )
 
@@ -610,10 +860,22 @@ def build_index(
         if p.sleeper_id in clips_out
     }
 
+    n_window_clips = sum(
+        1 for cl in clips_out.values() for c in cl if c.get("in_window")
+    )
+    n_window_players = sum(
+        1 for cl in clips_out.values() if any(c.get("in_window") for c in cl)
+    )
+
     return {
         "clips": clips_out,
         "by_gsis": by_gsis,
         "players": players_out,
+        "window": window.to_json() if window else None,
+        # Flattened duplicates of the two fields the pages render, so a
+        # reader does not have to know the nested shape to label a reel.
+        "window_start": window.start.isoformat() if window else None,
+        "window_end": window.end.isoformat() if window else None,
         "stats": {
             "videos_seen": n_seen,
             "videos_unembeddable": n_unembeddable,
@@ -624,6 +886,8 @@ def build_index(
             "videos_ambiguous": n_ambiguous,
             "players_with_clips": len(clips_out),
             "total_clips": sum(len(v) for v in clips_out.values()),
+            "clips_in_window": n_window_clips,
+            "players_with_window_clips": n_window_players,
         },
     }
 
