@@ -67,7 +67,15 @@ jobs:
           pip install -r requirements.txt
           pip install -e .
 
+      # web.archive.org refuses every TCP connection from GitHub-hosted
+      # runners (Errno 111). Run 30819066222 made 1,122 such attempts for
+      # zero successful fetches and spent 196 minutes doing it. The scraper
+      # now prefers live PFR and trips a circuit breaker on the archive, but
+      # skipping it outright in CI avoids paying even the breaker's warm-up.
+      # Unset this to let the archive be tried again (e.g. running locally).
       - name: Run the model end-to-end
+        env:
+          PFR_DISABLE_WAYBACK: '1'
         run: |
           python -m dynasty.launcher_headless
 
