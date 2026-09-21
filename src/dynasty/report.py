@@ -314,10 +314,18 @@ def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/
 <script>window.DFM_BASE = {json.dumps(base)};</script>
 </head>
 <body>
+<!-- Shared highlight renderer. Must be DEFINED BEFORE any page script
+     runs, so it is emitted here rather than at the end of the body.
+     The Dynasty Rankings script calls DFMHL.chip inside render() during
+     its own evaluation; when this block came last, that raised
+     "TypeError: Cannot read properties of undefined" and left an empty
+     table. Nothing static caught it - the file parses, the payload was
+     intact - it only appears when the page is executed. Keep it above
+     the page body. -->
+<script>{hl_js}</script>
 {header_html}
 {body_html}
 {_footer()}
-<script>{hl_js}</script>
 </body>
 </html>"""
 
