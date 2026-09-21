@@ -103,10 +103,18 @@ jobs:
       # download in this same job and which is published for exactly this
       # use. The builder already degrades gracefully, so player pages lose
       # one panel and nothing else.
+      #
+      # DFM_CORPUS_URL is the deployed corpus worker (docs/CORPUS-BACKEND.md).
+      # When the repository variable CORPUS_URL is unset -- which is the case
+      # until the owner creates the D1 database and deploys -- this resolves
+      # to an empty string and the Manager Score page is built exactly as it
+      # was before: the submit script is emitted but inert, and no index UI
+      # is shown.
       - name: Run the model end-to-end
         env:
           PFR_DISABLE_WAYBACK: '1'
           DFM_SKIP_CAREER_STATS: '1'
+          DFM_CORPUS_URL: ${{ vars.CORPUS_URL }}
         run: |
           python -m dynasty.launcher_headless
 
@@ -264,6 +272,32 @@ jobs:
           git commit -m "chore(crossleague): refresh manager corpus [skip ci]"
           git pull --rebase --autostash origin main || exit 0
           git push origin HEAD:main
+
+      # Reconcile client-submitted leagues against an authoritative re-score.
+      #
+      # The corpus backend (scripts/cf-worker, docs/CORPUS-BACKEND.md) lets a
+      # visitor's BROWSER submit a league it scored. Those submissions are
+      # stored as 'provisional' and are NOT on the public board. This step is
+      # the only thing that can promote them: it re-reads each pending league
+      # from Sleeper, re-scores it with the same shipped page code, and tells
+      # the worker whether the submitted numbers hold up.
+      #
+      # No-op unless the owner has deployed the backend -- the script exits 0
+      # immediately when CORPUS_URL / CORPUS_RECONCILE_TOKEN are unset, so a
+      # repo without D1 configured does not go red. continue-on-error for the
+      # same reason the crawl above has it: a Sleeper hiccup must never block
+      # the deploy.
+      - name: Reconcile the cross-league corpus
+        continue-on-error: true
+        env:
+          CORPUS_URL: ${{ vars.CORPUS_URL }}
+          CORPUS_RECONCILE_TOKEN: ${{ secrets.CORPUS_RECONCILE_TOKEN }}
+        run: |
+          python scripts/reconcile_corpus.py \
+            --limit 25 \
+            --max-calls 600 \
+            --min-delay-ms 250 \
+            --values-dir dynasty_site
 
       # Must run AFTER the model build: it reads dynasty_site/engine_rankings.json
       # for model ranks and writes dynasty_site/highlights.json alongside it.

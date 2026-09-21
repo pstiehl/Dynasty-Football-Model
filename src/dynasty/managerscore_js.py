@@ -2063,6 +2063,14 @@ function msRun(leagueId, includeHistory) {
           return (l.name || l.league_id) + ' (' + (l.season || '?') + ')';
         }).join(' ← ');
         msEl('ms-league-label').innerHTML = msEsc(names);
+        /* Optional cross-league corpus hook. Defined by corpus_submit_js.py
+         * when the build has a corpus backend URL; absent otherwise, in
+         * which case this page behaves exactly as it always has. Scoring
+         * above is complete and unaffected either way. */
+        if (typeof csOnScored === 'function') {
+          try { csOnScored(leagueId, result, MSX.leagueChain); }
+          catch (e) { /* indexing must never break the score on screen */ }
+        }
         return result;
       })
       .catch(function (e) {

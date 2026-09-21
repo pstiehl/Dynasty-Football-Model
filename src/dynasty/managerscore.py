@@ -638,7 +638,36 @@ def manager_score_section() -> str:
     ``DOMContentLoaded``, so the feature works identically embedded as it
     did standalone, and ``msRun(leagueId, includeHistory)`` stays the entry
     point for scoring a league the host page has already resolved.
+
+    ``DFM_CORPUS_URL`` (optional) is the deployed corpus worker's base URL.
+    When it is set, this section offers each scored league to the
+    cross-league index; when it is absent -- which is the case until the
+    owner creates the D1 database and deploys -- the opt-in is not rendered
+    and the section says nothing about an index that does not exist. The
+    submit script itself is emitted either way, inert, by
+    :func:`manager_score_corpus_js`. See docs/CORPUS-BACKEND.md.
     """
+    import os
+
+    corpus_url = os.environ.get("DFM_CORPUS_URL", "")
+
+    # The opt-in is rendered only when there is somewhere to submit to.
+    # Offering a tick box that does nothing would be a lie in the UI.
+    if corpus_url:
+        optin = """<div class="ms-input">
+  <label><input type="checkbox" id="ms-corpus-optin" checked> add this league to
+  the <a href="crossleague.html">cross-league index</a> so its managers can be
+  compared against other leagues</label>
+</div>
+<p class="ms-sub" style="margin:.2rem 0 .8rem">What that stores: the league id,
+its name and size, and for each manager their Sleeper <em>display name</em> and
+the component scores shown below. Nothing else, and no attempt is ever made to
+resolve a real identity. The server re-reads the league from Sleeper to check
+the submission, and a league stays off the public board until the nightly job
+re-scores it independently.</p>"""
+    else:
+        optin = ""
+
     return """
 <h3>Manager <span class="accent">Score</span></h3>
 <p class="mt-sub">Who actually drafts and trades well in your league? This
@@ -665,6 +694,8 @@ your browser — nothing is sent to this site.</p>
   seasons (follows the league's history chain)</label>
 </div>
 
+__CORPUS_OPTIN__
+
 <div id="ms-status" class="callout" style="display:none"></div>
 <div id="ms-league-list"></div>
 
@@ -673,11 +704,14 @@ your browser — nothing is sent to this site.</p>
   <div id="ms-drafts" style="display:none"></div>
   <div id="ms-summary"></div>
   <div id="ms-table"></div>
+  <div id="ms-corpus-state" style="display:none"></div>
   <div id="ms-audit" style="display:none"></div>
 </div>
 
 __METHODOLOGY__
-""".replace("__METHODOLOGY__", _methodology_html())
+""".replace("__METHODOLOGY__", _methodology_html()).replace(
+        "__CORPUS_OPTIN__", optin
+    )
 
 
 def manager_score_assets() -> "tuple[str, str, str]":
@@ -685,6 +719,32 @@ def manager_score_assets() -> "tuple[str, str, str]":
     from .managerscore_js import MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
 
     return _MANAGERSCORE_CSS, MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+
+
+def manager_score_corpus_js() -> str:
+    """The cross-league corpus submit script, for the host page to emit.
+
+    Kept out of :func:`manager_score_assets` deliberately. That function's
+    ``(css, core_js, ui_js)`` triple is what makes the Manager Score feature
+    render and score; this script is optional garnish on top of it, and a
+    host page that never emits it gets a Manager Score section that behaves
+    exactly as it did before the corpus existed.
+
+    **Ordering matters.** The returned script only *defines* ``csOnScored``;
+    it calls nothing at evaluation time. ``MANAGERSCORE_UI_JS`` invokes
+    ``csOnScored`` from inside ``msRun``, which runs on a user action long
+    after every script on the page has been evaluated, and guards the call
+    with ``typeof csOnScored === 'function'``. So this may be emitted after
+    the UI script, and it must not be emitted before ``MANAGERSCORE_CORE_JS``
+    in any way that would let it run first -- it does not depend on the core
+    script at evaluation time either, but keeping it last matches the
+    dependency direction and is what the tests execute.
+    """
+    import os
+
+    from .corpus_submit_js import corpus_submit_js
+
+    return corpus_submit_js(os.environ.get("DFM_CORPUS_URL", ""))
 
 
 def build_manager_score_pointer(latest_ts: datetime, league_label: str) -> str:
