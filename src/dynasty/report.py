@@ -30,7 +30,7 @@ from .consensus import (
     load_crosswalk,
 )
 from .sources.keeptradecut import load_latest as load_latest_ktc
-from .sources import pfr_career_stats as _pfr_career
+from .sources import nflverse_career_stats as _career_stats
 
 
 # ---------------------------------------------------------------------------
@@ -2209,10 +2209,14 @@ def generate_site(
     # ``limit`` for the homepage display.
     #
     # v3.10 (Phil 2026-06-02): each profile also surfaces a Career Stats
-    # section sourced from PFR via the cache-first builder in
-    # ``sources.pfr_career_stats``. Builder degrades gracefully when a
-    # row's PFR id can't be resolved or the scrape fails.
-    gsis_to_pfr = _load_gsis_to_pfr()
+    # section. Originally scraped per-player from PFR, which took the
+    # daily job from ~1.5 min to ~200 min and now fails outright in CI
+    # (PFR 403s GitHub-hosted runners; web.archive.org refuses them too).
+    # Rebuilt on the nflverse season corpus the refresh step already
+    # downloads — see ``sources.nflverse_career_stats``. Keyed directly
+    # on the engine's gsis-style ``player_id``, so no PFR crosswalk is
+    # needed. Builder degrades gracefully to an empty panel when a
+    # player has no corpus rows.
     skip_career_stats = os.environ.get("DFM_SKIP_CAREER_STATS") == "1"
     for row in engine.rankings:
         slug = _slug(row["name"], row["player_id"])
@@ -2220,20 +2224,18 @@ def generate_site(
         team = team_lookup.get(row["player_id"], "—")
         career_html = ""
         if not skip_career_stats:
-            pfr_id = _resolve_pfr_id(row.get("player_id", ""), gsis_to_pfr)
-            if pfr_id:
-                try:
-                    career = _pfr_career.build_career_stats(
-                        pfr_id, row.get("position", "")
-                    )
-                    career_html = _pfr_career.career_stats_html(career)
-                except Exception as exc:  # noqa: BLE001
-                    # Never let a single bad scrape break the build.
-                    import logging
-                    logging.getLogger(__name__).warning(
-                        "career-stats failed for %s (%s): %s",
-                        row.get("name"), pfr_id, exc,
-                    )
+            try:
+                career = _career_stats.build_career_stats(
+                    row.get("player_id", ""), row.get("position", "")
+                )
+                career_html = _career_stats.career_stats_html(career)
+            except Exception as exc:  # noqa: BLE001
+                # Never let one bad row break the build.
+                import logging
+                logging.getLogger(__name__).warning(
+                    "career-stats failed for %s (%s): %s",
+                    row.get("name"), row.get("player_id"), exc,
+                )
         page = _build_player_page(
             row, comps, team, label, latest_ts,
             career_stats_html=career_html,
