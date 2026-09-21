@@ -102,6 +102,34 @@ jobs:
         run: |
           python -m dynasty.launcher_headless
 
+      # Refresh the cross-league manager corpus.
+      #
+      # A BOUNDED crawl of Sleeper's social graph: Sleeper publishes no way to
+      # enumerate leagues, so the only discovery path is league -> members ->
+      # their leagues. Caps are explicit and conservative, and the run reports
+      # the budget it consumed. Read docs/CROSS-LEAGUE-CORPUS.md before
+      # raising any of these numbers -- Sleeper's API is free for
+      # NON-COMMERCIAL use only, and the rate guidance is under 1000
+      # calls/minute.
+      #
+      # Runs after the model build so it can overwrite the stale corpus copy
+      # that generate_site() published into dynasty_site/ from the committed
+      # artifact.
+      #
+      # continue-on-error: a Sleeper hiccup, a rate limit or a budget
+      # exhaustion must never block the deploy. The page degrades to the last
+      # committed corpus, or to "nothing indexed yet" if there is none.
+      - name: Refresh the cross-league manager corpus
+        continue-on-error: true
+        run: |
+          python scripts/crawl_cross_league.py \
+            --max-hops 2 \
+            --max-leagues 12 \
+            --max-calls 600 \
+            --min-delay 0.25 \
+            --write-corpus \
+            --site-out dynasty_site
+
       # Retain a compact dated KTC value record.
       #
       # The model build above runs scripts/refresh_ktc_consensus.py, which
@@ -131,6 +159,37 @@ jobs:
           git commit -m "chore(ktc): retain dated value snapshot [skip ci]"
           # Another run (or a merge) may have landed first; rebase rather than
           # force anything, and give up quietly if it still will not apply.
+          git pull --rebase --autostash origin main || exit 0
+          git push origin HEAD:main
+
+      # Retain the cross-league corpus.
+      #
+      # This is what makes the corpus GROW rather than churn. The site is
+      # static on GitHub Pages, so a browser cannot write to the corpus --
+      # committing it here is the only persistence mechanism available.
+      #
+      # Unlike the KTC history above, this CAN be rebuilt from scratch: a lost
+      # day just means the next run re-crawls from the seeds. What is lost is
+      # accumulated reach -- leagues found on earlier runs that today's budget
+      # would not have reached.
+      #
+      # If this step cannot push (repository Actions permissions set to
+      # read-only, branch protection), the feature still works: every run
+      # crawls and ranks, and the page says "indexed in this build only"
+      # instead of claiming a growing index. That degradation is by design and
+      # covered by tests -- see docs/CROSS-LEAGUE-CORPUS.md section 7.
+      - name: Retain the cross-league corpus
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          if [ -z "$(git status --porcelain data/cross_league 2>/dev/null)" ]; then
+            echo "No cross-league corpus change to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cross_league
+          git commit -m "chore(crossleague): refresh manager corpus [skip ci]"
           git pull --rebase --autostash origin main || exit 0
           git push origin HEAD:main
 

@@ -231,6 +231,7 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
       {link("myteam.html", "My Team", "myteam")}
       {link("reel.html", "Roster Reel", "reel")}
       {link("managerscore.html", "Manager Score", "managerscore")}
+      {link("crossleague.html", "Best Managers", "crossleague")}
       {link("rankings.html", "Similarity Scores", "rankings")}
       {link("league.html", "Dynasty Rankings", "league")}
     </nav>
@@ -2213,6 +2214,38 @@ def generate_site(
         import logging
         logging.getLogger(__name__).warning(
             "manager-score page build failed: %s", exc
+        )
+
+    # Cross-league Manager Score board. Unlike the per-league page, this one
+    # cannot read its data live: building the corpus is a bounded crawl of a
+    # rate-limited third-party API, which must not happen per visitor. So the
+    # page renders a precomputed artifact.
+    #
+    # The corpus is committed at data/cross_league/corpus.json and refreshed
+    # by the daily job. If it is absent -- first run, or the workflow could
+    # not commit it -- the page is still built and says "indexed in this
+    # build only" rather than breaking. Publishing here is a copy, not a
+    # crawl: no network call happens during the site build.
+    try:
+        from .crossleague import load_corpus, write_corpus_artifact
+        from .crossleague_page import build_cross_league
+        _corpus = load_corpus(Path("data/cross_league/corpus.json"))
+        if _corpus:
+            write_corpus_artifact(out_root, _corpus)
+        else:
+            import logging
+            logging.getLogger(__name__).warning(
+                "cross-league corpus absent -- the Best Managers page will "
+                "report that nothing is indexed yet. Run "
+                "scripts/crawl_cross_league.py --write-corpus to build one."
+            )
+        (out_root / "crossleague.html").write_text(
+            build_cross_league(latest_ts, label), encoding="utf-8"
+        )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning(
+            "cross-league page build failed: %s", exc
         )
 
     # sleeper_id -> [name, position, team, gsis_id] crosswalk consumed by
