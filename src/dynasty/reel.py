@@ -160,6 +160,15 @@ async function loadHighlights() {
   document.getElementById('hl-meta').textContent =
     n.toLocaleString() + ' players with clips' + win +
     (HL.generated_at ? ' · indexed ' + HL.generated_at.slice(0, 10) : '');
+
+  // The build fell back because the slate it should be showing had no film
+  // indexed at all. Say so: silently presenting a different week as "this
+  // week" is how the reel looked broken in the first place.
+  const from = HL.window && HL.window.adjusted_from;
+  if (from) {
+    status('No film is indexed for ' + from + ' yet, so this reel is ' +
+           'showing ' + lbl + ' instead.', false);
+  }
   return true;
 }
 

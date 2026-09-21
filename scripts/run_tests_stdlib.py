@@ -30,6 +30,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 DEFAULT_MODULES = [
     "tests/test_highlights.py",
     "tests/test_highlights_window.py",
+    "tests/test_roster_crosswalk.py",
 ]
 
 

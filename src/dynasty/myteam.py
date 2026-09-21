@@ -153,6 +153,18 @@ function posBadge(pos) {
   return '<span class="pos-badge" style="background:' + c + '">' + esc(pos) + '</span>';
 }
 
+// Both sides of the gsis join are normalized through here.
+//
+// 866 entries of the live roster_index.json stored the id with a leading
+// space (" 00-0035228"), which made a string compare miss on ids that were
+// identical -- 70 ranking rows lost to it, Kyler Murray and A.J. Brown
+// among them. The build now writes trimmed values, but this page is served
+// against whatever artifact is already deployed or cached, so it repairs
+// the data on read too rather than waiting for the next build.
+function gsisKey(v) {
+  return String(v == null ? '' : v).trim();
+}
+
 function median(nums) {
   if (!nums.length) return null;
   const s = nums.slice().sort((a, b) => a - b);
@@ -218,7 +230,7 @@ async function loadModelData() {
 
   (MT.rankings || []).forEach(r => {
     if (!r) return;
-    if (r.player_id) MT.byGsis[r.player_id] = r;
+    if (r.player_id) MT.byGsis[gsisKey(r.player_id)] = r;
     // Secondary index for the id-join gap below. ``matchKey`` comes from
     // reel.js and mirrors dynasty.names.normalize, so "Kenneth Walker III"
     // in the crosswalk and "Kenneth Walker" in the engine collapse to one
@@ -231,7 +243,7 @@ async function loadModelData() {
   // ranked or not, with or without film.
   const cw = (MT.crosswalk && MT.crosswalk.players) || {};
   for (const sid of Object.keys(cw)) {
-    const g = cw[sid] && cw[sid][3];
+    const g = gsisKey(cw[sid] && cw[sid][3]);
     if (g) MT.sidToGsis[sid] = g;
   }
   // Fallback bridge: highlights.json's gsis -> sleeper map. Only covers
@@ -240,7 +252,7 @@ async function loadModelData() {
   const byg = (typeof HL !== 'undefined' && HL && HL.by_gsis) || {};
   for (const g of Object.keys(byg)) {
     const sid = String(byg[g]);
-    if (!MT.sidToGsis[sid]) MT.sidToGsis[sid] = g;
+    if (!MT.sidToGsis[sid]) MT.sidToGsis[sid] = gsisKey(g);
   }
   return true;
 }
@@ -307,7 +319,7 @@ function resolvePlayer(sid) {
     const hit = lookupByName(name, pos);
     if (hit.row) {
       row = hit.row;
-      gsis = gsis || row.player_id || null;
+      gsis = gsis || gsisKey(row.player_id) || null;
       rankSource = 'name';
     } else {
       ambiguousName = hit.ambiguous;

@@ -208,18 +208,29 @@ class Clip:
 #: modelled without a code change.
 DEFAULT_WINDOW_DAYS = 5
 
-#: Grace period, measured from the *start of the slate's final day* -- i.e.
-#: from Monday 00:00 UTC, the point at which every game but Monday night has
-#: been played. Two things have to be true at once and this is the number
-#: that makes both true:
+#: Grace period, measured from the start of the slate's **Sunday** -- the
+#: main slate, after which the overwhelming majority of a week's film
+#: exists. With the default that puts the changeover at Monday 12:00 UTC
+#: (08:00 ET).
 #:
-#:   * Monday morning (say 12:41 UTC) is still inside the grace period of
-#:     the slate happening around the viewer, so they are served last
-#:     week's finished film instead of a week with nothing uploaded yet.
-#:   * 36 hours later is Tuesday 12:00 UTC -- after Monday night football
-#:     has finished (~03:30 UTC) and after the cut-up channels have posted,
-#:     and before the Tuesday 16:00 UTC refresh in daily-refresh.yml. So
-#:     that second in-season pass publishes the slate it was added for.
+#: This anchor was corrected against the live index. An earlier revision
+#: measured from the start of the slate's *final* day (Monday), which put
+#: the changeover at Tuesday 12:00 UTC. Checked against the real
+#: highlights.json of 2026-09-21T13:08Z that was wrong in the worst way:
+#: every one of its 28 videos was published Sep 20-21, so a window of
+#: Sep 10-14 matched 0 of 737 clip rows and the reel would have gone
+#: completely blank on a Monday morning -- while yesterday's Sunday film
+#: sat in the index unshown.
+#:
+#: Sunday + 36h satisfies both constraints instead:
+#:
+#:   * Thursday through Sunday, a viewer still gets the previous week's
+#:     finished slate rather than one that has barely started -- which is
+#:     the actual point of the grace period.
+#:   * From Monday 08:00 ET the current slate takes over, by which point
+#:     Sunday's late games (ending ~03:30 UTC) have been cut up and posted.
+#:     Verified: 21 of the 28 live videos were published on the Sunday
+#:     itself.
 DEFAULT_GRACE_HOURS = 36
 
 _MONTH_ABBR = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -253,8 +264,8 @@ class GameWindow:
         Monday night football ends around 03:30 UTC on Tuesday and its
         cut-up lands later that morning, so this runs past ``end``.
     ``opens_at``
-        When this window became *the* window. See
-        :func:`resolve_game_window`.
+        When this window became *the* window: the start of its Sunday plus
+        the grace period. See :func:`resolve_game_window`.
     """
     start: datetime
     end: datetime
@@ -265,6 +276,11 @@ class GameWindow:
     #: Advisory NFL week number for the slate, when a season start is known.
     #: A label only -- nothing selects or filters on it.
     week: Optional[int] = None
+    #: Label of the window this one replaced, when the build had to fall
+    #: back because the properly-resolved slate contained no film at all.
+    #: ``None`` on a normal resolve. Set it and the pages say so rather
+    #: than quietly presenting a different week as the current one.
+    adjusted_from: Optional[str] = None
 
     @property
     def label(self) -> str:
@@ -294,6 +310,7 @@ class GameWindow:
             "window_days": self.window_days,
             "label": self.label,
             "week": self.week,
+            "adjusted_from": self.adjusted_from,
         }
 
 
@@ -319,6 +336,48 @@ def week_number_for(
     return week if 1 <= week <= 18 else None
 
 
+def window_containing(
+    moment: datetime,
+    *,
+    window_days: int = DEFAULT_WINDOW_DAYS,
+    grace_hours: float = DEFAULT_GRACE_HOURS,
+    season_start: Optional[datetime] = None,
+) -> GameWindow:
+    """The slate window that ``moment`` falls in, ignoring the grace gate.
+
+    :func:`resolve_game_window` answers "which slate should we be showing";
+    this answers "which slate does this upload belong to". The build needs
+    the second one as a safety net.
+
+    Why the net is needed: the ingest is capped by ``--max-per-channel``
+    (200) rather than purely by date, and the one configured channel posts
+    mostly Shorts. On the 2026-09-21 index, 206 uploads were fetched, 163
+    were dropped as Shorts, and the 28 survivors spanned barely two days.
+    A correctly-resolved completed slate can therefore legitimately contain
+    no film at all, and an empty default reel is a worse answer than
+    clearly-labelled film from the slate that does have some.
+    """
+    if moment.tzinfo is None:
+        moment = moment.replace(tzinfo=timezone.utc)
+    moment = moment.astimezone(timezone.utc)
+
+    window_days = max(1, int(window_days))
+    grace = timedelta(hours=float(grace_hours))
+    thursday = (moment - timedelta(days=(moment.weekday() - 3) % 7)).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    end = thursday + timedelta(days=window_days) - timedelta(seconds=1)
+    return GameWindow(
+        start=thursday,
+        end=end,
+        publish_cutoff=end + grace,
+        opens_at=thursday + timedelta(days=max(0, window_days - 2)) + grace,
+        grace_hours=float(grace_hours),
+        window_days=window_days,
+        week=week_number_for(thursday, season_start),
+    )
+
+
 def resolve_game_window(
     as_of: Optional[datetime] = None,
     *,
@@ -326,25 +385,31 @@ def resolve_game_window(
     grace_hours: float = DEFAULT_GRACE_HOURS,
     season_start: Optional[datetime] = None,
 ) -> GameWindow:
-    """The most recent Thursday->Monday slate that has finished.
+    """The most recent slate whose main Sunday card has been played.
 
-    A slate "opens" ``grace_hours`` after the *start of its final day*, so
-    with the defaults it becomes current at Tuesday 12:00 UTC. The function
-    walks back from the Thursday on or before ``as_of`` until it finds one
-    that has opened.
+    A slate "opens" ``grace_hours`` after the start of its Sunday, so with
+    the defaults it becomes current at Monday 12:00 UTC. The function walks
+    back from the Thursday on or before ``as_of`` until it finds one that
+    has opened.
 
-    Worked example -- Monday 2026-09-21 12:41 UTC, the case this exists for::
+    Worked example -- Monday 2026-09-21 13:00 UTC::
 
-        candidate Thu 09-17  final day starts Mon 09-21 00:00
-                             opens Tue 09-22 12:00   (future, skip)
-        candidate Thu 09-10  final day starts Mon 09-14 00:00
-                             opens Tue 09-15 12:00   (past, take it)
-                             -> Sep 10-14, publish cutoff Wed 09-16 11:59:59
+        candidate Thu 09-17  Sunday starts 09-20 00:00
+                             opens Mon 09-21 12:00   (past, take it)
+                             -> Sep 17-21, week 2
 
-    A Monday-morning viewer therefore gets Sep 10-14 -- the Cowboys/Giants
-    games that have actually been played and uploaded -- rather than the
-    week still in progress around them. By Tuesday lunchtime, once Monday
-    night's cut-ups exist, it advances to Sep 17-21 on its own.
+    That is the slate whose film actually exists: on the live index for
+    this date all 28 videos were published Sep 20-21 and all 737 clip rows
+    fell inside this window. Earlier in the weekend the same call returns
+    the *previous* slate, because the current one has barely been played::
+
+        Sun 09-20 23:00 UTC  -> Sep 10-14 (week 1)
+        Mon 09-21 11:00 UTC  -> Sep 10-14 (week 1)
+        Mon 09-21 12:00 UTC  -> Sep 17-21 (week 2)   <- changeover
+
+    Nothing here is pinned to a particular week number: the week is only a
+    label derived from ``season_start``, and the arithmetic is pure date
+    work against ``as_of``.
     """
     as_of = (as_of or datetime.now(timezone.utc))
     if as_of.tzinfo is None:
@@ -359,12 +424,14 @@ def resolve_game_window(
         hour=0, minute=0, second=0, microsecond=0
     )
 
-    # Grace runs from the start of the final day, not from its end: on
-    # Monday at 00:00 UTC every game except Monday night has been played,
-    # which is the moment the clock on "have the channels posted yet"
-    # actually starts.
+    # Grace runs from the start of the slate's Sunday -- day 4 of a
+    # Thursday-opening window. Sunday carries almost all of a week's games,
+    # so that is when the clock on "have the channels posted yet" really
+    # starts. Waiting for the final day (Monday) instead delayed the
+    # changeover by a full 24h and blanked the reel; see
+    # DEFAULT_GRACE_HOURS.
     def opens(thu: datetime) -> datetime:
-        return thu + timedelta(days=window_days - 1) + grace
+        return thu + timedelta(days=max(0, window_days - 2)) + grace
 
     # One step back is enough for the default grace; the bound only stops a
     # pathological grace period from spinning.
