@@ -921,6 +921,56 @@ class JavaScriptTests(unittest.TestCase):
         self.assertIn("checks passed", out)
         print("\n  " + out.strip())
 
+    def test_no_league_id_is_hardcoded(self):
+        """The page must work for ANY Sleeper league the user types in.
+
+        A specific league was used to verify this feature against real data,
+        which is exactly the circumstance in which a test fixture gets left
+        behind in shipping code. Sleeper league ids are 18-19 digit
+        snowflakes, so any long digit run in the page source is one.
+        """
+        for label, src in (
+            ("core JS", MANAGERSCORE_CORE_JS),
+            ("UI JS", MANAGERSCORE_UI_JS),
+            ("page module", (REPO_ROOT / "src" / "dynasty" / "managerscore.py").read_text()),
+        ):
+            found = re.findall(r"\b\d{15,20}\b", src)
+            self.assertEqual(
+                found, [],
+                "%s contains what looks like a hardcoded Sleeper id: %s"
+                % (label, found),
+            )
+
+    def test_league_id_flows_from_the_caller(self):
+        """The league id must reach every Sleeper URL from the argument, not
+        from module state."""
+        self.assertIn("function msRun(leagueId", MANAGERSCORE_UI_JS)
+        self.assertIn("function msFetchLeagueData(leagueId", MANAGERSCORE_UI_JS)
+        self.assertIn("function msFetchMatchups(leagueId", MANAGERSCORE_UI_JS)
+        # The chain is discovered, never enumerated.
+        self.assertIn("previous_league_id", MANAGERSCORE_UI_JS)
+
+    def test_reads_are_cached_and_rate_limited(self):
+        """Sleeper is public, unauthenticated and free; the page must not
+        hammer it. These are the mechanisms, pinned so they cannot quietly
+        be removed."""
+        self.assertIn("msGetCached", MANAGERSCORE_UI_JS)
+        self.assertIn("msMapLimit", MANAGERSCORE_UI_JS)
+        self.assertIn("MS_MAX_CONCURRENCY", MANAGERSCORE_UI_JS)
+        self.assertIn("sessionStorage", MANAGERSCORE_UI_JS)
+        # Matchups and transactions are the two big fan-outs and must both
+        # go through the cache rather than raw fetch.
+        for fn in ("msFetchMatchups", "msFetchTransactions"):
+            after = MANAGERSCORE_UI_JS.split("function %s(" % fn, 1)[1]
+            # Up to the next top-level function, so the whole body is read
+            # rather than an arbitrary prefix of it.
+            body = after.split("\nfunction ", 1)[0]
+            self.assertIn("msGetCached", body,
+                          "%s must fetch through the cache" % fn)
+            self.assertNotIn(
+                "msGetJSONSoft(", body,
+                "%s must not bypass the cache with a raw fetch" % fn)
+
     def test_core_is_free_of_dom_and_network(self):
         """The core must stay pure, or the node suite stops being able to
         test it and the maths drifts back into the page."""

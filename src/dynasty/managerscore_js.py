@@ -570,12 +570,35 @@ function msScoreLeague(input, opts) {
  * padding whoever held the ball longest. It is also league-relative, so a
  * high-scoring format does not inflate it.
  *
- * Bench points are counted in the raw total but NOT in PAR, which sums only
- * weeks the player was actually started. The distinction is deliberate and
- * both numbers are shown: the raw total is what you acquired, PAR is what
- * it did for your record. A star who rode your bench produced points that
- * never won you a game, and flattening that into one number would hide a
- * real and interesting failure.
+ * Started production, not all rostered production, is the headline
+ * ------------------------------------------------------------------
+ * Sleeper gives us both: `players_points` covers the whole roster, and
+ * `starters` says who was actually in the lineup. (Verified live that the
+ * two agree: summing `players_points` over `starters` reproduces
+ * `starters_points` and the roster's `points` exactly.) A choice had to be
+ * made, and it is STARTED production, for two reasons.
+ *
+ * The weak reason is the obvious one: a matchup is decided by the lineup,
+ * so points scored on a bench did not help anybody win. The owner's
+ * question is "did this work out", and a player who scored 200 points in
+ * your bench slot did not.
+ *
+ * The strong reason is that the alternative is a units error. PAR compares
+ * a player against the median score of a STARTED player at his position
+ * that week. That baseline is drawn from the population of starters, so
+ * scoring a benched player against it would be measuring one thing with
+ * another thing's ruler -- a bench player would be charged a starter's
+ * replacement level for a week he was never asked to play. Started-only
+ * keeps both sides of the subtraction in the same population.
+ *
+ * The cost of this choice is real and is disclosed rather than argued
+ * away: benching a good player is a lineup mistake, not a trade mistake,
+ * and this attributes it to the trade. The mitigation is that total
+ * rostered production is carried alongside every figure and rendered next
+ * to it, so the gap between the two IS the lineup story and is visible
+ * rather than hidden. When a manager acquires a producer and benches him,
+ * the page shows a large total, a small started figure, and the reader can
+ * see exactly which kind of failure it was.
  */
 
 function msWeekId(season, week) {
@@ -718,7 +741,9 @@ function msRealizedAsset(ledger, baselines, posOf, startIdx, playerId, userId, o
   var out = {
     playerId: pid, pos: pos, weekIds: [],
     weeksHeld: 0, starts: 0,
-    ptsTotal: 0, ptsStarted: 0,
+    /* ptsStarted is the headline; ptsTotal is disclosed beside it so a
+     * benched producer is visible rather than silently discounted. */
+    ptsTotal: 0, ptsStarted: 0, benchPts: 0,
     par: 0, parWeeks: 0, parAvailable: false,
     firstWeek: null, lastWeek: null, departedWeek: null,
     arrived: false, truncated: false
@@ -763,7 +788,10 @@ function msRealizedAsset(ledger, baselines, posOf, startIdx, playerId, userId, o
     out.truncated = true;
   }
   out.parAvailable = out.parWeeks > 0;
-  out.ppw = out.weeksHeld ? out.ptsTotal / out.weeksHeld : 0;
+  out.benchPts = out.ptsTotal - out.ptsStarted;
+  /* Rates follow the headline basis, so ppw and PAR/week are comparable. */
+  out.ppw = out.weeksHeld ? out.ptsStarted / out.weeksHeld : 0;
+  out.ppwTotal = out.weeksHeld ? out.ptsTotal / out.weeksHeld : 0;
   out.parPerWeek = out.weeksHeld ? out.par / out.weeksHeld : 0;
   return out;
 }
@@ -841,10 +869,11 @@ function msRealizedTrade(trade, ledger, baselines, posOf, opts) {
     });
     return {
       managerId: s.managerId, assets: assets, picksUnattributed: picks,
-      ptsTotal: tot.ptsTotal, ptsStarted: tot.ptsStarted, par: tot.par,
+      ptsTotal: tot.ptsTotal, ptsStarted: tot.ptsStarted,
+      benchPts: tot.ptsTotal - tot.ptsStarted, par: tot.par,
       starts: tot.starts, weeksHeld: tot.weeksHeld,
       parPerWeek: tot.weeksHeld ? tot.par / tot.weeksHeld : 0,
-      ppw: tot.weeksHeld ? tot.ptsTotal / tot.weeksHeld : 0,
+      ppw: tot.weeksHeld ? tot.ptsStarted / tot.weeksHeld : 0,
       parAvailable: anyPar, ongoing: ongoing
     };
   });
@@ -862,12 +891,16 @@ function msRealizedTrade(trade, ledger, baselines, posOf, opts) {
    * a bug, and the page says so. */
   sides.forEach(function (s) {
     var others = sides.filter(function (o) { return o !== s; });
-    var oppPar = 0, oppPts = 0, oppPpw = 0;
+    var oppPar = 0, oppStarted = 0, oppTotal = 0, oppPpw = 0;
     others.forEach(function (o) {
-      oppPar += o.par; oppPts += o.ptsTotal; oppPpw += o.parPerWeek;
+      oppPar += o.par; oppStarted += o.ptsStarted;
+      oppTotal += o.ptsTotal; oppPpw += o.parPerWeek;
     });
     s.netPar = s.par - oppPar;
-    s.netPts = s.ptsTotal - oppPts;
+    /* Started basis, matching the headline. The all-rostered net is kept
+     * for disclosure so the two can be compared directly. */
+    s.netStarted = s.ptsStarted - oppStarted;
+    s.netPtsTotal = s.ptsTotal - oppTotal;
     s.netParPerWeek = s.parPerWeek - oppPpw;
   });
 
@@ -907,16 +940,17 @@ function msAttachRealized(result, input, ledger, posOf, opts) {
     if (!t.realized || !t.realized.measurable) return;
     t.realized.sides.forEach(function (s) {
       var m = perMgr[s.managerId] ||
-        (perMgr[s.managerId] = { n: 0, par: 0, pts: 0, netPar: 0 });
-      m.n++; m.par += s.par; m.pts += s.ptsTotal; m.netPar += s.netPar;
+        (perMgr[s.managerId] = { n: 0, par: 0, pts: 0, ptsTotal: 0, netPar: 0 });
+      m.n++; m.par += s.par; m.pts += s.ptsStarted;
+      m.ptsTotal += s.ptsTotal; m.netPar += s.netPar;
     });
   });
   (result.managers || []).forEach(function (m) {
     var p = perMgr[m.id];
     m.realized = p
-      ? { n: p.n, par: p.par, pts: p.pts, netPar: p.netPar,
-          netParPerTrade: p.n ? p.netPar / p.n : 0 }
-      : { n: 0, par: 0, pts: 0, netPar: 0, netParPerTrade: 0 };
+      ? { n: p.n, par: p.par, pts: p.pts, ptsTotal: p.ptsTotal,
+          netPar: p.netPar, netParPerTrade: p.n ? p.netPar / p.n : 0 }
+      : { n: 0, par: 0, pts: 0, ptsTotal: 0, netPar: 0, netParPerTrade: 0 };
   });
   result.meta = result.meta || {};
   result.meta.nTradesRealized = measurable;
@@ -997,6 +1031,127 @@ function msGetJSONSoft(url, fallback) {
     if (!r.ok) return fallback;
     return r.json().catch(function () { return fallback; });
   }).catch(function () { return fallback; });
+}
+
+/* ------------------------------------------------- polite Sleeper reads
+ *
+ * Sleeper's API is public, unauthenticated and free, and this page can ask
+ * it for a lot: a four-season dynasty chain is four league reads, four
+ * roster/user/draft reads, ~19 transaction pages per season and up to 18
+ * matchup pages per season. Fired naively and repeated on every re-run,
+ * that is inconsiderate to an API nobody is paying for.
+ *
+ * Three measures, in order of how much they save:
+ *
+ *  1. CACHE. Every GET goes through a cache keyed by URL. Within a page
+ *     load it is a plain object; across reloads it is sessionStorage, so
+ *     re-scoring the same league costs zero requests. Completed seasons
+ *     are marked immutable and never expire -- a 2023 box score is not
+ *     going to change. Anything touching the current season carries a
+ *     short TTL so an in-progress week still refreshes.
+ *  2. BOUND THE WEEKS. The current season is only asked for weeks up to
+ *     the one Sleeper says is live, rather than all 18. Mid-September that
+ *     is 15 requests saved per run.
+ *  3. LIMIT CONCURRENCY. Requests run through a small pool instead of one
+ *     enormous Promise.all, so we are never more than a handful of
+ *     connections deep.
+ *
+ * sessionStorage is used rather than localStorage deliberately: league
+ * data should not outlive the tab, and the quota is a hard limit we can
+ * hit. Every storage call is wrapped -- a full or disabled store degrades
+ * to "no persistence", never to an error.
+ */
+
+var MS_CACHE_VERSION = 'v1';
+var MS_CACHE_TTL_MS = 30 * 60 * 1000;      /* 30 min for mutable reads */
+var MS_MAX_CONCURRENCY = 6;
+
+var msMemCache = {};
+
+function msCacheKey(url) { return 'msc:' + MS_CACHE_VERSION + ':' + url; }
+
+function msCacheRead(url, immutable) {
+  var hit = msMemCache[url];
+  if (hit) {
+    if (immutable || (Date.now() - hit.t) < MS_CACHE_TTL_MS) return hit.v;
+  }
+  try {
+    if (typeof sessionStorage === 'undefined') return undefined;
+    var raw = sessionStorage.getItem(msCacheKey(url));
+    if (!raw) return undefined;
+    var rec = JSON.parse(raw);
+    if (!rec || typeof rec.t !== 'number') return undefined;
+    if (!immutable && (Date.now() - rec.t) >= MS_CACHE_TTL_MS) return undefined;
+    msMemCache[url] = rec;
+    return rec.v;
+  } catch (e) { return undefined; }
+}
+
+/* Drop everything cached. Exposed so a user can force a refresh, and so
+ * tests can run successive scenarios against the same URLs. */
+function msCacheClear() {
+  msMemCache = {};
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    var kill = [];
+    for (var i = 0; i < sessionStorage.length; i++) {
+      var k = sessionStorage.key(i);
+      if (k && k.indexOf('msc:') === 0) kill.push(k);
+    }
+    kill.forEach(function (k) { sessionStorage.removeItem(k); });
+  } catch (e) { /* storage unavailable: memory clear is enough */ }
+}
+
+function msCacheWrite(url, value) {
+  var rec = { t: Date.now(), v: value };
+  msMemCache[url] = rec;
+  try {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.setItem(msCacheKey(url), JSON.stringify(rec));
+  } catch (e) {
+    /* Quota exceeded or storage disabled. The in-memory cache still holds,
+     * so this run is unaffected; only cross-reload reuse is lost. */
+  }
+}
+
+/* Cached soft GET. `opts.immutable` marks data that cannot change again
+ * (a completed season), `opts.distil` shrinks a payload before it is
+ * cached so a big response does not blow the storage quota. */
+function msGetCached(url, fallback, opts) {
+  opts = opts || {};
+  var cached = msCacheRead(url, !!opts.immutable);
+  if (cached !== undefined) return Promise.resolve(cached);
+  return msGetJSONSoft(url, fallback).then(function (v) {
+    var keep = opts.distil ? opts.distil(v) : v;
+    msCacheWrite(url, keep);
+    return keep;
+  });
+}
+
+/* Run `fn` over `items` at most `limit` at a time, preserving order. */
+function msMapLimit(items, limit, fn) {
+  var out = new Array(items.length);
+  var next = 0;
+  function worker() {
+    if (next >= items.length) return Promise.resolve();
+    var i = next++;
+    return Promise.resolve(fn(items[i], i)).then(function (v) {
+      out[i] = v;
+      return worker();
+    });
+  }
+  var pool = [];
+  for (var w = 0; w < Math.min(limit, items.length); w++) pool.push(worker());
+  return Promise.all(pool).then(function () { return out; });
+}
+
+/* Sleeper's own view of the live season and week, so the current season is
+ * not asked for weeks that have not happened. Cached; failure is
+ * non-fatal and simply means we fall back to asking for all 18. */
+function msNflState() {
+  return msGetCached(SLEEPER + '/state/nfl', null, {}).then(function (s) {
+    return s || null;
+  });
 }
 
 /* ------------------------------------------------------------ artifacts */
@@ -1095,7 +1250,7 @@ function msLeagueChain(leagueId, maxHops) {
   var hops = maxHops == null ? 12 : maxHops;
   function step(id) {
     if (!id || chain.length >= hops) return Promise.resolve(chain);
-    return msGetJSONSoft(SLEEPER + '/league/' + id, null).then(function (lg) {
+    return msGetCached(SLEEPER + '/league/' + id, null, {}).then(function (lg) {
       if (!lg || !lg.league_id) return chain;
       chain.push(lg);
       return step(lg.previous_league_id);
@@ -1105,35 +1260,40 @@ function msLeagueChain(leagueId, maxHops) {
 }
 
 function msFetchLeagueData(leagueId, includeHistory) {
+  return msNflState().then(function (state) {
   return (includeHistory ? msLeagueChain(leagueId) :
-          msGetJSONSoft(SLEEPER + '/league/' + leagueId, null)
+          msGetCached(SLEEPER + '/league/' + leagueId, null, {})
             .then(function (lg) { return lg ? [lg] : []; })
   ).then(function (chain) {
     MSX.leagueChain = chain;
     if (!chain.length) throw new Error('League ' + leagueId + ' not found on Sleeper.');
-    return Promise.all(chain.map(function (lg) {
+    /* Seasons are walked one at a time rather than all at once: each one
+     * already fans out internally, and stacking four of those on top of
+     * each other is exactly the burst this is meant to avoid. */
+    return msMapLimit(chain, 1, function (lg) {
       var id = lg.league_id;
       return Promise.all([
-        msGetJSONSoft(SLEEPER + '/league/' + id + '/users', []),
-        msGetJSONSoft(SLEEPER + '/league/' + id + '/rosters', []),
-        msGetJSONSoft(SLEEPER + '/league/' + id + '/drafts', []),
-        msFetchTransactions(id),
-        msFetchMatchups(id, lg.season)
+        msGetCached(SLEEPER + '/league/' + id + '/users', [], {}),
+        msGetCached(SLEEPER + '/league/' + id + '/rosters', [], {}),
+        msGetCached(SLEEPER + '/league/' + id + '/drafts', [], {}),
+        msFetchTransactions(id, lg.season, state),
+        msFetchMatchups(id, lg.season, state)
       ]).then(function (parts) {
         return { league: lg, users: parts[0] || [], rosters: parts[1] || [],
                  drafts: parts[2] || [], transactions: parts[3] || [],
                  matchupWeeks: parts[4] || [] };
       });
-    }));
+    });
   }).then(function (seasons) {
     return Promise.all(seasons.map(function (s) {
       return Promise.all((s.drafts || []).map(function (d) {
         var did = d.draft_id || d.id;
         if (!did) return Promise.resolve({ draft: d, picks: [] });
-        return msGetJSONSoft(SLEEPER + '/draft/' + did + '/picks', [])
+        return msGetCached(SLEEPER + '/draft/' + did + '/picks', [], {})
           .then(function (p) { return { draft: d, picks: p || [] }; });
       })).then(function (drafts) { s.draftPicks = drafts; return s; });
     }));
+  });
   });
 }
 
@@ -1146,28 +1306,64 @@ function msFetchLeagueData(leagueId, includeHistory) {
  * which is why an in-season league needs no current-week lookup: we file
  * what Sleeper actually has.
  */
-function msFetchMatchups(leagueId, season) {
+function msFetchMatchups(leagueId, season, state) {
+  /* Only ask the live season for weeks that have started. A completed
+   * season is asked for all 18 and can be cached forever, because a
+   * finished box score does not change.
+   *
+   * These are two separate judgements and must not be collapsed into one
+   * flag. "Known to be a past season" is what licenses caching forever;
+   * "known to be the live season" is what licenses truncating the week
+   * list. When the state lookup fails we know neither, and the safe
+   * reading of an unknown is to cache briefly and ask for every week --
+   * the opposite of what treating unknown as "not current" would do,
+   * which would pin an in-progress season in the cache permanently. */
+  var knownCurrent = !!(state && String(state.season) === String(season));
+  var knownPast = !!(state && String(state.season) !== String(season));
+  var lastWeek = 18;
+  if (knownCurrent) {
+    var live = Number(state.week || state.display_week || 0);
+    if (live > 0) lastWeek = Math.min(18, live);
+  }
   var weeks = [];
-  for (var w = 1; w <= 18; w++) weeks.push(w);
-  return Promise.all(weeks.map(function (w) {
-    return msGetJSONSoft(SLEEPER + '/league/' + leagueId + '/matchups/' + w, [])
+  for (var w = 1; w <= lastWeek; w++) weeks.push(w);
+
+  /* Cache only what the ledger reads. The raw response also carries
+   * starters_points, points, custom_points and matchup_id; dropping them
+   * roughly halves what goes into sessionStorage, and starters_points is
+   * redundant anyway -- verified against the live API that summing
+   * players_points over starters reproduces it exactly. */
+  function distil(m) {
+    if (!m || !m.length) return [];
+    return m.map(function (x) {
+      return { roster_id: x.roster_id, players: x.players || [],
+               starters: x.starters || [],
+               players_points: x.players_points || {} };
+    });
+  }
+
+  return msMapLimit(weeks, MS_MAX_CONCURRENCY, function (w) {
+    return msGetCached(SLEEPER + '/league/' + leagueId + '/matchups/' + w, [],
+                       { immutable: knownPast, distil: distil })
       .then(function (m) {
         return { season: String(season), week: w, leagueId: leagueId,
                  matchups: (m && m.length) ? m : [] };
       });
-  })).then(function (rows) {
+  }).then(function (rows) {
     return rows.filter(function (r) { return r.matchups.length > 0; });
   });
 }
 
 /* Sleeper exposes transactions per scoring week. Week 0 carries the
  * off-season, which in a dynasty league is where most trades live. */
-function msFetchTransactions(leagueId) {
+function msFetchTransactions(leagueId, season, state) {
+  var knownPast = !!(state && String(state.season) !== String(season));
   var weeks = [];
   for (var w = 0; w <= 18; w++) weeks.push(w);
-  return Promise.all(weeks.map(function (w) {
-    return msGetJSONSoft(SLEEPER + '/league/' + leagueId + '/transactions/' + w, []);
-  })).then(function (chunks) {
+  return msMapLimit(weeks, MS_MAX_CONCURRENCY, function (w) {
+    return msGetCached(SLEEPER + '/league/' + leagueId + '/transactions/' + w, [],
+                       { immutable: knownPast });
+  }).then(function (chunks) {
     var all = [];
     chunks.forEach(function (c) { (c || []).forEach(function (t) { all.push(t); }); });
     return all;
@@ -1594,7 +1790,7 @@ function msRenderLensCompare(mgr, trades) {
     ' scored trade' + (mgr.trade.n === 1 ? '' : 's') + ' · ' +
     '<span class="ms-lens ms-lens-real">realized</span>' +
     'net ' + msSigned(rz.netPar, 1) + ' PAR (' + msFmt(rz.pts, 1) +
-    ' pts acquired) over ' + rz.n + ' measurable trade' +
+    ' pts started) over ' + rz.n + ' measurable trade' +
     (rz.n === 1 ? '' : 's') + '.</p>';
 
   var disagree = (market > 0 && rz.netPar < 0) || (market < 0 && rz.netPar > 0);
@@ -1621,10 +1817,14 @@ function msRenderLensCompare(mgr, trades) {
  * weeks" is an argument. */
 function msRealizedAssetLine(r) {
   var bits = [];
-  bits.push('<strong>' + msFmt(r.ptsTotal, 1) + ' pts</strong>');
-  bits.push('over ' + r.weeksHeld + ' wk' + (r.weeksHeld === 1 ? '' : 's'));
-  if (r.starts < r.weeksHeld) {
-    bits.push(msFmt(r.ptsStarted, 1) + ' started (' + r.starts + ')');
+  /* Started points lead, because that is the declared basis. */
+  bits.push('<strong>' + msFmt(r.ptsStarted, 1) + ' pts started</strong>');
+  bits.push('over ' + r.weeksHeld + ' wk' + (r.weeksHeld === 1 ? '' : 's') +
+            ' (' + r.starts + ' start' + (r.starts === 1 ? '' : 's') + ')');
+  /* The lineup story: only shown when there is one to tell. */
+  if (r.benchPts > 0.05) {
+    bits.push('<span class="ms-bench">+' + msFmt(r.benchPts, 1) +
+              ' on your bench</span>');
   }
   if (r.parAvailable) {
     bits.push('PAR <span class="' + msDeltaClass(r.par) + '">' +
@@ -1665,22 +1865,27 @@ function msRenderRealizedTrade(t, managerId) {
 
   var html = '<div class="ms-realized"><div class="ms-realized-head">' +
     'Realized production <span class="ms-basis">— points actually scored ' +
-    'for the acquiring roster, in this league\'s own scoring</span></div>';
+    'in the lineup, in this league\'s own scoring</span></div>';
 
-  html += '<div class="ms-realized-net">You received <strong>' +
-    msFmt(mine.ptsTotal, 1) + '</strong> pts';
+  html += '<div class="ms-realized-net">You started <strong>' +
+    msFmt(mine.ptsStarted, 1) + '</strong> pts of what you got';
   if (mine.parAvailable) {
     html += ' (PAR <span class="' + msDeltaClass(mine.par) + '">' +
       msSigned(mine.par, 1) + '</span>, ' +
       msSigned(mine.parPerWeek, 2) + '/wk)';
   }
-  var oppPts = 0;
-  theirs.forEach(function (s) { oppPts += s.ptsTotal; });
-  html += ' · they received <strong>' + msFmt(oppPts, 1) + '</strong> pts';
+  var oppStarted = 0;
+  theirs.forEach(function (s) { oppStarted += s.ptsStarted; });
+  html += ' · they started <strong>' + msFmt(oppStarted, 1) + '</strong> pts';
   html += ' · realized net <span class="' + msDeltaClass(mine.netPar) + '">' +
     msSigned(mine.netPar, 1) + ' PAR</span>';
   if (rz.ongoing) html += ' <span class="ms-basis">(ongoing)</span>';
   html += '</div>';
+  if (mine.benchPts > 0.05) {
+    html += '<p class="ms-sub" style="margin:.3rem 0 0">A further ' +
+      msFmt(mine.benchPts, 1) + ' pts were produced on your bench and are ' +
+      'not counted above — that gap is a lineup outcome, not a trade one.</p>';
+  }
 
   if (mine.assets.length) {
     html += '<ul class="ms-realized-list">' +
@@ -1882,5 +2087,8 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.msRun = msRun;
   module.exports.msInit = msInit;
   module.exports.MSX = MSX;
+  module.exports.msCacheClear = msCacheClear;
+  module.exports.msMapLimit = msMapLimit;
+  module.exports.msGetCached = msGetCached;
 }
 """

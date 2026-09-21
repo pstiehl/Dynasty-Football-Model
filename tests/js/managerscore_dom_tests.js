@@ -419,7 +419,31 @@ M.msRun('L2', true).then(function (result) {
      'each manager carries a realized rollup beside the index');
   near(alphaRow.realized.netPar, 20, 'the rollup matches the per-trade figure');
 
-  return runDegradation();
+  /* ---- caching: a re-run must not re-hit Sleeper ---- */
+
+  const sleeperCallsAfterFirstRun = fetchLog.filter(function (u) {
+    return u.indexOf('api.sleeper.app') >= 0;
+  }).length;
+  ok(sleeperCallsAfterFirstRun > 0, 'the first run does hit Sleeper',
+     String(sleeperCallsAfterFirstRun));
+
+  return M.msRun('L2', true).then(function (second) {
+    ok(second !== null, 're-running the same league still produces a result');
+    const after = fetchLog.filter(function (u) {
+      return u.indexOf('api.sleeper.app') >= 0;
+    }).length;
+    ok(after === sleeperCallsAfterFirstRun,
+       'a second run of the same league makes ZERO new Sleeper requests',
+       sleeperCallsAfterFirstRun + ' -> ' + after);
+    /* and the answer is identical, so the cache is not lossy */
+    const t2 = second.audit.trades[0];
+    near(t2.realized.sides.filter(function (s) { return s.managerId === 'uA'; })[0].par,
+         20, 'the cached run reproduces the realized figure exactly');
+
+    ok(typeof M.msCacheClear === 'function',
+       'a cache clear is exposed so a refresh is possible');
+    return runDegradation();
+  });
 }).then(function () { report(); })
   .catch(function (e) {
     console.error('HARNESS ERROR: ' + (e && e.stack || e));
@@ -428,9 +452,19 @@ M.msRun('L2', true).then(function (result) {
 
 /* ------------------------------------------------- degradation scenarios */
 
+/* Each degradation scenario serves DIFFERENT data from the SAME urls, so
+ * the read cache has to be dropped between them. Real usage never does
+ * this -- a league's week 3 box score does not turn into a different week
+ * 3 box score -- which is why the cache is correct in production and has
+ * to be defeated here. */
+function freshLeague(week0) {
+  M.msCacheClear();
+  installFullLeague(week0);
+}
+
 function runDegradation() {
   /* 1. Transactions after the last dated board cannot be judged. */
-  installFullLeague([{
+  freshLeague([{
     transaction_id: 'txr', type: 'trade', status: 'complete',
     created: Date.UTC(2027, 5, 1), status_updated: Date.UTC(2027, 5, 1),
     roster_ids: [1, 2],
@@ -450,7 +484,7 @@ function runDegradation() {
        basis.innerHTML.replace(/<[^>]+>/g, '').slice(-140));
   }).then(function () {
     /* 2. FAAB in a trade: legitimate imbalance, scored but flagged. */
-    installFullLeague([{
+    freshLeague([{
       transaction_id: 'txf', type: 'trade', status: 'complete',
       created: Date.UTC(2026, 8, 10), status_updated: Date.UTC(2026, 8, 10),
       roster_ids: [1, 2],
@@ -470,7 +504,7 @@ function runDegradation() {
     ok(res.meta.nTradesWithFaab === 1, 'FAAB trades are counted for disclosure');
   }).then(function () {
     /* 3. Unbalanced with NO FAAB is a parsing problem: report, do not score. */
-    installFullLeague([{
+    freshLeague([{
       transaction_id: 'txb', type: 'trade', status: 'complete',
       created: Date.UTC(2026, 8, 10), status_updated: Date.UTC(2026, 8, 10),
       roster_ids: [1, 2],
@@ -487,6 +521,7 @@ function runDegradation() {
        'nobody is credited from an unbalanced trade');
   }).then(function () {
     /* 4. Value artifact missing entirely -> explain, do not score. */
+    M.msCacheClear();
     global.fetch = function (url) {
       if (url === 'managerscore_values.json') {
         return Promise.resolve({ ok: false, json: function () {
@@ -504,6 +539,7 @@ function runDegradation() {
        'results stay hidden rather than showing an empty table');
   }).then(function () {
     /* 5. Series missing while values exist: nothing is priceable. */
+    M.msCacheClear();
     global.fetch = function (url) {
       if (url === 'managerscore_values.json') return jsonResp(VALUES);
       if (url === 'managerscore_series.json') return jsonResp(null, false);
@@ -528,6 +564,7 @@ function runDegradation() {
        basis.innerHTML.slice(0, 80));
   }).then(function () {
     /* 6. League not found on Sleeper. */
+    M.msCacheClear();
     global.fetch = function (url) {
       if (url === 'managerscore_values.json') return jsonResp(VALUES);
       if (url === 'managerscore_series.json') return jsonResp(SERIES);
@@ -539,6 +576,59 @@ function runDegradation() {
     ok(/Could not score that league/.test(
          document.getElementById('ms-status').innerHTML),
        'a missing league is reported, not crashed on');
+  }).then(function () {
+    /* 7. Week bounding: the live season must not be asked for weeks that
+     * have not happened. Sleeper answers them with all-zero rosters, so
+     * they are pure waste on a public unauthenticated API. */
+    M.msCacheClear();
+    const asked = [];
+    global.fetch = function (url) {
+      fetchLog.push(url);
+      const mm = url.match(/\/league\/L2\/matchups\/(\d+)$/);
+      if (mm) { asked.push(Number(mm[1])); return jsonResp(MATCHUPS_2026[mm[1]] || []); }
+      if (url === 'managerscore_values.json') return jsonResp(VALUES);
+      if (url === 'managerscore_series.json') return jsonResp(SERIES);
+      if (url === 'https://api.sleeper.app/v1/state/nfl') {
+        return jsonResp({ season: '2026', week: 2, display_week: 2 });
+      }
+      if (url === 'https://api.sleeper.app/v1/league/L2') return jsonResp(LG_CUR);
+      if (/\/users$/.test(url)) return jsonResp(USERS);
+      if (/\/rosters$/.test(url)) return jsonResp(ROSTERS_CUR);
+      if (/\/drafts$/.test(url)) return jsonResp(DRAFTS);
+      if (/\/draft\/d-2026\/picks$/.test(url)) return jsonResp(draftPicks());
+      if (/\/transactions\/\d+$/.test(url)) return jsonResp([]);
+      return jsonResp(null, false);
+    };
+    return M.msRun('L2', false).then(function () {
+      ok(asked.length > 0, 'matchups were requested');
+      ok(Math.max.apply(null, asked) <= 2,
+         'the live season is not asked for weeks beyond the current one',
+         'max week asked = ' + Math.max.apply(null, asked));
+      ok(asked.indexOf(18) < 0, 'week 18 of an in-progress season is not fetched');
+    });
+  }).then(function () {
+    /* 8. An unknown NFL state must fail SAFE: ask for everything and cache
+     * briefly, rather than pinning an in-progress season forever. */
+    M.msCacheClear();
+    const asked2 = [];
+    global.fetch = function (url) {
+      fetchLog.push(url);
+      const mm = url.match(/\/league\/L2\/matchups\/(\d+)$/);
+      if (mm) { asked2.push(Number(mm[1])); return jsonResp(MATCHUPS_2026[mm[1]] || []); }
+      if (url === 'managerscore_values.json') return jsonResp(VALUES);
+      if (url === 'managerscore_series.json') return jsonResp(SERIES);
+      if (url === 'https://api.sleeper.app/v1/league/L2') return jsonResp(LG_CUR);
+      if (/\/users$/.test(url)) return jsonResp(USERS);
+      if (/\/rosters$/.test(url)) return jsonResp(ROSTERS_CUR);
+      if (/\/drafts$/.test(url)) return jsonResp(DRAFTS);
+      if (/\/draft\/d-2026\/picks$/.test(url)) return jsonResp(draftPicks());
+      if (/\/transactions\/\d+$/.test(url)) return jsonResp([]);
+      return jsonResp(null, false);   /* /state/nfl fails */
+    };
+    return M.msRun('L2', false).then(function () {
+      ok(asked2.indexOf(18) >= 0,
+         'with no NFL state the full week range is still requested');
+    });
   });
 }
 

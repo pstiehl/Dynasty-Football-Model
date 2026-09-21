@@ -448,6 +448,16 @@ trade made last week.</li>
 </ul>
 <p>Going forward the daily job files a new dated board on every run, so the
 series densifies from here even though the past cannot be filled in.</p>
+<p><strong>Any Sleeper league, and gently.</strong> Enter any league id (or
+find one by username) &mdash; nothing about this page is specific to one
+league, and the whole dynasty chain is discovered by following
+<code>previous_league_id</code> backwards from whatever you type. Sleeper's
+API is public, unauthenticated and free, so the reads are kept modest:
+every response is cached for the tab, completed seasons are cached
+indefinitely because a finished box score cannot change, the live season is
+only asked for weeks that have actually started, requests are batched by
+week rather than per player, and no more than a handful are ever in flight
+at once. Scoring the same league twice costs zero further requests.</p>
 </div>
 
 <h2>The second lens: <span class="accent">realized production</span></h2>
@@ -484,10 +494,22 @@ league-relative it does not inflate in a high-scoring format.</li>
 <li><strong>Points per week held</strong>, a plain rate, for readers who
 want the unadjusted version.</li>
 </ul>
-<p><strong>Bench points count in the raw total but never in PAR</strong>,
-which sums only weeks the player was actually started. Both numbers are
-shown. A star who rode your bench produced points that never won you a
-game, and flattening that into a single figure would hide a real failure.</p>
+<p><strong>The basis is started production, not all rostered
+production.</strong> Sleeper reports both, and a choice had to be made.
+The weak argument for starters is the obvious one: a matchup is decided by
+the lineup, so points scored on your bench did not help you win. The
+strong argument is that the alternative is a units error &mdash; PAR
+compares a player against the median score of a <em>started</em> player at
+his position, so scoring a benched player against that baseline would
+charge him a starter's replacement level for a week he was never asked to
+play. Started-only keeps both sides of the subtraction in the same
+population.</p>
+<p>The cost of that choice is real: benching a good player is a lineup
+mistake, not a trade mistake, and this attributes it to the trade. So
+<strong>bench production is carried alongside every figure and shown next
+to it</strong> rather than discarded. When a manager acquires a producer
+and sits him, the page shows a small started figure with the benched
+points beside it, and you can see which kind of failure it was.</p>
 <p><strong>The two lenses are never averaged.</strong> They answer different
 questions and will sometimes disagree; where they do, the page says so
 explicitly. A manager who lost value by the market and won by the
@@ -567,6 +589,11 @@ invisible here.</li>
 <li><strong>Sleeper only.</strong> The live reads target Sleeper's public
 API. MFL leagues are pre-baked elsewhere in this project and are not
 covered by this page.</li>
+<li><strong>Lineup skill leaks into the trade figure.</strong> Realized
+value counts started production, so a manager who acquires a producer and
+benches him is scored for the benching as well as the trade. The benched
+points are displayed beside every figure precisely so that case is
+visible rather than silently folded in.</li>
 </ul>
 </div>
 """
