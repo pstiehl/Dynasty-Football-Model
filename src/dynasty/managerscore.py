@@ -357,6 +357,7 @@ h4 { font-size: 14px; margin: 18px 0 8px 0; }
 
 
 def _methodology_html() -> str:
+    """Heading levels start at h4: this renders inside the pane's h3."""
     """Plain-language description of the metric, rendered on the page.
 
     Deliberately on the page rather than in the docs: a score nobody can
@@ -364,7 +365,7 @@ def _methodology_html() -> str:
     as much as the formula.
     """
     return """
-<h2>What <span class="accent">Manager Score</span> measures</h2>
+<h4>What <span class="accent">Manager Score</span> measures</h4>
 
 <div class="ms-formula">
 <p style="margin-top:0"><strong>One number per manager, league mean 100, one
@@ -379,7 +380,7 @@ absolute rating &mdash; the average manager in every league scores about 100.</p
 has, so a league that never trades is not scored on a component nobody
 played.</p>
 
-<h4>The unit: value capture</h4>
+<h5>The unit: value capture</h5>
 <p>Everything below is built from one measurement. For any asset that
 changes hands on a date, we take its KeepTradeCut value <strong>on that
 date</strong> and the highest value it reached <strong>afterwards</strong>.
@@ -391,7 +392,7 @@ acquiring a player just before he breaks out scores well, and trading away a
 player who then breaks out scores badly &mdash; which is the thing everyone
 actually argues about in a dynasty league.</p>
 
-<h4>Draft skill &mdash; did the pick beat its slot?</h4>
+<h5>Draft skill &mdash; did the pick beat its slot?</h5>
 <p>Surplus = what the pick captured, minus what a pick at that slot
 typically captured <em>in that same draft</em>. The par curve is fitted from
 the draft's own picks (median per six-slot bin, forced never to rise as
@@ -400,7 +401,7 @@ That is what makes startup drafts, rookie drafts, 10-team and 14-team
 leagues comparable without any hand-tuned constant. A draft with fewer than
 12 evaluable picks is skipped rather than scored badly.</p>
 
-<h4>Trade skill &mdash; did value come in or leak out?</h4>
+<h5>Trade skill &mdash; did value come in or leak out?</h5>
 <p>Net = captured by what you received, minus captured by what you gave,
 counting players and draft picks on both sides. Within any trade these sum
 to exactly zero, so it is a genuine transfer measure. A trade containing an
@@ -408,14 +409,14 @@ asset we cannot price is <strong>reported but not scored</strong> &mdash;
 pricing one side and not the other would invent a steal that never
 happened.</p>
 
-<h4>Waiver skill &mdash; was there value on the wire?</h4>
+<h5>Waiver skill &mdash; was there value on the wire?</h5>
 <p>Captured by each waiver or free-agent add. A replacement-level body that
 never rose captures zero; plucking a player who then becomes a starter
 captures a lot. FAAB spent is shown in the audit but not scored: KTC points
 and FAAB dollars have no exchange rate, and inventing one would be the least
 defensible number on the page.</p>
 
-<h4>Why volume cannot buy a good score</h4>
+<h5>Why volume cannot buy a good score</h5>
 <p>Each component is a <strong>per-transaction mean</strong>, not a total,
 then shrunk toward zero by <code>n / (n + k)</code> (k = 6 picks, 3 trades,
 5 adds). Shrinkage only ever moves a manager <em>toward</em> average &mdash;
@@ -425,7 +426,7 @@ no activity in a component is scored as league-average for it, flagged, and
 not penalised for abstaining.</p>
 </div>
 
-<h2>Where the <span class="accent">values</span> come from</h2>
+<h4>Where the <span class="accent">values</span> come from</h4>
 <div class="ms-formula">
 <p style="margin-top:0">KeepTradeCut publishes a <em>live</em> superflex
 consensus board, not an archive, so historical values are not available from
@@ -462,7 +463,7 @@ week rather than per player, and no more than a handful are ever in flight
 at once. Scoring the same league twice costs zero further requests.</p>
 </div>
 
-<h2>The second lens: <span class="accent">realized production</span></h2>
+<h4>The second lens: <span class="accent">realized production</span></h4>
 <div class="ms-formula">
 <p>Everything above prices a trade against the market. It answers <em>was
 this a good bet at the time</em>. It cannot answer the question you actually
@@ -534,7 +535,7 @@ exactly that signal.</p>
 sides of a trade can genuinely come out ahead.</p>
 </div>
 
-<h2>On <span class="accent">projected</span> points</h2>
+<h4>On <span class="accent">projected</span> points</h4>
 <div class="ms-formula">
 <p>The obvious follow-up is "what was he <em>projected</em> to score at the
 time, and did he beat it?". That was investigated directly against the live
@@ -569,7 +570,7 @@ expected-versus-actual comparison can be made from a projection that
 provably predates the outcome. It cannot be backfilled.</p>
 </div>
 
-<h2>What this <span class="accent">cannot</span> tell you</h2>
+<h4>What this <span class="accent">cannot</span> tell you</h4>
 <div class="ms-formula">
 <ul style="margin:0">
 <li><strong>Hindsight is baked in, by design.</strong> This measures what

@@ -61,7 +61,7 @@ def _methodology_html() -> str:
 <h2>How the <span class="accent">cross-league</span> score works</h2>
 
 <div class="xl-note">
-<p style="margin-top:0">The <a href="managerscore.html">Manager Score</a> page
+<p style="margin-top:0">The <a href="myteam.html">Manager Score</a> section
 ranks managers <em>inside</em> one league: mean 100, one standard deviation
 15. That is useful, but it cannot compare leagues — the best manager in every
 league scores about 115 by construction. This page aggregates that same
@@ -159,7 +159,7 @@ consensus board is wrong, every score here is wrong the same way.</li>
 <li><strong>It inherits every limit of the per-league metric</strong> —
 outcome rather than process, top-500 pricing, "Mid" for future picks, and no
 measurement of lineup or roster management. Those are set out on the
-<a href="managerscore.html">Manager Score</a> page.</li>
+<a href="myteam.html">Manager Score</a> section.</li>
 <li><strong>Leagues can go stale.</strong> A league indexed on an earlier run
 but outside today's crawl budget keeps its last score rather than
 disappearing.</li>
@@ -180,7 +180,7 @@ def build_cross_league(latest_ts: datetime, league_label: str) -> str:
 <p class="lede">Manager Score, aggregated across every dynasty league we have
 been able to index — so a good drafter in one league can be compared with a
 good drafter in another. Scores come from the same draft / trade / waiver
-maths as the per-league <a href="managerscore.html">Manager Score</a> page.</p>
+maths as the per-league <a href="myteam.html">Manager Score</a> section.</p>
 
 <div id="xl-coverage" class="callout" style="display:none"></div>
 
