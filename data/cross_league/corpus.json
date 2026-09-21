@@ -1,9 +1,9 @@
 {
  "schema": "crossleague.corpus.v1",
- "generated_at": "2026-09-21T17:07:30.457657+00:00",
+ "generated_at": "2026-09-21T17:16:56.472441+00:00",
  "first_indexed_at": "2026-09-21T17:07:30.457657+00:00",
- "n_runs": 1,
- "persisted": false,
+ "n_runs": 2,
+ "persisted": true,
  "coverage": {
   "n_leagues": 5,
   "n_managers": 56,
@@ -19,7 +19,7 @@
   "name_matching_rejected": "a league named 'Deke Dynasty' is type=1 (keeper, 18 keepers), so matching on the league name would misclassify it",
   "observed_this_run": {
    "0": {
-    "n_leagues": 5,
+    "n_leagues": 6,
     "with_taxi_squad": 0,
     "max_keepers_values": [
      1
@@ -31,20 +31,22 @@
     ]
    },
    "1": {
-    "n_leagues": 2,
+    "n_leagues": 3,
     "with_taxi_squad": 0,
     "max_keepers_values": [
+     1,
      5,
      18
     ],
     "example_names": [
      "Playing For Keeps",
-     "Deke Dynasty"
+     "Deke Dynasty",
+     "Flexual Innuendo"
     ]
    },
    "2": {
-    "n_leagues": 6,
-    "with_taxi_squad": 4,
+    "n_leagues": 12,
+    "with_taxi_squad": 9,
     "max_keepers_values": [
      1
     ],
@@ -53,39 +55,82 @@
      "DLD",
      "Game of Inches"
     ]
+   },
+   "3": {
+    "n_leagues": 2,
+    "with_taxi_squad": 0,
+    "max_keepers_values": [
+     1
+    ],
+    "example_names": [
+     "\ud83e\ude93 Sharpen the Blade \u2620\ufe0f",
+     "Red Zone Reaper \ud83d\udc80"
+    ]
    }
   }
  },
  "budget": {
   "max_calls": 600,
-  "max_leagues": 5,
+  "max_leagues": 12,
   "max_hops": 2,
   "min_delay_seconds": 0.25,
-  "calls_used_total": 526,
+  "calls_used_total": 600,
   "calls_used_discovery": 16,
-  "calls_used_scoring": 510,
-  "calls_refused_over_budget": 0,
+  "calls_used_scoring": 584,
+  "calls_refused_over_budget": 45,
   "network_errors": 0
  },
  "discovery": {
   "season": 2026,
   "n_seeds": 1,
-  "n_leagues_examined": 13,
+  "n_leagues_examined": 23,
   "n_users_examined": 14,
-  "n_discarded_unscorable": 0,
-  "discarded": [],
+  "n_discarded_unscorable": 7,
+  "discarded": [
+   {
+    "league_id": "1316482958428733440",
+    "name": "Wannabe Experts",
+    "reason": "incomplete read (45 call(s) refused or failed) \u2014 discarded rather than scored on partial data"
+   },
+   {
+    "league_id": "1312122655880515584",
+    "name": "Field of Dreams \ud83c\udf3e",
+    "reason": "api call budget exhausted before this league was read"
+   },
+   {
+    "league_id": "1313763080252948480",
+    "name": "Practice Squad Legends \ud83c\udfc8 x 3",
+    "reason": "api call budget exhausted before this league was read"
+   },
+   {
+    "league_id": "1312636894407819264",
+    "name": "Non-Discriminators vs Ageists",
+    "reason": "api call budget exhausted before this league was read"
+   },
+   {
+    "league_id": "1319033996251787264",
+    "name": "Club Fantasy Dynasty League Season 10",
+    "reason": "api call budget exhausted before this league was read"
+   },
+   {
+    "league_id": "1312125379187576832",
+    "name": "the JUICE \ud83e\uddc3",
+    "reason": "api call budget exhausted before this league was read"
+   },
+   {
+    "league_id": "1316180091604066304",
+    "name": "Best Ball For the Best of Us",
+    "reason": "api call budget exhausted before this league was read"
+   }
+  ],
   "method": "bounded breadth-first walk of the Sleeper social graph from the seed registry; Sleeper has no endpoint that enumerates leagues, so this is the only discovery path that exists"
  },
  "components": {
-  "live": [
-   "draft",
-   "trade",
-   "waiver"
-  ],
+  "live": [],
   "weights": {
-   "draft": 0.5,
-   "trade": 0.35,
-   "waiver": 0.15
+   "draft": 0.0,
+   "trade": 0.0,
+   "waiver": 0.0
   },
   "shrink_k": {
    "draft": 6,
@@ -96,32 +141,32 @@
  },
  "leaderboard": [
   {
-   "manager_id": "336977305060511744",
-   "display_name": "zganga",
-   "composite": 1.003588,
-   "cross_index": 115.1,
+   "manager_id": "866789311293566976",
+   "display_name": "aaronkubala",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 29,
-     "zbar": 2.134692,
-     "z": 1.768745,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 1,
-     "zbar": -0.985123,
-     "z": -0.246281,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 45,
-     "zbar": 1.521585,
-     "z": 1.369426,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -131,26 +176,26 @@
      "name": "Game of Inches",
      "season": "2026",
      "n_teams": 10,
-     "index": 114.3,
+     "index": 100.0,
      "rank": 1,
      "components": {
       "draft": {
-       "n": 29,
-       "z": 2.134692,
-       "mean": 1303.48,
-       "shrunk": 1080.02
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 1,
-       "z": -0.985123,
-       "mean": -4287.0,
-       "shrunk": -1071.75
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 45,
-       "z": 1.521585,
-       "mean": 1312.89,
-       "shrunk": 1181.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -160,61 +205,61 @@
    "percentile": 100.0
   },
   {
-   "manager_id": "818362223503224832",
-   "display_name": "Devonsattler",
-   "composite": 0.840615,
-   "cross_index": 112.6,
+   "manager_id": "655580358854672384",
+   "display_name": "ATM2016",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 32,
-     "zbar": 2.106809,
-     "z": 1.774155,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": -0.85008,
-     "z": -0.48576,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 25,
-     "zbar": 0.98843,
-     "z": 0.823691,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 113.6,
+     "index": 100.0,
      "rank": 1,
      "components": {
       "draft": {
-       "n": 32,
-       "z": 2.106809,
-       "mean": 1306.86,
-       "shrunk": 1100.51
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": -0.85008,
-       "mean": -1519.61,
-       "shrunk": -868.35
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 25,
-       "z": 0.98843,
-       "mean": 933.0,
-       "shrunk": 777.5
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -224,61 +269,61 @@
    "percentile": 98.2
   },
   {
-   "manager_id": "525504445538111488",
-   "display_name": "Tynski",
-   "composite": 0.828652,
-   "cross_index": 112.4,
+   "manager_id": "418800165009235968",
+   "display_name": "badaceandy",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 34,
-     "zbar": 2.013668,
-     "z": 1.711618,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 5,
-     "zbar": -0.065155,
-     "z": -0.040722,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 3,
-     "zbar": -0.229415,
-     "z": -0.08603,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 12,
-     "index": 114.2,
+     "n_teams": 10,
+     "index": 100.0,
      "rank": 1,
      "components": {
       "draft": {
-       "n": 34,
-       "z": 2.013668,
-       "mean": 1274.07,
-       "shrunk": 1082.96
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 5,
-       "z": -0.065155,
-       "mean": 32.29,
-       "shrunk": 20.18
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 3,
-       "z": -0.229415,
-       "mean": 684.33,
-       "shrunk": 256.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -288,61 +333,61 @@
    "percentile": 96.4
   },
   {
-   "manager_id": "427997595042852864",
-   "display_name": "ProdigyofZen",
-   "composite": 0.77827,
-   "cross_index": 111.7,
+   "manager_id": "970841223655108608",
+   "display_name": "bbenedict",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 56,
-     "zbar": 0.514095,
-     "z": 0.464344,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 13,
-     "zbar": 2.013708,
-     "z": 1.636138,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 6,
-     "zbar": -0.324497,
-     "z": -0.176999,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 113.7,
-     "rank": 2,
+     "index": 100.0,
+     "rank": 1,
      "components": {
       "draft": {
-       "n": 56,
-       "z": 0.514095,
-       "mean": 578.89,
-       "shrunk": 522.87
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 13,
-       "z": 2.013708,
-       "mean": 1993.66,
-       "shrunk": 1619.85
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 6,
-       "z": -0.324497,
-       "mean": 449.5,
-       "shrunk": 245.18
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -352,61 +397,61 @@
    "percentile": 94.6
   },
   {
-   "manager_id": "463446043212640256",
-   "display_name": "TheCannon927",
-   "composite": 0.698386,
-   "cross_index": 110.5,
+   "manager_id": "420047060323016704",
+   "display_name": "bcoop12",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 36,
-     "zbar": 1.20449,
-     "z": 1.03242,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 9,
-     "zbar": 1.251594,
-     "z": 0.938696,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 7,
-     "zbar": -1.672778,
-     "z": -0.975787,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 12,
-     "index": 111.8,
-     "rank": 3,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 2,
      "components": {
       "draft": {
-       "n": 36,
-       "z": 1.20449,
-       "mean": 910.85,
-       "shrunk": 780.73
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 9,
-       "z": 1.251594,
-       "mean": 1377.88,
-       "shrunk": 1033.41
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 7,
-       "z": -1.672778,
-       "mean": 142.14,
-       "shrunk": 82.92
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -416,51 +461,49 @@
    "percentile": 92.9
   },
   {
-   "manager_id": "1267965532389253120",
-   "display_name": "jackreichert",
-   "composite": 0.643487,
-   "cross_index": 109.7,
+   "manager_id": "1126736991288147968",
+   "display_name": "Bones333",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 25,
-     "zbar": 1.699811,
-     "z": 1.370816,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 11,
-     "zbar": -0.406504,
-     "z": -0.279472,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
+   "flags": [],
    "leagues": [
     {
-     "league_id": "1310088540448657408",
-     "name": "I just crapps my pants",
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
      "season": "2026",
-     "n_teams": 8,
-     "index": 111.8,
-     "rank": 1,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 2,
      "components": {
       "draft": {
-       "n": 25,
-       "z": 1.699811,
-       "mean": 1248.95,
-       "shrunk": 1007.22
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -469,144 +512,138 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 11,
-       "z": -0.406504,
-       "mean": 1262.09,
-       "shrunk": 867.69
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
+     "flags": []
     }
    ],
    "rank": 6,
    "percentile": 91.1
   },
   {
-   "manager_id": "862563083640492032",
-   "display_name": "DLoBroncoGuy",
-   "composite": 0.627084,
-   "cross_index": 109.4,
+   "manager_id": "730233780220059648",
+   "display_name": "Buck3411",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 3,
-     "zbar": 2.402612,
-     "z": 0.800871,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": 0.58601,
-     "z": 0.334863,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 17,
-     "zbar": 0.944247,
-     "z": 0.729645,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "only 3 scored picks across all indexed leagues \u2014 heavily shrunk"
-   ],
+   "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
      "season": "2026",
      "n_teams": 10,
-     "index": 123.2,
-     "rank": 1,
+     "index": 100.0,
+     "rank": 3,
      "components": {
       "draft": {
-       "n": 3,
-       "z": 2.402612,
-       "mean": 2829.83,
-       "shrunk": 943.28
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": 0.58601,
-       "mean": 639.97,
-       "shrunk": 365.7
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 17,
-       "z": 0.944247,
-       "mean": 706.41,
-       "shrunk": 545.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "only 3 scored picks \u2014 heavily shrunk"
-     ]
+     "flags": []
     }
    ],
    "rank": 7,
    "percentile": 89.3
   },
   {
-   "manager_id": "425009971994841088",
-   "display_name": "DanG24",
-   "composite": 0.586237,
-   "cross_index": 108.8,
+   "manager_id": "970006288258109440",
+   "display_name": "bviohl69420",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 52,
-     "zbar": 0.954597,
-     "z": 0.855845,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 51,
-     "zbar": 0.244737,
-     "z": 0.231141,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 76,
-     "zbar": 0.550056,
-     "z": 0.516102,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
-     "n_teams": 10,
-     "index": 109.7,
+     "n_teams": 12,
+     "index": 100.0,
      "rank": 2,
      "components": {
       "draft": {
-       "n": 52,
-       "z": 0.954597,
-       "mean": 657.14,
-       "shrunk": 589.16
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 51,
-       "z": 0.244737,
-       "mean": 95.25,
-       "shrunk": 89.96
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 76,
-       "z": 0.550056,
-       "mean": 525.78,
-       "shrunk": 493.32
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -616,61 +653,61 @@
    "percentile": 87.5
   },
   {
-   "manager_id": "464158393402126336",
-   "display_name": "pjstiehl",
-   "composite": 0.551594,
-   "cross_index": 108.3,
+   "manager_id": "1110772586587340800",
+   "display_name": "byatoe61",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 35,
-     "zbar": 1.221231,
-     "z": 1.042514,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 8,
-     "zbar": -0.365754,
-     "z": -0.266003,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 45,
-     "zbar": 0.914359,
-     "z": 0.822923,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 12,
-     "index": 109.3,
-     "rank": 2,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 3,
      "components": {
       "draft": {
-       "n": 35,
-       "z": 1.221231,
-       "mean": 980.47,
-       "shrunk": 836.99
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 8,
-       "z": -0.365754,
-       "mean": -555.07,
-       "shrunk": -403.69
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 45,
-       "z": 0.914359,
-       "mean": 843.18,
-       "shrunk": 758.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -680,61 +717,61 @@
    "percentile": 85.7
   },
   {
-   "manager_id": "1256055880542072832",
-   "display_name": "TheAlpino",
-   "composite": 0.543535,
-   "cross_index": 108.2,
+   "manager_id": "418503369217282048",
+   "display_name": "ChrisMo2413",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 25,
-     "zbar": 1.009965,
-     "z": 0.814488,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 3,
-     "zbar": -0.096219,
-     "z": -0.048109,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 36,
-     "zbar": 1.162648,
-     "z": 1.020861,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1310088540448657408",
-     "name": "I just crapps my pants",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 8,
-     "index": 109.7,
-     "rank": 2,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 4,
      "components": {
       "draft": {
-       "n": 25,
-       "z": 1.009965,
-       "mean": 901.3,
-       "shrunk": 726.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 3,
-       "z": -0.096219,
-       "mean": -56.67,
-       "shrunk": -28.33
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 36,
-       "z": 1.162648,
-       "mean": 1815.31,
-       "shrunk": 1593.93
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -744,61 +781,61 @@
    "percentile": 83.9
   },
   {
-   "manager_id": "419188415423053824",
-   "display_name": "tdster17",
-   "composite": 0.517758,
-   "cross_index": 107.8,
+   "manager_id": "1265444081589293056",
+   "display_name": "cookcookcookcook",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 53,
-     "zbar": 0.911703,
-     "z": 0.818987,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 55,
-     "zbar": 0.532713,
-     "z": 0.505159,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 95,
-     "zbar": -0.480991,
-     "z": -0.456942,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1310088540448657408",
+     "name": "I just crapps my pants",
      "season": "2026",
-     "n_teams": 10,
-     "index": 108.6,
-     "rank": 3,
+     "n_teams": 8,
+     "index": 100.0,
+     "rank": 1,
      "components": {
       "draft": {
-       "n": 53,
-       "z": 0.911703,
-       "mean": 644.18,
-       "shrunk": 578.67
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 55,
-       "z": 0.532713,
-       "mean": 340.23,
-       "shrunk": 322.64
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 95,
-       "z": -0.480991,
-       "mean": 374.62,
-       "shrunk": 355.89
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -808,51 +845,49 @@
    "percentile": 82.1
   },
   {
-   "manager_id": "730233780220059648",
-   "display_name": "Buck3411",
-   "composite": 0.498559,
-   "cross_index": 107.5,
+   "manager_id": "1267969454147387392",
+   "display_name": "coweyes",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 30,
-     "zbar": 1.486548,
-     "z": 1.23879,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 5,
-     "zbar": -1.611145,
-     "z": -0.805573,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
+   "flags": [],
    "leagues": [
     {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
+     "league_id": "1310088540448657408",
+     "name": "I just crapps my pants",
      "season": "2026",
-     "n_teams": 10,
-     "index": 107.5,
+     "n_teams": 8,
+     "index": 100.0,
      "rank": 2,
      "components": {
       "draft": {
-       "n": 30,
-       "z": 1.486548,
-       "mean": 1107.19,
-       "shrunk": 922.66
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -861,47 +896,45 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 5,
-       "z": -1.611145,
-       "mean": 829.4,
-       "shrunk": 414.7
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
+     "flags": []
     }
    ],
    "rank": 12,
    "percentile": 80.4
   },
   {
-   "manager_id": "340374832103362560",
-   "display_name": "rpatterson831",
-   "composite": 0.440479,
-   "cross_index": 106.6,
+   "manager_id": "425009971994841088",
+   "display_name": "DanG24",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 54,
-     "zbar": -0.17926,
-     "z": -0.161334,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 14,
-     "zbar": 2.324492,
-     "z": 1.914287,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 56,
-     "zbar": -1.080964,
-     "z": -0.992361,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -911,26 +944,26 @@
      "name": "The Shadynasty League ",
      "season": "2026",
      "n_teams": 10,
-     "index": 108.4,
-     "rank": 4,
+     "index": 100.0,
+     "rank": 5,
      "components": {
       "draft": {
-       "n": 54,
-       "z": -0.17926,
-       "mean": 346.53,
-       "shrunk": 311.88
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 14,
-       "z": 2.324492,
-       "mean": 2149.71,
-       "shrunk": 1770.35
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 56,
-       "z": -1.080964,
-       "mean": 300.55,
-       "shrunk": 275.92
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -940,61 +973,61 @@
    "percentile": 78.6
   },
   {
-   "manager_id": "340592247504424960",
-   "display_name": "rjp342",
-   "composite": 0.433872,
-   "cross_index": 106.5,
+   "manager_id": "818362223503224832",
+   "display_name": "Devonsattler",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 50,
-     "zbar": 0.024244,
-     "z": 0.021646,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 16,
-     "zbar": 0.641625,
-     "z": 0.540315,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 38,
-     "zbar": 1.764798,
-     "z": 1.559589,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 107.5,
-     "rank": 4,
+     "index": 100.0,
+     "rank": 3,
      "components": {
       "draft": {
-       "n": 50,
-       "z": 0.024244,
-       "mean": 380.7,
-       "shrunk": 339.91
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 16,
-       "z": 0.641625,
-       "mean": 669.8,
-       "shrunk": 564.04
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 38,
-       "z": 1.764798,
-       "mean": 561.97,
-       "shrunk": 496.63
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1004,61 +1037,61 @@
    "percentile": 76.8
   },
   {
-   "manager_id": "601858447801122816",
-   "display_name": "texag1882",
-   "composite": 0.403267,
-   "cross_index": 106.0,
+   "manager_id": "862563083640492032",
+   "display_name": "DLoBroncoGuy",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 45,
-     "zbar": 0.835709,
-     "z": 0.73739,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 12,
-     "zbar": 0.283384,
-     "z": 0.226707,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 23,
-     "zbar": -0.363399,
-     "z": -0.298506,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 12,
-     "index": 106.9,
-     "rank": 5,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 6,
      "components": {
       "draft": {
-       "n": 45,
-       "z": 0.835709,
-       "mean": 728.72,
-       "shrunk": 642.99
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 12,
-       "z": 0.283384,
-       "mean": 360.47,
-       "shrunk": 288.38
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 23,
-       "z": -0.363399,
-       "mean": 292.78,
-       "shrunk": 240.5
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1068,61 +1101,90 @@
    "percentile": 75.0
   },
   {
-   "manager_id": "512364646596759552",
-   "display_name": "SeaWatIDidThere",
-   "composite": 0.267154,
-   "cross_index": 104.0,
-   "n_leagues": 1,
+   "manager_id": "320727231292788736",
+   "display_name": "drew0602",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 2,
    "components": {
     "draft": {
-     "n": 39,
-     "zbar": 0.710487,
-     "z": 0.615755,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 5,
-     "zbar": 0.128065,
-     "z": 0.08004,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 17,
-     "zbar": -0.593033,
-     "z": -0.458253,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
+     "season": "2026",
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 7,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    },
+    {
      "league_id": "1312163562143121408",
      "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 104.7,
-     "rank": 6,
+     "index": 100.0,
+     "rank": 2,
      "components": {
       "draft": {
-       "n": 39,
-       "z": 0.710487,
-       "mean": 687.94,
-       "shrunk": 596.22
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 5,
-       "z": 0.128065,
-       "mean": 270.18,
-       "shrunk": 168.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 17,
-       "z": -0.593033,
-       "mean": 275.47,
-       "shrunk": 212.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1132,61 +1194,61 @@
    "percentile": 73.2
   },
   {
-   "manager_id": "382283172198653952",
-   "display_name": "The1Hudsonian",
-   "composite": 0.266423,
-   "cross_index": 104.0,
+   "manager_id": "403986714600726528",
+   "display_name": "DynastyDealer",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 58,
-     "zbar": -0.249745,
-     "z": -0.226332,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 53,
-     "zbar": 0.541724,
-     "z": 0.512703,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 91,
-     "zbar": 1.407598,
-     "z": 1.334286,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
-     "n_teams": 10,
-     "index": 104.1,
-     "rank": 5,
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 3,
      "components": {
       "draft": {
-       "n": 58,
-       "z": -0.249745,
-       "mean": 325.12,
-       "shrunk": 294.64
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 53,
-       "z": 0.541724,
-       "mean": 348.59,
-       "shrunk": 329.92
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 91,
-       "z": 1.407598,
-       "mean": 641.01,
-       "shrunk": 607.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1196,32 +1258,32 @@
    "percentile": 71.4
   },
   {
-   "manager_id": "1181310624269803520",
-   "display_name": "SimpsDontCry",
-   "composite": 0.232966,
-   "cross_index": 103.5,
-   "n_leagues": 2,
+   "manager_id": "1265342777697243136",
+   "display_name": "gbuckley98",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 34,
-     "zbar": 0.12641,
-     "z": 0.107449,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 16,
-     "zbar": -0.164108,
-     "z": -0.138196,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 58,
-     "zbar": 1.64821,
-     "z": 1.517399,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -1231,55 +1293,26 @@
      "name": "I just crapps my pants",
      "season": "2026",
      "n_teams": 8,
-     "index": 99.0,
-     "rank": 5,
+     "index": 100.0,
+     "rank": 3,
      "components": {
       "draft": {
-       "n": 24,
-       "z": 0.410699,
-       "mean": 604.14,
-       "shrunk": 483.31
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 6,
-       "z": -1.393444,
-       "mean": -1616.5,
-       "shrunk": -1077.67
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 29,
-       "z": 1.457608,
-       "mean": 2028.79,
-       "shrunk": 1730.44
-      }
-     },
-     "flags": []
-    },
-    {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 103.0,
-     "rank": 5,
-     "components": {
-      "draft": {
-       "n": 10,
-       "z": -0.555882,
-       "mean": 493.07,
-       "shrunk": 308.17
-      },
-      "trade": {
-       "n": 10,
-       "z": 0.573494,
-       "mean": 646.66,
-       "shrunk": 497.43
-      },
-      "waiver": {
-       "n": 29,
-       "z": 1.838811,
-       "mean": 1162.45,
-       "shrunk": 991.5
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1289,61 +1322,61 @@
    "percentile": 69.6
   },
   {
-   "manager_id": "459418354034143232",
-   "display_name": "robertschleifer",
-   "composite": 0.220304,
-   "cross_index": 103.3,
+   "manager_id": "970018352594817024",
+   "display_name": "Glospie",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 20,
-     "zbar": -0.272452,
-     "z": -0.209578,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 12,
-     "zbar": 1.175305,
-     "z": 0.940244,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 88,
-     "zbar": -0.028131,
-     "z": -0.026618,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 104.1,
-     "rank": 7,
+     "index": 100.0,
+     "rank": 4,
      "components": {
       "draft": {
-       "n": 20,
-       "z": -0.272452,
-       "mean": 297.82,
-       "shrunk": 229.09
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 12,
-       "z": 1.175305,
-       "mean": 1218.38,
-       "shrunk": 974.7
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 88,
-       "z": -0.028131,
-       "mean": 296.81,
-       "shrunk": 280.85
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1353,100 +1386,32 @@
    "percentile": 67.9
   },
   {
-   "manager_id": "970018352594817024",
-   "display_name": "Glospie",
-   "composite": 0.192057,
-   "cross_index": 102.9,
+   "manager_id": "426807038987739136",
+   "display_name": "GoldenSombreros",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 23,
-     "zbar": 0.616781,
-     "z": 0.489171,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 1,
-     "zbar": -2.101158,
-     "z": -0.350193,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
-   "leagues": [
-    {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 99.9,
-     "rank": 8,
-     "components": {
-      "draft": {
-       "n": 23,
-       "z": 0.616781,
-       "mean": 828.54,
-       "shrunk": 657.12
-      },
-      "trade": {
-       "n": 0,
-       "z": 0.0,
-       "mean": 0.0,
-       "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 1,
-       "z": -2.101158,
-       "mean": 0.0,
-       "shrunk": 0.0
-      }
-     },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
-    }
-   ],
-   "rank": 20,
-   "percentile": 66.1
-  },
-  {
-   "manager_id": "655580358854672384",
-   "display_name": "ATM2016",
-   "composite": 0.181518,
-   "cross_index": 102.7,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 51,
-     "zbar": -0.117596,
-     "z": -0.105217,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 30,
-     "zbar": 0.17853,
-     "z": 0.1623,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 59,
-     "zbar": 1.282326,
-     "z": 1.182144,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -1456,26 +1421,90 @@
      "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 102.9,
-     "rank": 8,
+     "index": 100.0,
+     "rank": 4,
      "components": {
       "draft": {
-       "n": 51,
-       "z": -0.117596,
-       "mean": 320.69,
-       "shrunk": 286.93
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 30,
-       "z": 0.17853,
-       "mean": 228.46,
-       "shrunk": 207.69
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 59,
-       "z": 1.282326,
-       "mean": 475.73,
-       "shrunk": 438.56
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 20,
+   "percentile": 66.1
+  },
+  {
+   "manager_id": "465597928208068608",
+   "display_name": "hern6754",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 5,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1485,127 +1514,32 @@
    "percentile": 64.3
   },
   {
-   "manager_id": "971129080676433920",
-   "display_name": "wstebbins",
-   "composite": 0.163212,
-   "cross_index": 102.4,
-   "n_leagues": 2,
-   "components": {
-    "draft": {
-     "n": 60,
-     "zbar": 0.120671,
-     "z": 0.109701,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 3,
-     "zbar": 0.954576,
-     "z": 0.477288,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 24,
-     "zbar": -0.472772,
-     "z": -0.391259,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [],
-   "leagues": [
-    {
-     "league_id": "1310088540448657408",
-     "name": "I just crapps my pants",
-     "season": "2026",
-     "n_teams": 8,
-     "index": 101.9,
-     "rank": 4,
-     "components": {
-      "draft": {
-       "n": 25,
-       "z": 0.322723,
-       "mean": 554.97,
-       "shrunk": 447.55
-      },
-      "trade": {
-       "n": 0,
-       "z": 0.0,
-       "mean": 0.0,
-       "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 16,
-       "z": -0.228964,
-       "mean": 1246.69,
-       "shrunk": 949.86
-      }
-     },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
-    },
-    {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 102.7,
-     "rank": 6,
-     "components": {
-      "draft": {
-       "n": 35,
-       "z": -0.023653,
-       "mean": 546.52,
-       "shrunk": 466.55
-      },
-      "trade": {
-       "n": 3,
-       "z": 0.954576,
-       "mean": 1726.07,
-       "shrunk": 863.04
-      },
-      "waiver": {
-       "n": 8,
-       "z": -0.960387,
-       "mean": 466.5,
-       "shrunk": 287.08
-      }
-     },
-     "flags": []
-    }
-   ],
-   "rank": 22,
-   "percentile": 62.5
-  },
-  {
-   "manager_id": "418503369217282048",
-   "display_name": "ChrisMo2413",
-   "composite": 0.105138,
-   "cross_index": 101.6,
+   "manager_id": "341446083597119488",
+   "display_name": "Icewalker",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 68,
-     "zbar": -0.423205,
-     "z": -0.388891,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 97,
-     "zbar": 0.756584,
-     "z": 0.733887,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 107,
-     "zbar": 0.29813,
-     "z": 0.284821,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -1615,61 +1549,61 @@
      "name": "The Shadynasty League ",
      "season": "2026",
      "n_teams": 10,
-     "index": 101.5,
-     "rank": 6,
+     "index": 100.0,
+     "rank": 8,
      "components": {
       "draft": {
-       "n": 68,
-       "z": -0.423205,
-       "mean": 274.47,
-       "shrunk": 252.22
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 97,
-       "z": 0.756584,
-       "mean": 519.09,
-       "shrunk": 503.52
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 107,
-       "z": 0.29813,
-       "mean": 481.22,
-       "shrunk": 459.74
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
     }
    ],
-   "rank": 23,
-   "percentile": 60.7
+   "rank": 22,
+   "percentile": 62.5
   },
   {
-   "manager_id": "970841223655108608",
-   "display_name": "bbenedict",
-   "composite": 0.103014,
-   "cross_index": 101.5,
-   "n_leagues": 1,
+   "manager_id": "478105118915424256",
+   "display_name": "J1MB0SL1CE",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 2,
    "components": {
     "draft": {
-     "n": 32,
-     "zbar": 1.405858,
-     "z": 1.18388,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 3,
-     "zbar": -2.634455,
-     "z": -1.317228,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 34,
-     "zbar": -0.213323,
-     "z": -0.185974,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -1679,80 +1613,14 @@
      "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 96.2,
-     "rank": 9,
+     "index": 100.0,
+     "rank": 6,
      "components": {
       "draft": {
-       "n": 32,
-       "z": 1.405858,
-       "mean": 1059.16,
-       "shrunk": 891.93
-      },
-      "trade": {
-       "n": 3,
-       "z": -2.634455,
-       "mean": -5160.56,
-       "shrunk": -2580.28
-      },
-      "waiver": {
-       "n": 34,
-       "z": -0.213323,
-       "mean": 544.94,
-       "shrunk": 475.08
-      }
-     },
-     "flags": []
-    }
-   ],
-   "rank": 24,
-   "percentile": 58.9
-  },
-  {
-   "manager_id": "1126627332791390208",
-   "display_name": "jeetgohil814",
-   "composite": 0.07488,
-   "cross_index": 101.1,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 30,
-     "zbar": -0.192074,
-     "z": -0.160062,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 0,
-     "zbar": 0.0,
-     "z": 0.0,
-     "available": false,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 32,
-     "zbar": 1.194106,
-     "z": 1.032741,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
-   "leagues": [
-    {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
-     "season": "2026",
-     "n_teams": 10,
-     "index": 101.2,
-     "rank": 4,
-     "components": {
-      "draft": {
-       "n": 30,
-       "z": -0.192074,
-       "mean": 618.12,
-       "shrunk": 515.1
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -1761,111 +1629,74 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 32,
-       "z": 1.194106,
-       "mean": 1273.53,
-       "shrunk": 1101.43
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
-    }
-   ],
-   "rank": 25,
-   "percentile": 57.1
-  },
-  {
-   "manager_id": "332720542916313088",
-   "display_name": "OQF15",
-   "composite": 0.060397,
-   "cross_index": 100.9,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 36,
-     "zbar": 0.981507,
-     "z": 0.841292,
-     "available": true,
-     "weight": 0.5
+     "flags": []
     },
-    "trade": {
-     "n": 8,
-     "zbar": -1.265053,
-     "z": -0.920039,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 8,
-     "zbar": -0.414213,
-     "z": -0.2549,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [],
-   "leagues": [
     {
      "league_id": "1312163562143121408",
      "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 99.8,
-     "rank": 10,
+     "index": 100.0,
+     "rank": 5,
      "components": {
       "draft": {
-       "n": 36,
-       "z": 0.981507,
-       "mean": 813.69,
-       "shrunk": 697.44
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 8,
-       "z": -1.265053,
-       "mean": -1241.81,
-       "shrunk": -903.13
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 8,
-       "z": -0.414213,
-       "mean": 380.88,
-       "shrunk": 234.38
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
     }
    ],
-   "rank": 26,
-   "percentile": 55.4
+   "rank": 23,
+   "percentile": 60.7
   },
   {
-   "manager_id": "1265342777697243136",
-   "display_name": "gbuckley98",
-   "composite": 0.037952,
-   "cross_index": 100.6,
+   "manager_id": "1267965532389253120",
+   "display_name": "jackreichert",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 28,
-     "zbar": -0.376051,
-     "z": -0.309689,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": 1.691969,
-     "z": 0.96684,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 23,
-     "zbar": -1.181658,
-     "z": -0.970648,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -1875,26 +1706,218 @@
      "name": "I just crapps my pants",
      "season": "2026",
      "n_teams": 8,
-     "index": 103.4,
-     "rank": 3,
+     "index": 100.0,
+     "rank": 4,
      "components": {
       "draft": {
-       "n": 28,
-       "z": -0.376051,
-       "mean": 198.61,
-       "shrunk": 163.56
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": 1.691969,
-       "mean": 2481.75,
-       "shrunk": 1418.14
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 23,
-       "z": -1.181658,
-       "mean": 619.57,
-       "shrunk": 508.93
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 24,
+   "percentile": 58.9
+  },
+  {
+   "manager_id": "1126670727425466368",
+   "display_name": "JakeVeith1",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
+     "season": "2026",
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 4,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 25,
+   "percentile": 57.1
+  },
+  {
+   "manager_id": "419011867357224960",
+   "display_name": "Jay505",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
+     "season": "2026",
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 9,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 26,
+   "percentile": 55.4
+  },
+  {
+   "manager_id": "1126627332791390208",
+   "display_name": "jeetgohil814",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
+     "season": "2026",
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 5,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -1904,37 +1927,419 @@
    "percentile": 53.6
   },
   {
-   "manager_id": "421757803934273536",
-   "display_name": "restartthecarr",
-   "composite": 0.041268,
-   "cross_index": 100.6,
+   "manager_id": "999542239800037376",
+   "display_name": "McMysteryVan",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 5,
-     "zbar": -0.738104,
-     "z": -0.335502,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": 1.15137,
-     "z": 0.657926,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 7,
-     "zbar": -0.242917,
-     "z": -0.141702,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "only 5 scored picks across all indexed leagues \u2014 heavily shrunk"
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
+     "season": "2026",
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 6,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
    ],
+   "rank": 28,
+   "percentile": 51.8
+  },
+  {
+   "manager_id": "1126629040112234496",
+   "display_name": "MikeMoore28",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
+     "season": "2026",
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 7,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 29,
+   "percentile": 50.0
+  },
+  {
+   "manager_id": "332720542916313088",
+   "display_name": "OQF15",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1312163562143121408",
+     "name": "DLD",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 6,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 30,
+   "percentile": 48.2
+  },
+  {
+   "manager_id": "464158393402126336",
+   "display_name": "pjstiehl",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 7,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 31,
+   "percentile": 46.4
+  },
+  {
+   "manager_id": "427997595042852864",
+   "display_name": "ProdigyofZen",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1312163562143121408",
+     "name": "DLD",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 7,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 32,
+   "percentile": 44.6
+  },
+  {
+   "manager_id": "421757803934273536",
+   "display_name": "restartthecarr",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
+   "leagues": [
+    {
+     "league_id": "1312163562143121408",
+     "name": "DLD",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 8,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    }
+   ],
+   "rank": 33,
+   "percentile": 42.9
+  },
+  {
+   "manager_id": "340592247504424960",
+   "display_name": "rjp342",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
+   "components": {
+    "draft": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "trade": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    },
+    "waiver": {
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
+    }
+   },
+   "flags": [],
    "leagues": [
     {
      "league_id": "1312163562143121408",
@@ -1945,171 +2350,10 @@
      "rank": 9,
      "components": {
       "draft": {
-       "n": 5,
-       "z": -0.738104,
-       "mean": 121.38,
-       "shrunk": 55.17
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.15137,
-       "mean": 1673.5,
-       "shrunk": 956.29
-      },
-      "waiver": {
-       "n": 7,
-       "z": -0.242917,
-       "mean": 437.14,
-       "shrunk": 255.0
-      }
-     },
-     "flags": [
-      "only 5 scored picks \u2014 heavily shrunk"
-     ]
-    }
-   ],
-   "rank": 28,
-   "percentile": 51.8
-  },
-  {
-   "manager_id": "735376123499827200",
-   "display_name": "zdubyah",
-   "composite": 0.023497,
-   "cross_index": 100.4,
-   "n_leagues": 2,
-   "components": {
-    "draft": {
-     "n": 67,
-     "zbar": -0.203466,
-     "z": -0.186743,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 6,
-     "zbar": 0.679425,
-     "z": 0.45295,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 16,
-     "zbar": -0.364564,
-     "z": -0.277763,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [],
-   "leagues": [
-    {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
-     "season": "2026",
-     "n_teams": 10,
-     "index": 95.9,
-     "rank": 8,
-     "components": {
-      "draft": {
-       "n": 29,
-       "z": 0.28007,
-       "mean": 760.03,
-       "shrunk": 629.74
-      },
-      "trade": {
-       "n": 2,
-       "z": -0.597049,
-       "mean": -1763.33,
-       "shrunk": -705.33
-      },
-      "waiver": {
-       "n": 7,
-       "z": -1.380823,
-       "mean": 807.57,
-       "shrunk": 471.08
-      }
-     },
-     "flags": []
-    },
-    {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 103.6,
-     "rank": 4,
-     "components": {
-      "draft": {
-       "n": 38,
-       "z": -0.57248,
-       "mean": 351.11,
-       "shrunk": 303.23
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.317662,
-       "mean": 2119.92,
-       "shrunk": 1211.38
-      },
-      "waiver": {
-       "n": 9,
-       "z": 0.425861,
-       "mean": 989.22,
-       "shrunk": 635.93
-      }
-     },
-     "flags": []
-    }
-   ],
-   "rank": 29,
-   "percentile": 50.0
-  },
-  {
-   "manager_id": "970006288258109440",
-   "display_name": "bviohl69420",
-   "composite": 0.012065,
-   "cross_index": 100.2,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 35,
-     "zbar": -0.145796,
-     "z": -0.12446,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 0,
-     "zbar": 0.0,
-     "z": 0.0,
-     "available": false,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 6,
-     "zbar": 0.908052,
-     "z": 0.495301,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
-   "leagues": [
-    {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 100.9,
-     "rank": 7,
-     "components": {
-      "draft": {
-       "n": 35,
-       "z": -0.145796,
-       "mean": 503.95,
-       "shrunk": 430.2
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -2118,301 +2362,10 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 6,
-       "z": 0.908052,
-       "mean": 1388.33,
-       "shrunk": 757.27
-      }
-     },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
-    }
-   ],
-   "rank": 30,
-   "percentile": 48.2
-  },
-  {
-   "manager_id": "478105118915424256",
-   "display_name": "J1MB0SL1CE",
-   "composite": -0.015158,
-   "cross_index": 99.8,
-   "n_leagues": 2,
-   "components": {
-    "draft": {
-     "n": 46,
-     "zbar": 0.23367,
-     "z": 0.206708,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 24,
-     "zbar": -0.610819,
-     "z": -0.542951,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 24,
-     "zbar": 0.576143,
-     "z": 0.476808,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [],
-   "leagues": [
-    {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 106.4,
-     "rank": 3,
-     "components": {
-      "draft": {
-       "n": 33,
-       "z": 0.560776,
-       "mean": 756.9,
-       "shrunk": 640.46
-      },
-      "trade": {
-       "n": 11,
-       "z": 0.238423,
-       "mean": 223.95,
-       "shrunk": 175.96
-      },
-      "waiver": {
-       "n": 20,
-       "z": 0.417561,
-       "mean": 792.3,
-       "shrunk": 633.84
-      }
-     },
-     "flags": []
-    },
-    {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 91.6,
-     "rank": 12,
-     "components": {
-      "draft": {
-       "n": 13,
-       "z": -0.596677,
-       "mean": 157.84,
-       "shrunk": 107.99
-      },
-      "trade": {
-       "n": 13,
-       "z": -1.32941,
-       "mean": -1172.5,
-       "shrunk": -952.65
-      },
-      "waiver": {
-       "n": 4,
-       "z": 1.369052,
-       "mean": 1010.25,
-       "shrunk": 449.0
-      }
-     },
-     "flags": []
-    }
-   ],
-   "rank": 31,
-   "percentile": 46.4
-  },
-  {
-   "manager_id": "1126670727425466368",
-   "display_name": "JakeVeith1",
-   "composite": -0.033857,
-   "cross_index": 99.5,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 34,
-     "zbar": -0.63992,
-     "z": -0.543932,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 4,
-     "zbar": 1.450219,
-     "z": 0.828697,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 23,
-     "zbar": -0.421498,
-     "z": -0.34623,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [],
-   "leagues": [
-    {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
-     "season": "2026",
-     "n_teams": 10,
-     "index": 101.9,
-     "rank": 3,
-     "components": {
-      "draft": {
-       "n": 34,
-       "z": -0.63992,
-       "mean": 478.08,
-       "shrunk": 406.37
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.450219,
-       "mean": 2148.44,
-       "shrunk": 1227.68
-      },
-      "waiver": {
-       "n": 23,
-       "z": -0.421498,
-       "mean": 859.39,
-       "shrunk": 705.93
-      }
-     },
-     "flags": []
-    }
-   ],
-   "rank": 32,
-   "percentile": 44.6
-  },
-  {
-   "manager_id": "866789311293566976",
-   "display_name": "aaronkubala",
-   "composite": -0.051574,
-   "cross_index": 99.2,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 30,
-     "zbar": -0.292903,
-     "z": -0.244086,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 0,
-     "zbar": 0.0,
-     "z": 0.0,
-     "available": false,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 21,
-     "zbar": 0.581643,
-     "z": 0.469789,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
-   "leagues": [
-    {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
-     "season": "2026",
-     "n_teams": 10,
-     "index": 99.1,
-     "rank": 5,
-     "components": {
-      "draft": {
-       "n": 30,
-       "z": -0.292903,
-       "mean": 588.75,
-       "shrunk": 490.62
-      },
-      "trade": {
        "n": 0,
        "z": 0.0,
        "mean": 0.0,
        "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 21,
-       "z": 0.581643,
-       "mean": 1178.05,
-       "shrunk": 951.5
-      }
-     },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
-    }
-   ],
-   "rank": 33,
-   "percentile": 42.9
-  },
-  {
-   "manager_id": "341446083597119488",
-   "display_name": "Icewalker",
-   "composite": -0.062118,
-   "cross_index": 99.1,
-   "n_leagues": 1,
-   "components": {
-    "draft": {
-     "n": 46,
-     "zbar": -0.067418,
-     "z": -0.059639,
-     "available": true,
-     "weight": 0.5
-    },
-    "trade": {
-     "n": 25,
-     "zbar": -0.307652,
-     "z": -0.274689,
-     "available": true,
-     "weight": 0.35
-    },
-    "waiver": {
-     "n": 153,
-     "zbar": 0.43953,
-     "z": 0.425621,
-     "available": true,
-     "weight": 0.15
-    }
-   },
-   "flags": [],
-   "leagues": [
-    {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
-     "season": "2026",
-     "n_teams": 10,
-     "index": 98.9,
-     "rank": 7,
-     "components": {
-      "draft": {
-       "n": 46,
-       "z": -0.067418,
-       "mean": 383.48,
-       "shrunk": 339.23
-      },
-      "trade": {
-       "n": 25,
-       "z": -0.307652,
-       "mean": -399.12,
-       "shrunk": -356.36
-      },
-      "waiver": {
-       "n": 153,
-       "z": 0.43953,
-       "mean": 494.23,
-       "shrunk": 478.59
       }
      },
      "flags": []
@@ -2422,32 +2375,32 @@
    "percentile": 41.1
   },
   {
-   "manager_id": "426807038987739136",
-   "display_name": "GoldenSombreros",
-   "composite": -0.10107,
-   "cross_index": 98.5,
+   "manager_id": "459418354034143232",
+   "display_name": "robertschleifer",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 20,
-     "zbar": 0.172577,
-     "z": 0.132751,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 28,
-     "zbar": -0.363715,
-     "z": -0.328517,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 33,
-     "zbar": -0.402758,
-     "z": -0.349764,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -2457,26 +2410,26 @@
      "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 98.5,
-     "rank": 11,
+     "index": 100.0,
+     "rank": 10,
      "components": {
       "draft": {
-       "n": 20,
-       "z": 0.172577,
-       "mean": 513.9,
-       "shrunk": 395.31
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 28,
-       "z": -0.363715,
-       "mean": -232.01,
-       "shrunk": -209.56
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 33,
-       "z": -0.402758,
-       "mean": 271.48,
-       "shrunk": 235.76
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2486,61 +2439,61 @@
    "percentile": 39.3
   },
   {
-   "manager_id": "1265444081589293056",
-   "display_name": "cookcookcookcook",
-   "composite": -0.106739,
-   "cross_index": 98.4,
+   "manager_id": "340374832103362560",
+   "display_name": "rpatterson831",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 25,
-     "zbar": -0.465758,
-     "z": -0.375612,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 1,
-     "zbar": -0.389104,
-     "z": -0.097276,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 16,
-     "zbar": 1.007239,
-     "z": 0.76742,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1310088540448657408",
-     "name": "I just crapps my pants",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 8,
-     "index": 96.7,
-     "rank": 6,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 10,
      "components": {
       "draft": {
-       "n": 25,
-       "z": -0.465758,
-       "mean": 157.61,
-       "shrunk": 127.11
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 1,
-       "z": -0.389104,
-       "mean": -1061.0,
-       "shrunk": -265.25
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 16,
-       "z": 1.007239,
-       "mean": 1997.62,
-       "shrunk": 1522.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2550,61 +2503,61 @@
    "percentile": 37.5
   },
   {
-   "manager_id": "1126736991288147968",
-   "display_name": "Bones333",
-   "composite": -0.131764,
-   "cross_index": 98.0,
+   "manager_id": "475014546134659072",
+   "display_name": "Samothman2123",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 28,
-     "zbar": -0.405694,
-     "z": -0.334101,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 2,
-     "zbar": -0.605828,
-     "z": -0.242331,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 65,
-     "zbar": 0.862278,
-     "z": 0.800687,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
-     "n_teams": 10,
-     "index": 95.7,
-     "rank": 9,
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 11,
      "components": {
       "draft": {
-       "n": 28,
-       "z": -0.405694,
-       "mean": 562.5,
-       "shrunk": 463.24
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": -0.605828,
-       "mean": -1784.06,
-       "shrunk": -713.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 65,
-       "z": 0.862278,
-       "mean": 1098.68,
-       "shrunk": 1020.2
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2614,51 +2567,49 @@
    "percentile": 35.7
   },
   {
-   "manager_id": "1126629040112234496",
-   "display_name": "MikeMoore28",
-   "composite": -0.149091,
-   "cross_index": 97.8,
+   "manager_id": "512364646596759552",
+   "display_name": "SeaWatIDidThere",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 30,
-     "zbar": -0.303162,
-     "z": -0.252635,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 3,
-     "zbar": -0.404866,
-     "z": -0.151825,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
+   "flags": [],
    "leagues": [
     {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
-     "n_teams": 10,
-     "index": 96.8,
-     "rank": 7,
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 12,
      "components": {
       "draft": {
-       "n": 30,
-       "z": -0.303162,
-       "mean": 585.76,
-       "shrunk": 488.13
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -2667,105 +2618,74 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 3,
-       "z": -0.404866,
-       "mean": 1893.33,
-       "shrunk": 710.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
+     "flags": []
     }
    ],
    "rank": 38,
    "percentile": 33.9
   },
   {
-   "manager_id": "320727231292788736",
-   "display_name": "drew0602",
-   "composite": -0.1742,
-   "cross_index": 97.4,
-   "n_leagues": 2,
+   "manager_id": "970009127835488256",
+   "display_name": "shabbahanks",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 51,
-     "zbar": -0.071351,
-     "z": -0.063841,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 74,
-     "zbar": -0.736193,
-     "z": -0.70751,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 305,
-     "zbar": 0.713839,
-     "z": 0.702325,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
-     "n_teams": 10,
-     "index": 98.1,
+     "n_teams": 12,
+     "index": 100.0,
      "rank": 8,
      "components": {
       "draft": {
-       "n": 45,
-       "z": 0.03433,
-       "mean": 412.66,
-       "shrunk": 364.11
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 64,
-       "z": -0.689252,
-       "mean": -695.84,
-       "shrunk": -664.68
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 281,
-       "z": 0.646621,
-       "mean": 515.2,
-       "shrunk": 506.19
-      }
-     },
-     "flags": []
-    },
-    {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
-     "season": "2026",
-     "n_teams": 12,
-     "index": 91.5,
-     "rank": 13,
-     "components": {
-      "draft": {
-       "n": 6,
-       "z": -0.86396,
-       "mean": 16.33,
-       "shrunk": 8.16
-      },
-      "trade": {
-       "n": 10,
-       "z": -1.036616,
-       "mean": -945.56,
-       "shrunk": -727.35
-      },
-      "waiver": {
-       "n": 24,
-       "z": 1.500852,
-       "mean": 561.71,
-       "shrunk": 464.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2775,61 +2695,61 @@
    "percentile": 32.1
   },
   {
-   "manager_id": "418800165009235968",
-   "display_name": "badaceandy",
-   "composite": -0.217732,
-   "cross_index": 96.7,
+   "manager_id": "472199225149485056",
+   "display_name": "SimpleSims",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 47,
-     "zbar": 0.079871,
-     "z": 0.070829,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 41,
-     "zbar": -0.687654,
-     "z": -0.640768,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 281,
-     "zbar": -0.195944,
-     "z": -0.192519,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
      "season": "2026",
      "n_teams": 10,
-     "index": 96.5,
-     "rank": 9,
+     "index": 100.0,
+     "rank": 8,
      "components": {
       "draft": {
-       "n": 47,
-       "z": 0.079871,
-       "mean": 423.15,
-       "shrunk": 375.25
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 41,
-       "z": -0.687654,
-       "mean": -711.93,
-       "shrunk": -663.39
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 281,
-       "z": -0.195944,
-       "mean": 400.89,
-       "shrunk": 393.88
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2839,61 +2759,90 @@
    "percentile": 30.4
   },
   {
-   "manager_id": "970891000270934016",
-   "display_name": "tedwards55",
-   "composite": -0.233609,
-   "cross_index": 96.5,
-   "n_leagues": 1,
+   "manager_id": "1181310624269803520",
+   "display_name": "SimpsDontCry",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 2,
    "components": {
     "draft": {
-     "n": 35,
-     "zbar": -0.445772,
-     "z": -0.380537,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": 0.138518,
-     "z": 0.079153,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 22,
-     "zbar": -0.581274,
-     "z": -0.473631,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
+     "league_id": "1310088540448657408",
+     "name": "I just crapps my pants",
+     "season": "2026",
+     "n_teams": 8,
+     "index": 100.0,
+     "rank": 5,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    },
+    {
      "league_id": "1316222126914539520",
      "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 96.1,
-     "rank": 10,
+     "index": 100.0,
+     "rank": 9,
      "components": {
       "draft": {
-       "n": 35,
-       "z": -0.445772,
-       "mean": 399.38,
-       "shrunk": 340.93
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": 0.138518,
-       "mean": 140.19,
-       "shrunk": 80.11
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 22,
-       "z": -0.581274,
-       "mean": 469.41,
-       "shrunk": 382.48
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2903,61 +2852,61 @@
    "percentile": 28.6
   },
   {
-   "manager_id": "970009127835488256",
-   "display_name": "shabbahanks",
-   "composite": -0.294128,
-   "cross_index": 95.6,
+   "manager_id": "419188415423053824",
+   "display_name": "tdster17",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 34,
-     "zbar": -0.706492,
-     "z": -0.600518,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": 0.130775,
-     "z": 0.074729,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 58,
-     "zbar": -0.145003,
-     "z": -0.133495,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 12,
-     "index": 95.1,
+     "n_teams": 10,
+     "index": 100.0,
      "rank": 11,
      "components": {
       "draft": {
-       "n": 34,
-       "z": -0.706492,
-       "mean": 309.83,
-       "shrunk": 263.35
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": 0.130775,
-       "mean": 127.19,
-       "shrunk": 72.68
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 58,
-       "z": -0.145003,
-       "mean": 534.71,
-       "shrunk": 492.27
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -2969,50 +2918,47 @@
   {
    "manager_id": "roster:1180576062946091008:7",
    "display_name": "Team 7",
-   "composite": -0.302168,
-   "cross_index": 95.5,
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 4,
-     "zbar": -1.623982,
-     "z": -0.649593,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 3,
-     "zbar": 0.402291,
-     "z": 0.150859,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average",
-    "only 4 scored picks across all indexed leagues \u2014 heavily shrunk"
-   ],
+   "flags": [],
    "leagues": [
     {
      "league_id": "1312836062019620864",
      "name": "The Shadynasty League ",
      "season": "2026",
      "n_teams": 10,
-     "index": 88.7,
+     "index": 100.0,
      "rank": 12,
      "components": {
       "draft": {
-       "n": 4,
-       "z": -1.623982,
-       "mean": -103.58,
-       "shrunk": -41.43
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -3021,16 +2967,13 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 3,
-       "z": 0.402291,
-       "mean": 1263.0,
-       "shrunk": 473.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average",
-      "only 4 scored picks \u2014 heavily shrunk"
-     ]
+     "flags": []
     }
    ],
    "rank": 43,
@@ -3039,50 +2982,47 @@
   {
    "manager_id": "roster:1048697508282695680:7",
    "display_name": "Team 7",
-   "composite": -0.30996,
-   "cross_index": 95.4,
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 4,
-     "zbar": -1.266448,
-     "z": -0.506579,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 2,
-     "zbar": -1.322304,
-     "z": -0.377801,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average",
-    "only 4 scored picks across all indexed leagues \u2014 heavily shrunk"
-   ],
+   "flags": [],
    "leagues": [
     {
      "league_id": "1316222126914539520",
      "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 87.5,
-     "rank": 14,
+     "index": 100.0,
+     "rank": 10,
      "components": {
       "draft": {
-       "n": 4,
-       "z": -1.266448,
-       "mean": 241.81,
-       "shrunk": 96.73
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -3091,77 +3031,74 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 2,
-       "z": -1.322304,
-       "mean": 686.0,
-       "shrunk": 196.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average",
-      "only 4 scored picks \u2014 heavily shrunk"
-     ]
+     "flags": []
     }
    ],
    "rank": 44,
    "percentile": 23.2
   },
   {
-   "manager_id": "999542239800037376",
-   "display_name": "McMysteryVan",
-   "composite": -0.355395,
-   "cross_index": 94.7,
+   "manager_id": "970891000270934016",
+   "display_name": "tedwards55",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 30,
-     "zbar": -1.371974,
-     "z": -1.143312,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 2,
-     "zbar": 1.351423,
-     "z": 0.540569,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 46,
-     "zbar": 0.200023,
-     "z": 0.180413,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
-     "n_teams": 10,
-     "index": 97.3,
-     "rank": 6,
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 11,
      "components": {
       "draft": {
-       "n": 30,
-       "z": -1.371974,
-       "mean": 274.36,
-       "shrunk": 228.63
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": 1.351423,
-       "mean": 2836.0,
-       "shrunk": 1134.4
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 46,
-       "z": 0.200023,
-       "mean": 951.35,
-       "shrunk": 858.08
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3171,61 +3108,61 @@
    "percentile": 21.4
   },
   {
-   "manager_id": "419011867357224960",
-   "display_name": "Jay505",
-   "composite": -0.37374,
-   "cross_index": 94.4,
+   "manager_id": "601858447801122816",
+   "display_name": "texag1882",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 34,
-     "zbar": 0.113512,
-     "z": 0.096485,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 18,
-     "zbar": -0.605716,
-     "z": -0.519185,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 71,
-     "zbar": -1.714589,
-     "z": -1.601787,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
-     "n_teams": 10,
-     "index": 93.8,
-     "rank": 10,
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 13,
      "components": {
       "draft": {
-       "n": 34,
-       "z": 0.113512,
-       "mean": 451.15,
-       "shrunk": 383.47
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 18,
-       "z": -0.605716,
-       "mean": -696.72,
-       "shrunk": -597.19
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 71,
-       "z": -1.714589,
-       "mean": 204.94,
-       "shrunk": 191.46
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3235,129 +3172,125 @@
    "percentile": 19.6
   },
   {
-   "manager_id": "475014546134659072",
-   "display_name": "Samothman2123",
-   "composite": -0.416441,
-   "cross_index": 93.8,
+   "manager_id": "382283172198653952",
+   "display_name": "The1Hudsonian",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 5,
-     "zbar": -0.660856,
-     "z": -0.300389,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 10,
-     "zbar": -0.874293,
-     "z": -0.672533,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 8,
-     "zbar": -0.334317,
-     "z": -0.205734,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "only 5 scored picks across all indexed leagues \u2014 heavily shrunk"
-   ],
+   "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1312836062019620864",
+     "name": "The Shadynasty League ",
      "season": "2026",
-     "n_teams": 12,
-     "index": 89.7,
-     "rank": 14,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 13,
      "components": {
       "draft": {
-       "n": 5,
-       "z": -0.660856,
-       "mean": 184.85,
-       "shrunk": 84.02
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 10,
-       "z": -0.874293,
-       "mean": -783.18,
-       "shrunk": -602.44
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 8,
-       "z": -0.334317,
-       "mean": 396.5,
-       "shrunk": 244.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "only 5 scored picks \u2014 heavily shrunk"
-     ]
+     "flags": []
     }
    ],
    "rank": 47,
    "percentile": 17.9
   },
   {
-   "manager_id": "472199225149485056",
-   "display_name": "SimpleSims",
-   "composite": -0.413116,
-   "cross_index": 93.8,
+   "manager_id": "1256055880542072832",
+   "display_name": "TheAlpino",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 30,
-     "zbar": -0.695583,
-     "z": -0.579652,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 1,
-     "zbar": -0.613642,
-     "z": -0.15341,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 30,
-     "zbar": -0.541303,
-     "z": -0.463974,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1354685519509868544",
-     "name": "Game of Inches",
+     "league_id": "1310088540448657408",
+     "name": "I just crapps my pants",
      "season": "2026",
-     "n_teams": 10,
-     "index": 90.3,
-     "rank": 10,
+     "n_teams": 8,
+     "index": 100.0,
+     "rank": 6,
      "components": {
       "draft": {
-       "n": 30,
-       "z": -0.695583,
-       "mean": 471.43,
-       "shrunk": 392.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 1,
-       "z": -0.613642,
-       "mean": -2884.0,
-       "shrunk": -721.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 30,
-       "z": -0.541303,
-       "mean": 789.37,
-       "shrunk": 676.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3367,61 +3300,61 @@
    "percentile": 16.1
   },
   {
-   "manager_id": "970010120480473088",
-   "display_name": "ZootMaster",
-   "composite": -0.418023,
-   "cross_index": 93.7,
+   "manager_id": "463446043212640256",
+   "display_name": "TheCannon927",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 36,
-     "zbar": -0.976068,
-     "z": -0.836629,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 4,
-     "zbar": 0.176554,
-     "z": 0.100888,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 12,
-     "zbar": -0.330737,
-     "z": -0.233462,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 92.9,
-     "rank": 13,
+     "index": 100.0,
+     "rank": 14,
      "components": {
       "draft": {
-       "n": 36,
-       "z": -0.976068,
-       "mean": 213.66,
-       "shrunk": 183.13
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": 0.176554,
-       "mean": 204.06,
-       "shrunk": 116.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 12,
-       "z": -0.330737,
-       "mean": 631.17,
-       "shrunk": 445.53
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3431,61 +3364,61 @@
    "percentile": 14.3
   },
   {
-   "manager_id": "465597928208068608",
-   "display_name": "hern6754",
-   "composite": -0.451364,
-   "cross_index": 93.2,
+   "manager_id": "1265463542870462464",
+   "display_name": "tuckerb98",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 38,
-     "zbar": -1.218864,
-     "z": -1.052656,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 3,
-     "zbar": 0.320287,
-     "z": 0.160143,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 18,
-     "zbar": 0.161113,
-     "z": 0.126088,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1316222126914539520",
-     "name": "Dallas Kings",
+     "league_id": "1310088540448657408",
+     "name": "I just crapps my pants",
      "season": "2026",
-     "n_teams": 12,
-     "index": 92.9,
-     "rank": 12,
+     "n_teams": 8,
+     "index": 100.0,
+     "rank": 7,
      "components": {
       "draft": {
-       "n": 38,
-       "z": -1.218864,
-       "mean": 128.39,
-       "shrunk": 110.88
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 3,
-       "z": 0.320287,
-       "mean": 509.0,
-       "shrunk": 254.5
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 18,
-       "z": 0.161113,
-       "mean": 727.44,
-       "shrunk": 569.3
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3495,61 +3428,61 @@
    "percentile": 12.5
   },
   {
-   "manager_id": "420047060323016704",
-   "display_name": "bcoop12",
-   "composite": -0.468687,
-   "cross_index": 93.0,
+   "manager_id": "525504445538111488",
+   "display_name": "Tynski",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 41,
-     "zbar": -0.409962,
-     "z": -0.357627,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 16,
-     "zbar": -1.355576,
-     "z": -1.141538,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 77,
-     "zbar": 0.778572,
-     "z": 0.731098,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1312163562143121408",
+     "name": "DLD",
      "season": "2026",
-     "n_teams": 10,
-     "index": 91.6,
-     "rank": 11,
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 15,
      "components": {
       "draft": {
-       "n": 41,
-       "z": -0.409962,
-       "mean": 292.84,
-       "shrunk": 255.46
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 16,
-       "z": -1.355576,
-       "mean": -1428.62,
-       "shrunk": -1203.05
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 77,
-       "z": 0.778572,
-       "mean": 557.79,
-       "shrunk": 523.78
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3559,51 +3492,49 @@
    "percentile": 10.7
   },
   {
-   "manager_id": "1267969454147387392",
-   "display_name": "coweyes",
-   "composite": -0.507511,
-   "cross_index": 92.4,
-   "n_leagues": 1,
+   "manager_id": "971129080676433920",
+   "display_name": "wstebbins",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 2,
    "components": {
     "draft": {
-     "n": 25,
-     "zbar": -1.105975,
-     "z": -0.891916,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
      "n": 0,
      "zbar": 0.0,
      "z": 0.0,
      "available": false,
-     "weight": 0.35
+     "weight": 0.0
     },
     "waiver": {
-     "n": 15,
-     "zbar": -0.547136,
-     "z": -0.410352,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "no trade activity in any indexed league \u2014 scored as corpus average"
-   ],
+   "flags": [],
    "leagues": [
     {
      "league_id": "1310088540448657408",
      "name": "I just crapps my pants",
      "season": "2026",
      "n_teams": 8,
-     "index": 90.5,
-     "rank": 7,
+     "index": 100.0,
+     "rank": 8,
      "components": {
       "draft": {
-       "n": 25,
-       "z": -1.105975,
-       "mean": -165.03,
-       "shrunk": -133.09
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -3612,47 +3543,74 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 15,
-       "z": -0.547136,
-       "mean": 1070.13,
-       "shrunk": 802.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "no trade activity \u2014 scored as league average"
-     ]
+     "flags": []
+    },
+    {
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
+     "rank": 12,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
     }
    ],
    "rank": 52,
    "percentile": 8.9
   },
   {
-   "manager_id": "403986714600726528",
-   "display_name": "DynastyDealer",
-   "composite": -0.588904,
-   "cross_index": 91.2,
+   "manager_id": "338510810072502272",
+   "display_name": "XElGingeroX",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 16,
-     "zbar": -1.0043,
-     "z": -0.7304,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 24,
-     "zbar": -0.904365,
-     "z": -0.80388,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 56,
-     "zbar": 0.41868,
-     "z": 0.384362,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
@@ -3662,26 +3620,26 @@
      "name": "DLD",
      "season": "2026",
      "n_teams": 12,
-     "index": 88.7,
-     "rank": 15,
+     "index": 100.0,
+     "rank": 16,
      "components": {
       "draft": {
-       "n": 16,
-       "z": -1.0043,
-       "mean": -60.85,
-       "shrunk": -44.25
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 24,
-       "z": -0.904365,
-       "mean": -703.78,
-       "shrunk": -625.58
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 56,
-       "z": 0.41868,
-       "mean": 364.5,
-       "shrunk": 334.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3691,129 +3649,154 @@
    "percentile": 7.1
   },
   {
-   "manager_id": "1110772586587340800",
-   "display_name": "byatoe61",
-   "composite": -0.623832,
-   "cross_index": 90.6,
-   "n_leagues": 1,
+   "manager_id": "735376123499827200",
+   "display_name": "zdubyah",
+   "composite": 0.0,
+   "cross_index": 100.0,
+   "n_leagues": 2,
    "components": {
     "draft": {
-     "n": 5,
-     "zbar": -1.543053,
-     "z": -0.701388,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 2,
-     "zbar": -1.340411,
-     "z": -0.536165,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 2,
-     "zbar": -1.994557,
-     "z": -0.569873,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
-   "flags": [
-    "only 5 scored picks across all indexed leagues \u2014 heavily shrunk"
-   ],
+   "flags": [],
    "leagues": [
     {
-     "league_id": "1312836062019620864",
-     "name": "The Shadynasty League ",
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
      "season": "2026",
      "n_teams": 10,
-     "index": 76.9,
+     "index": 100.0,
+     "rank": 9,
+     "components": {
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     "flags": []
+    },
+    {
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
+     "season": "2026",
+     "n_teams": 12,
+     "index": 100.0,
      "rank": 13,
      "components": {
       "draft": {
-       "n": 5,
-       "z": -1.543053,
-       "mean": -47.61,
-       "shrunk": -21.64
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": -1.340411,
-       "mean": -2977.0,
-       "shrunk": -1190.8
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 2,
-       "z": -1.994557,
-       "mean": 539.5,
-       "shrunk": 154.14
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
-     "flags": [
-      "only 5 scored picks \u2014 heavily shrunk"
-     ]
+     "flags": []
     }
    ],
    "rank": 54,
    "percentile": 5.4
   },
   {
-   "manager_id": "1265463542870462464",
-   "display_name": "tuckerb98",
-   "composite": -0.71515,
-   "cross_index": 89.3,
+   "manager_id": "336977305060511744",
+   "display_name": "zganga",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 23,
-     "zbar": -1.495414,
-     "z": -1.186018,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 2,
-     "zbar": 0.186797,
-     "z": 0.074719,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 18,
-     "zbar": -1.263233,
-     "z": -0.988617,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1310088540448657408",
-     "name": "I just crapps my pants",
+     "league_id": "1354685519509868544",
+     "name": "Game of Inches",
      "season": "2026",
-     "n_teams": 8,
-     "index": 86.9,
-     "rank": 8,
+     "n_teams": 10,
+     "index": 100.0,
+     "rank": 10,
      "components": {
       "draft": {
-       "n": 23,
-       "z": -1.495414,
-       "mean": -367.37,
-       "shrunk": -291.36
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": 0.186797,
-       "mean": 501.5,
-       "shrunk": 200.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 18,
-       "z": -1.263233,
-       "mean": 602.06,
-       "shrunk": 471.17
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3823,61 +3806,61 @@
    "percentile": 3.6
   },
   {
-   "manager_id": "338510810072502272",
-   "display_name": "XElGingeroX",
-   "composite": -1.08415,
-   "cross_index": 83.7,
+   "manager_id": "970010120480473088",
+   "display_name": "ZootMaster",
+   "composite": 0.0,
+   "cross_index": 100.0,
    "n_leagues": 1,
    "components": {
     "draft": {
-     "n": 8,
-     "zbar": -2.202832,
-     "z": -1.258761,
-     "available": true,
-     "weight": 0.5
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "trade": {
-     "n": 22,
-     "zbar": -0.984975,
-     "z": -0.866778,
-     "available": true,
-     "weight": 0.35
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     },
     "waiver": {
-     "n": 7,
-     "zbar": -1.730249,
-     "z": -1.009312,
-     "available": true,
-     "weight": 0.15
+     "n": 0,
+     "zbar": 0.0,
+     "z": 0.0,
+     "available": false,
+     "weight": 0.0
     }
    },
    "flags": [],
    "leagues": [
     {
-     "league_id": "1312163562143121408",
-     "name": "DLD",
+     "league_id": "1316222126914539520",
+     "name": "Dallas Kings",
      "season": "2026",
      "n_teams": 12,
-     "index": 74.4,
-     "rank": 16,
+     "index": 100.0,
+     "rank": 14,
      "components": {
       "draft": {
-       "n": 8,
-       "z": -2.202832,
-       "mean": -860.83,
-       "shrunk": -491.9
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 22,
-       "z": -0.984975,
-       "mean": -781.38,
-       "shrunk": -687.61
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 7,
-       "z": -1.730249,
-       "mean": 130.29,
-       "shrunk": 76.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      "flags": []
@@ -3887,508 +3870,7 @@
    "percentile": 1.8
   }
  ],
- "draft_board": [
-  {
-   "rank": 1,
-   "manager_id": "818362223503224832",
-   "display_name": "Devonsattler",
-   "draft_z": 1.774155,
-   "draft_zbar": 2.106809,
-   "n_picks": 32,
-   "n_leagues": 1,
-   "percentile": 100.0
-  },
-  {
-   "rank": 2,
-   "manager_id": "336977305060511744",
-   "display_name": "zganga",
-   "draft_z": 1.768745,
-   "draft_zbar": 2.134692,
-   "n_picks": 29,
-   "n_leagues": 1,
-   "percentile": 98.0
-  },
-  {
-   "rank": 3,
-   "manager_id": "525504445538111488",
-   "display_name": "Tynski",
-   "draft_z": 1.711618,
-   "draft_zbar": 2.013668,
-   "n_picks": 34,
-   "n_leagues": 1,
-   "percentile": 96.0
-  },
-  {
-   "rank": 4,
-   "manager_id": "1267965532389253120",
-   "display_name": "jackreichert",
-   "draft_z": 1.370816,
-   "draft_zbar": 1.699811,
-   "n_picks": 25,
-   "n_leagues": 1,
-   "percentile": 94.0
-  },
-  {
-   "rank": 5,
-   "manager_id": "730233780220059648",
-   "display_name": "Buck3411",
-   "draft_z": 1.23879,
-   "draft_zbar": 1.486548,
-   "n_picks": 30,
-   "n_leagues": 1,
-   "percentile": 92.0
-  },
-  {
-   "rank": 6,
-   "manager_id": "970841223655108608",
-   "display_name": "bbenedict",
-   "draft_z": 1.18388,
-   "draft_zbar": 1.405858,
-   "n_picks": 32,
-   "n_leagues": 1,
-   "percentile": 90.0
-  },
-  {
-   "rank": 7,
-   "manager_id": "464158393402126336",
-   "display_name": "pjstiehl",
-   "draft_z": 1.042514,
-   "draft_zbar": 1.221231,
-   "n_picks": 35,
-   "n_leagues": 1,
-   "percentile": 88.0
-  },
-  {
-   "rank": 8,
-   "manager_id": "463446043212640256",
-   "display_name": "TheCannon927",
-   "draft_z": 1.03242,
-   "draft_zbar": 1.20449,
-   "n_picks": 36,
-   "n_leagues": 1,
-   "percentile": 86.0
-  },
-  {
-   "rank": 9,
-   "manager_id": "425009971994841088",
-   "display_name": "DanG24",
-   "draft_z": 0.855845,
-   "draft_zbar": 0.954597,
-   "n_picks": 52,
-   "n_leagues": 1,
-   "percentile": 84.0
-  },
-  {
-   "rank": 10,
-   "manager_id": "332720542916313088",
-   "display_name": "OQF15",
-   "draft_z": 0.841292,
-   "draft_zbar": 0.981507,
-   "n_picks": 36,
-   "n_leagues": 1,
-   "percentile": 82.0
-  },
-  {
-   "rank": 11,
-   "manager_id": "419188415423053824",
-   "display_name": "tdster17",
-   "draft_z": 0.818987,
-   "draft_zbar": 0.911703,
-   "n_picks": 53,
-   "n_leagues": 1,
-   "percentile": 80.0
-  },
-  {
-   "rank": 12,
-   "manager_id": "1256055880542072832",
-   "display_name": "TheAlpino",
-   "draft_z": 0.814488,
-   "draft_zbar": 1.009965,
-   "n_picks": 25,
-   "n_leagues": 1,
-   "percentile": 78.0
-  },
-  {
-   "rank": 13,
-   "manager_id": "601858447801122816",
-   "display_name": "texag1882",
-   "draft_z": 0.73739,
-   "draft_zbar": 0.835709,
-   "n_picks": 45,
-   "n_leagues": 1,
-   "percentile": 76.0
-  },
-  {
-   "rank": 14,
-   "manager_id": "512364646596759552",
-   "display_name": "SeaWatIDidThere",
-   "draft_z": 0.615755,
-   "draft_zbar": 0.710487,
-   "n_picks": 39,
-   "n_leagues": 1,
-   "percentile": 74.0
-  },
-  {
-   "rank": 15,
-   "manager_id": "970018352594817024",
-   "display_name": "Glospie",
-   "draft_z": 0.489171,
-   "draft_zbar": 0.616781,
-   "n_picks": 23,
-   "n_leagues": 1,
-   "percentile": 72.0
-  },
-  {
-   "rank": 16,
-   "manager_id": "427997595042852864",
-   "display_name": "ProdigyofZen",
-   "draft_z": 0.464344,
-   "draft_zbar": 0.514095,
-   "n_picks": 56,
-   "n_leagues": 1,
-   "percentile": 70.0
-  },
-  {
-   "rank": 17,
-   "manager_id": "478105118915424256",
-   "display_name": "J1MB0SL1CE",
-   "draft_z": 0.206708,
-   "draft_zbar": 0.23367,
-   "n_picks": 46,
-   "n_leagues": 2,
-   "percentile": 68.0
-  },
-  {
-   "rank": 18,
-   "manager_id": "426807038987739136",
-   "display_name": "GoldenSombreros",
-   "draft_z": 0.132751,
-   "draft_zbar": 0.172577,
-   "n_picks": 20,
-   "n_leagues": 1,
-   "percentile": 66.0
-  },
-  {
-   "rank": 19,
-   "manager_id": "971129080676433920",
-   "display_name": "wstebbins",
-   "draft_z": 0.109701,
-   "draft_zbar": 0.120671,
-   "n_picks": 60,
-   "n_leagues": 2,
-   "percentile": 64.0
-  },
-  {
-   "rank": 20,
-   "manager_id": "1181310624269803520",
-   "display_name": "SimpsDontCry",
-   "draft_z": 0.107449,
-   "draft_zbar": 0.12641,
-   "n_picks": 34,
-   "n_leagues": 2,
-   "percentile": 62.0
-  },
-  {
-   "rank": 21,
-   "manager_id": "419011867357224960",
-   "display_name": "Jay505",
-   "draft_z": 0.096485,
-   "draft_zbar": 0.113512,
-   "n_picks": 34,
-   "n_leagues": 1,
-   "percentile": 60.0
-  },
-  {
-   "rank": 22,
-   "manager_id": "418800165009235968",
-   "display_name": "badaceandy",
-   "draft_z": 0.070829,
-   "draft_zbar": 0.079871,
-   "n_picks": 47,
-   "n_leagues": 1,
-   "percentile": 58.0
-  },
-  {
-   "rank": 23,
-   "manager_id": "340592247504424960",
-   "display_name": "rjp342",
-   "draft_z": 0.021646,
-   "draft_zbar": 0.024244,
-   "n_picks": 50,
-   "n_leagues": 1,
-   "percentile": 56.0
-  },
-  {
-   "rank": 24,
-   "manager_id": "341446083597119488",
-   "display_name": "Icewalker",
-   "draft_z": -0.059639,
-   "draft_zbar": -0.067418,
-   "n_picks": 46,
-   "n_leagues": 1,
-   "percentile": 54.0
-  },
-  {
-   "rank": 25,
-   "manager_id": "320727231292788736",
-   "display_name": "drew0602",
-   "draft_z": -0.063841,
-   "draft_zbar": -0.071351,
-   "n_picks": 51,
-   "n_leagues": 2,
-   "percentile": 52.0
-  },
-  {
-   "rank": 26,
-   "manager_id": "655580358854672384",
-   "display_name": "ATM2016",
-   "draft_z": -0.105217,
-   "draft_zbar": -0.117596,
-   "n_picks": 51,
-   "n_leagues": 1,
-   "percentile": 50.0
-  },
-  {
-   "rank": 27,
-   "manager_id": "970006288258109440",
-   "display_name": "bviohl69420",
-   "draft_z": -0.12446,
-   "draft_zbar": -0.145796,
-   "n_picks": 35,
-   "n_leagues": 1,
-   "percentile": 48.0
-  },
-  {
-   "rank": 28,
-   "manager_id": "1126627332791390208",
-   "display_name": "jeetgohil814",
-   "draft_z": -0.160062,
-   "draft_zbar": -0.192074,
-   "n_picks": 30,
-   "n_leagues": 1,
-   "percentile": 46.0
-  },
-  {
-   "rank": 29,
-   "manager_id": "340374832103362560",
-   "display_name": "rpatterson831",
-   "draft_z": -0.161334,
-   "draft_zbar": -0.17926,
-   "n_picks": 54,
-   "n_leagues": 1,
-   "percentile": 44.0
-  },
-  {
-   "rank": 30,
-   "manager_id": "735376123499827200",
-   "display_name": "zdubyah",
-   "draft_z": -0.186743,
-   "draft_zbar": -0.203466,
-   "n_picks": 67,
-   "n_leagues": 2,
-   "percentile": 42.0
-  },
-  {
-   "rank": 31,
-   "manager_id": "459418354034143232",
-   "display_name": "robertschleifer",
-   "draft_z": -0.209578,
-   "draft_zbar": -0.272452,
-   "n_picks": 20,
-   "n_leagues": 1,
-   "percentile": 40.0
-  },
-  {
-   "rank": 32,
-   "manager_id": "382283172198653952",
-   "display_name": "The1Hudsonian",
-   "draft_z": -0.226332,
-   "draft_zbar": -0.249745,
-   "n_picks": 58,
-   "n_leagues": 1,
-   "percentile": 38.0
-  },
-  {
-   "rank": 33,
-   "manager_id": "866789311293566976",
-   "display_name": "aaronkubala",
-   "draft_z": -0.244086,
-   "draft_zbar": -0.292903,
-   "n_picks": 30,
-   "n_leagues": 1,
-   "percentile": 36.0
-  },
-  {
-   "rank": 34,
-   "manager_id": "1126629040112234496",
-   "display_name": "MikeMoore28",
-   "draft_z": -0.252635,
-   "draft_zbar": -0.303162,
-   "n_picks": 30,
-   "n_leagues": 1,
-   "percentile": 34.0
-  },
-  {
-   "rank": 35,
-   "manager_id": "1265342777697243136",
-   "display_name": "gbuckley98",
-   "draft_z": -0.309689,
-   "draft_zbar": -0.376051,
-   "n_picks": 28,
-   "n_leagues": 1,
-   "percentile": 32.0
-  },
-  {
-   "rank": 36,
-   "manager_id": "1126736991288147968",
-   "display_name": "Bones333",
-   "draft_z": -0.334101,
-   "draft_zbar": -0.405694,
-   "n_picks": 28,
-   "n_leagues": 1,
-   "percentile": 30.0
-  },
-  {
-   "rank": 37,
-   "manager_id": "420047060323016704",
-   "display_name": "bcoop12",
-   "draft_z": -0.357627,
-   "draft_zbar": -0.409962,
-   "n_picks": 41,
-   "n_leagues": 1,
-   "percentile": 28.0
-  },
-  {
-   "rank": 38,
-   "manager_id": "1265444081589293056",
-   "display_name": "cookcookcookcook",
-   "draft_z": -0.375612,
-   "draft_zbar": -0.465758,
-   "n_picks": 25,
-   "n_leagues": 1,
-   "percentile": 26.0
-  },
-  {
-   "rank": 39,
-   "manager_id": "970891000270934016",
-   "display_name": "tedwards55",
-   "draft_z": -0.380537,
-   "draft_zbar": -0.445772,
-   "n_picks": 35,
-   "n_leagues": 1,
-   "percentile": 24.0
-  },
-  {
-   "rank": 40,
-   "manager_id": "418503369217282048",
-   "display_name": "ChrisMo2413",
-   "draft_z": -0.388891,
-   "draft_zbar": -0.423205,
-   "n_picks": 68,
-   "n_leagues": 1,
-   "percentile": 22.0
-  },
-  {
-   "rank": 41,
-   "manager_id": "1126670727425466368",
-   "display_name": "JakeVeith1",
-   "draft_z": -0.543932,
-   "draft_zbar": -0.63992,
-   "n_picks": 34,
-   "n_leagues": 1,
-   "percentile": 20.0
-  },
-  {
-   "rank": 42,
-   "manager_id": "472199225149485056",
-   "display_name": "SimpleSims",
-   "draft_z": -0.579652,
-   "draft_zbar": -0.695583,
-   "n_picks": 30,
-   "n_leagues": 1,
-   "percentile": 18.0
-  },
-  {
-   "rank": 43,
-   "manager_id": "970009127835488256",
-   "display_name": "shabbahanks",
-   "draft_z": -0.600518,
-   "draft_zbar": -0.706492,
-   "n_picks": 34,
-   "n_leagues": 1,
-   "percentile": 16.0
-  },
-  {
-   "rank": 44,
-   "manager_id": "403986714600726528",
-   "display_name": "DynastyDealer",
-   "draft_z": -0.7304,
-   "draft_zbar": -1.0043,
-   "n_picks": 16,
-   "n_leagues": 1,
-   "percentile": 14.0
-  },
-  {
-   "rank": 45,
-   "manager_id": "970010120480473088",
-   "display_name": "ZootMaster",
-   "draft_z": -0.836629,
-   "draft_zbar": -0.976068,
-   "n_picks": 36,
-   "n_leagues": 1,
-   "percentile": 12.0
-  },
-  {
-   "rank": 46,
-   "manager_id": "1267969454147387392",
-   "display_name": "coweyes",
-   "draft_z": -0.891916,
-   "draft_zbar": -1.105975,
-   "n_picks": 25,
-   "n_leagues": 1,
-   "percentile": 10.0
-  },
-  {
-   "rank": 47,
-   "manager_id": "465597928208068608",
-   "display_name": "hern6754",
-   "draft_z": -1.052656,
-   "draft_zbar": -1.218864,
-   "n_picks": 38,
-   "n_leagues": 1,
-   "percentile": 8.0
-  },
-  {
-   "rank": 48,
-   "manager_id": "999542239800037376",
-   "display_name": "McMysteryVan",
-   "draft_z": -1.143312,
-   "draft_zbar": -1.371974,
-   "n_picks": 30,
-   "n_leagues": 1,
-   "percentile": 6.0
-  },
-  {
-   "rank": 49,
-   "manager_id": "1265463542870462464",
-   "display_name": "tuckerb98",
-   "draft_z": -1.186018,
-   "draft_zbar": -1.495414,
-   "n_picks": 23,
-   "n_leagues": 1,
-   "percentile": 4.0
-  },
-  {
-   "rank": 50,
-   "manager_id": "338510810072502272",
-   "display_name": "XElGingeroX",
-   "draft_z": -1.258761,
-   "draft_zbar": -2.202832,
-   "n_picks": 8,
-   "n_leagues": 1,
-   "percentile": 2.0
-  }
- ],
+ "draft_board": [],
  "leagues": [
   {
    "league_id": "1312836062019620864",
@@ -4400,9 +3882,9 @@
    "n_managers": 13,
    "discovered_via": "drew0602",
    "hop": 2,
-   "scored_picks": 510,
-   "scored_trades": 219,
-   "scored_waivers": 1310
+   "scored_picks": 0,
+   "scored_trades": 0,
+   "scored_waivers": 0
   },
   {
    "league_id": "1316222126914539520",
@@ -4414,9 +3896,9 @@
    "n_managers": 14,
    "discovered_via": "seed",
    "hop": 0,
-   "scored_picks": 420,
-   "scored_trades": 29,
-   "scored_waivers": 289
+   "scored_picks": 0,
+   "scored_trades": 0,
+   "scored_waivers": 0
   },
   {
    "league_id": "1312163562143121408",
@@ -4428,9 +3910,9 @@
    "n_managers": 16,
    "discovered_via": "J1MB0SL1CE",
    "hop": 1,
-   "scored_picks": 440,
-   "scored_trades": 110,
-   "scored_waivers": 388
+   "scored_picks": 0,
+   "scored_trades": 0,
+   "scored_waivers": 0
   },
   {
    "league_id": "1354685519509868544",
@@ -4442,9 +3924,9 @@
    "n_managers": 10,
    "discovered_via": "zdubyah",
    "hop": 1,
-   "scored_picks": 300,
-   "scored_trades": 6,
-   "scored_waivers": 277
+   "scored_picks": 0,
+   "scored_trades": 0,
+   "scored_waivers": 0
   },
   {
    "league_id": "1310088540448657408",
@@ -4456,16 +3938,14 @@
    "n_managers": 8,
    "discovered_via": "wstebbins",
    "hop": 1,
-   "scored_picks": 200,
-   "scored_trades": 8,
-   "scored_waivers": 164
+   "scored_picks": 0,
+   "scored_trades": 0,
+   "scored_waivers": 0
   }
  ],
  "dropped_leagues": [],
  "skipped_leagues": [],
- "notes": [
-  "no previously committed corpus was found, so this artifact describes only what this run indexed"
- ],
+ "notes": [],
  "retained": [
   {
    "league_id": "1316222126914539520",
@@ -4481,172 +3961,45 @@
    "lineage_root": "970003719653826560",
    "discovered_via": "seed",
    "hop": 0,
-   "retained_from": "2026-09-21T17:07:30.457657+00:00",
+   "retained_from": "2026-09-21T17:16:56.472441+00:00",
    "result": {
     "managers": [
      {
-      "id": "818362223503224832",
-      "name": "Devonsattler",
-      "index": 113.5621154938669,
+      "id": "970841223655108608",
+      "name": "bbenedict",
+      "index": 100,
       "rank": 1,
       "flags": [],
       "draft": {
-       "n": 32,
-       "z": 2.106809,
-       "mean": 1306.86,
-       "shrunk": 1100.51
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 4,
-       "z": -0.85008,
-       "mean": -1519.61,
-       "shrunk": -868.35
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 25,
-       "z": 0.98843,
-       "mean": 933.0,
-       "shrunk": 777.5
-      }
-     },
-     {
-      "id": "464158393402126336",
-      "name": "pjstiehl",
-      "index": 109.29633012015836,
-      "rank": 2,
-      "flags": [],
-      "draft": {
-       "n": 35,
-       "z": 1.221231,
-       "mean": 980.47,
-       "shrunk": 836.99
-      },
-      "trade": {
-       "n": 8,
-       "z": -0.365754,
-       "mean": -555.07,
-       "shrunk": -403.69
-      },
-      "waiver": {
-       "n": 45,
-       "z": 0.914359,
-       "mean": 843.18,
-       "shrunk": 758.86
-      }
-     },
-     {
-      "id": "478105118915424256",
-      "name": "J1MB0SL1CE",
-      "index": 106.39705416616665,
-      "rank": 3,
-      "flags": [],
-      "draft": {
-       "n": 33,
-       "z": 0.560776,
-       "mean": 756.9,
-       "shrunk": 640.46
-      },
-      "trade": {
-       "n": 11,
-       "z": 0.238423,
-       "mean": 223.95,
-       "shrunk": 175.96
-      },
-      "waiver": {
-       "n": 20,
-       "z": 0.417561,
-       "mean": 792.3,
-       "shrunk": 633.84
-      }
-     },
-     {
-      "id": "735376123499827200",
-      "name": "zdubyah",
-      "index": 103.58230781043163,
-      "rank": 4,
-      "flags": [],
-      "draft": {
-       "n": 38,
-       "z": -0.57248,
-       "mean": 351.11,
-       "shrunk": 303.23
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.317662,
-       "mean": 2119.92,
-       "shrunk": 1211.38
-      },
-      "waiver": {
-       "n": 9,
-       "z": 0.425861,
-       "mean": 989.22,
-       "shrunk": 635.93
-      }
-     },
-     {
-      "id": "1181310624269803520",
-      "name": "SimpsDontCry",
-      "index": 102.97905577483355,
-      "rank": 5,
-      "flags": [],
-      "draft": {
-       "n": 10,
-       "z": -0.555882,
-       "mean": 493.07,
-       "shrunk": 308.17
-      },
-      "trade": {
-       "n": 10,
-       "z": 0.573494,
-       "mean": 646.66,
-       "shrunk": 497.43
-      },
-      "waiver": {
-       "n": 29,
-       "z": 1.838811,
-       "mean": 1162.45,
-       "shrunk": 991.5
-      }
-     },
-     {
-      "id": "971129080676433920",
-      "name": "wstebbins",
-      "index": 102.67325920977967,
-      "rank": 6,
-      "flags": [],
-      "draft": {
-       "n": 35,
-       "z": -0.023653,
-       "mean": 546.52,
-       "shrunk": 466.55
-      },
-      "trade": {
-       "n": 3,
-       "z": 0.954576,
-       "mean": 1726.07,
-       "shrunk": 863.04
-      },
-      "waiver": {
-       "n": 8,
-       "z": -0.960387,
-       "mean": 466.5,
-       "shrunk": 287.08
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "970006288258109440",
       "name": "bviohl69420",
-      "index": 100.94964331676904,
-      "rank": 7,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
+      "index": 100,
+      "rank": 2,
+      "flags": [],
       "draft": {
-       "n": 35,
-       "z": -0.145796,
-       "mean": 503.95,
-       "shrunk": 430.2
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -4655,25 +4008,48 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 6,
-       "z": 0.908052,
-       "mean": 1388.33,
-       "shrunk": 757.27
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "818362223503224832",
+      "name": "Devonsattler",
+      "index": 100,
+      "rank": 3,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "970018352594817024",
       "name": "Glospie",
-      "index": 99.89825181874441,
-      "rank": 8,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
+      "index": 100,
+      "rank": 4,
+      "flags": [],
       "draft": {
-       "n": 23,
-       "z": 0.616781,
-       "mean": 828.54,
-       "shrunk": 657.12
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -4682,151 +4058,23 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 1,
-       "z": -2.101158,
+       "n": 0,
+       "z": 0.0,
        "mean": 0.0,
        "shrunk": 0.0
-      }
-     },
-     {
-      "id": "970841223655108608",
-      "name": "bbenedict",
-      "index": 96.23306670054373,
-      "rank": 9,
-      "flags": [],
-      "draft": {
-       "n": 32,
-       "z": 1.405858,
-       "mean": 1059.16,
-       "shrunk": 891.93
-      },
-      "trade": {
-       "n": 3,
-       "z": -2.634455,
-       "mean": -5160.56,
-       "shrunk": -2580.28
-      },
-      "waiver": {
-       "n": 34,
-       "z": -0.213323,
-       "mean": 544.94,
-       "shrunk": 475.08
-      }
-     },
-     {
-      "id": "970891000270934016",
-      "name": "tedwards55",
-      "index": 96.07606374084801,
-      "rank": 10,
-      "flags": [],
-      "draft": {
-       "n": 35,
-       "z": -0.445772,
-       "mean": 399.38,
-       "shrunk": 340.93
-      },
-      "trade": {
-       "n": 4,
-       "z": 0.138518,
-       "mean": 140.19,
-       "shrunk": 80.11
-      },
-      "waiver": {
-       "n": 22,
-       "z": -0.581274,
-       "mean": 469.41,
-       "shrunk": 382.48
-      }
-     },
-     {
-      "id": "970009127835488256",
-      "name": "shabbahanks",
-      "index": 95.06162408267141,
-      "rank": 11,
-      "flags": [],
-      "draft": {
-       "n": 34,
-       "z": -0.706492,
-       "mean": 309.83,
-       "shrunk": 263.35
-      },
-      "trade": {
-       "n": 4,
-       "z": 0.130775,
-       "mean": 127.19,
-       "shrunk": 72.68
-      },
-      "waiver": {
-       "n": 58,
-       "z": -0.145003,
-       "mean": 534.71,
-       "shrunk": 492.27
       }
      },
      {
       "id": "465597928208068608",
       "name": "hern6754",
-      "index": 92.90252622958936,
-      "rank": 12,
+      "index": 100,
+      "rank": 5,
       "flags": [],
       "draft": {
-       "n": 38,
-       "z": -1.218864,
-       "mean": 128.39,
-       "shrunk": 110.88
-      },
-      "trade": {
-       "n": 3,
-       "z": 0.320287,
-       "mean": 509.0,
-       "shrunk": 254.5
-      },
-      "waiver": {
-       "n": 18,
-       "z": 0.161113,
-       "mean": 727.44,
-       "shrunk": 569.3
-      }
-     },
-     {
-      "id": "970010120480473088",
-      "name": "ZootMaster",
-      "index": 92.86224366525768,
-      "rank": 13,
-      "flags": [],
-      "draft": {
-       "n": 36,
-       "z": -0.976068,
-       "mean": 213.66,
-       "shrunk": 183.13
-      },
-      "trade": {
-       "n": 4,
-       "z": 0.176554,
-       "mean": 204.06,
-       "shrunk": 116.6
-      },
-      "waiver": {
-       "n": 12,
-       "z": -0.330737,
-       "mean": 631.17,
-       "shrunk": 445.53
-      }
-     },
-     {
-      "id": "roster:1048697508282695680:7",
-      "name": "Team 7",
-      "index": 87.52645787033956,
-      "rank": 14,
-      "flags": [
-       "no trade activity \u2014 scored as league average",
-       "only 4 scored picks \u2014 heavily shrunk"
-      ],
-      "draft": {
-       "n": 4,
-       "z": -1.266448,
-       "mean": 241.81,
-       "shrunk": 96.73
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -4835,27 +4083,248 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 2,
-       "z": -1.322304,
-       "mean": 686.0,
-       "shrunk": 196.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "478105118915424256",
+      "name": "J1MB0SL1CE",
+      "index": 100,
+      "rank": 6,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "464158393402126336",
+      "name": "pjstiehl",
+      "index": 100,
+      "rank": 7,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "970009127835488256",
+      "name": "shabbahanks",
+      "index": 100,
+      "rank": 8,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1181310624269803520",
+      "name": "SimpsDontCry",
+      "index": 100,
+      "rank": 9,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "roster:1048697508282695680:7",
+      "name": "Team 7",
+      "index": 100,
+      "rank": 10,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "970891000270934016",
+      "name": "tedwards55",
+      "index": 100,
+      "rank": 11,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "971129080676433920",
+      "name": "wstebbins",
+      "index": 100,
+      "rank": 12,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "735376123499827200",
+      "name": "zdubyah",
+      "index": 100,
+      "rank": 13,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "970010120480473088",
+      "name": "ZootMaster",
+      "index": 100,
+      "rank": 14,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      }
     ],
     "meta": {
-     "nPicksScored": 420,
-     "nTradesScored": 29,
+     "nPicksScored": 0,
+     "nTradesScored": 0,
      "nTrades": 30,
      "nTradesUnbalanced": 0,
      "nTradesWithFaab": 1,
-     "nWaivers": 289,
-     "unvaluedAssets": 4,
-     "liveComponents": [
-      "draft",
-      "trade",
-      "waiver"
-     ],
-     "floor": 491
+     "nWaivers": 0,
+     "unvaluedAssets": 0,
+     "liveComponents": [],
+     "floor": 0
     }
    }
   },
@@ -4873,428 +4342,420 @@
    "lineage_root": "939984431383752704",
    "discovered_via": "J1MB0SL1CE",
    "hop": 1,
-   "retained_from": "2026-09-21T17:07:30.457657+00:00",
+   "retained_from": "2026-09-21T17:16:56.472441+00:00",
    "result": {
     "managers": [
      {
-      "id": "525504445538111488",
-      "name": "Tynski",
-      "index": 114.2442664916696,
+      "id": "655580358854672384",
+      "name": "ATM2016",
+      "index": 100,
       "rank": 1,
       "flags": [],
       "draft": {
-       "n": 34,
-       "z": 2.013668,
-       "mean": 1274.07,
-       "shrunk": 1082.96
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 5,
-       "z": -0.065155,
-       "mean": 32.29,
-       "shrunk": 20.18
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 3,
-       "z": -0.229415,
-       "mean": 684.33,
-       "shrunk": 256.62
-      }
-     },
-     {
-      "id": "427997595042852864",
-      "name": "ProdigyofZen",
-      "index": 113.69755928059467,
-      "rank": 2,
-      "flags": [],
-      "draft": {
-       "n": 56,
-       "z": 0.514095,
-       "mean": 578.89,
-       "shrunk": 522.87
-      },
-      "trade": {
-       "n": 13,
-       "z": 2.013708,
-       "mean": 1993.66,
-       "shrunk": 1619.85
-      },
-      "waiver": {
-       "n": 6,
-       "z": -0.324497,
-       "mean": 449.5,
-       "shrunk": 245.18
-      }
-     },
-     {
-      "id": "463446043212640256",
-      "name": "TheCannon927",
-      "index": 111.84079630397764,
-      "rank": 3,
-      "flags": [],
-      "draft": {
-       "n": 36,
-       "z": 1.20449,
-       "mean": 910.85,
-       "shrunk": 780.73
-      },
-      "trade": {
-       "n": 9,
-       "z": 1.251594,
-       "mean": 1377.88,
-       "shrunk": 1033.41
-      },
-      "waiver": {
-       "n": 7,
-       "z": -1.672778,
-       "mean": 142.14,
-       "shrunk": 82.92
-      }
-     },
-     {
-      "id": "340592247504424960",
-      "name": "rjp342",
-      "index": 107.5211513176964,
-      "rank": 4,
-      "flags": [],
-      "draft": {
-       "n": 50,
-       "z": 0.024244,
-       "mean": 380.7,
-       "shrunk": 339.91
-      },
-      "trade": {
-       "n": 16,
-       "z": 0.641625,
-       "mean": 669.8,
-       "shrunk": 564.04
-      },
-      "waiver": {
-       "n": 38,
-       "z": 1.764798,
-       "mean": 561.97,
-       "shrunk": 496.63
-      }
-     },
-     {
-      "id": "601858447801122816",
-      "name": "texag1882",
-      "index": 106.93793275985739,
-      "rank": 5,
-      "flags": [],
-      "draft": {
-       "n": 45,
-       "z": 0.835709,
-       "mean": 728.72,
-       "shrunk": 642.99
-      },
-      "trade": {
-       "n": 12,
-       "z": 0.283384,
-       "mean": 360.47,
-       "shrunk": 288.38
-      },
-      "waiver": {
-       "n": 23,
-       "z": -0.363399,
-       "mean": 292.78,
-       "shrunk": 240.5
-      }
-     },
-     {
-      "id": "512364646596759552",
-      "name": "SeaWatIDidThere",
-      "index": 104.66666618444873,
-      "rank": 6,
-      "flags": [],
-      "draft": {
-       "n": 39,
-       "z": 0.710487,
-       "mean": 687.94,
-       "shrunk": 596.22
-      },
-      "trade": {
-       "n": 5,
-       "z": 0.128065,
-       "mean": 270.18,
-       "shrunk": 168.86
-      },
-      "waiver": {
-       "n": 17,
-       "z": -0.593033,
-       "mean": 275.47,
-       "shrunk": 212.86
-      }
-     },
-     {
-      "id": "459418354034143232",
-      "name": "robertschleifer",
-      "index": 104.06367009754727,
-      "rank": 7,
-      "flags": [],
-      "draft": {
-       "n": 20,
-       "z": -0.272452,
-       "mean": 297.82,
-       "shrunk": 229.09
-      },
-      "trade": {
-       "n": 12,
-       "z": 1.175305,
-       "mean": 1218.38,
-       "shrunk": 974.7
-      },
-      "waiver": {
-       "n": 88,
-       "z": -0.028131,
-       "mean": 296.81,
-       "shrunk": 280.85
-      }
-     },
-     {
-      "id": "655580358854672384",
-      "name": "ATM2016",
-      "index": 102.94054621223275,
-      "rank": 8,
-      "flags": [],
-      "draft": {
-       "n": 51,
-       "z": -0.117596,
-       "mean": 320.69,
-       "shrunk": 286.93
-      },
-      "trade": {
-       "n": 30,
-       "z": 0.17853,
-       "mean": 228.46,
-       "shrunk": 207.69
-      },
-      "waiver": {
-       "n": 59,
-       "z": 1.282326,
-       "mean": 475.73,
-       "shrunk": 438.56
-      }
-     },
-     {
-      "id": "421757803934273536",
-      "name": "restartthecarr",
-      "index": 99.96234985449013,
-      "rank": 9,
-      "flags": [
-       "only 5 scored picks \u2014 heavily shrunk"
-      ],
-      "draft": {
-       "n": 5,
-       "z": -0.738104,
-       "mean": 121.38,
-       "shrunk": 55.17
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.15137,
-       "mean": 1673.5,
-       "shrunk": 956.29
-      },
-      "waiver": {
-       "n": 7,
-       "z": -0.242917,
-       "mean": 437.14,
-       "shrunk": 255.0
-      }
-     },
-     {
-      "id": "332720542916313088",
-      "name": "OQF15",
-      "index": 99.78779556177315,
-      "rank": 10,
-      "flags": [],
-      "draft": {
-       "n": 36,
-       "z": 0.981507,
-       "mean": 813.69,
-       "shrunk": 697.44
-      },
-      "trade": {
-       "n": 8,
-       "z": -1.265053,
-       "mean": -1241.81,
-       "shrunk": -903.13
-      },
-      "waiver": {
-       "n": 8,
-       "z": -0.414213,
-       "mean": 380.88,
-       "shrunk": 234.38
-      }
-     },
-     {
-      "id": "426807038987739136",
-      "name": "GoldenSombreros",
-      "index": 98.47861506425386,
-      "rank": 11,
-      "flags": [],
-      "draft": {
-       "n": 20,
-       "z": 0.172577,
-       "mean": 513.9,
-       "shrunk": 395.31
-      },
-      "trade": {
-       "n": 28,
-       "z": -0.363715,
-       "mean": -232.01,
-       "shrunk": -209.56
-      },
-      "waiver": {
-       "n": 33,
-       "z": -0.402758,
-       "mean": 271.48,
-       "shrunk": 235.76
-      }
-     },
-     {
-      "id": "478105118915424256",
-      "name": "J1MB0SL1CE",
-      "index": 91.62589023428438,
-      "rank": 12,
-      "flags": [],
-      "draft": {
-       "n": 13,
-       "z": -0.596677,
-       "mean": 157.84,
-       "shrunk": 107.99
-      },
-      "trade": {
-       "n": 13,
-       "z": -1.32941,
-       "mean": -1172.5,
-       "shrunk": -952.65
-      },
-      "waiver": {
-       "n": 4,
-       "z": 1.369052,
-       "mean": 1010.25,
-       "shrunk": 449.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "320727231292788736",
       "name": "drew0602",
-      "index": 91.4549824643413,
-      "rank": 13,
+      "index": 100,
+      "rank": 2,
       "flags": [],
       "draft": {
-       "n": 6,
-       "z": -0.86396,
-       "mean": 16.33,
-       "shrunk": 8.16
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 10,
-       "z": -1.036616,
-       "mean": -945.56,
-       "shrunk": -727.35
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 24,
-       "z": 1.500852,
-       "mean": 561.71,
-       "shrunk": 464.86
-      }
-     },
-     {
-      "id": "475014546134659072",
-      "name": "Samothman2123",
-      "index": 89.70133220308836,
-      "rank": 14,
-      "flags": [
-       "only 5 scored picks \u2014 heavily shrunk"
-      ],
-      "draft": {
-       "n": 5,
-       "z": -0.660856,
-       "mean": 184.85,
-       "shrunk": 84.02
-      },
-      "trade": {
-       "n": 10,
-       "z": -0.874293,
-       "mean": -783.18,
-       "shrunk": -602.44
-      },
-      "waiver": {
-       "n": 8,
-       "z": -0.334317,
-       "mean": 396.5,
-       "shrunk": 244.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "403986714600726528",
       "name": "DynastyDealer",
-      "index": 88.66186223032317,
+      "index": 100,
+      "rank": 3,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "426807038987739136",
+      "name": "GoldenSombreros",
+      "index": 100,
+      "rank": 4,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "478105118915424256",
+      "name": "J1MB0SL1CE",
+      "index": 100,
+      "rank": 5,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "332720542916313088",
+      "name": "OQF15",
+      "index": 100,
+      "rank": 6,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "427997595042852864",
+      "name": "ProdigyofZen",
+      "index": 100,
+      "rank": 7,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "421757803934273536",
+      "name": "restartthecarr",
+      "index": 100,
+      "rank": 8,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "340592247504424960",
+      "name": "rjp342",
+      "index": 100,
+      "rank": 9,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "459418354034143232",
+      "name": "robertschleifer",
+      "index": 100,
+      "rank": 10,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "475014546134659072",
+      "name": "Samothman2123",
+      "index": 100,
+      "rank": 11,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "512364646596759552",
+      "name": "SeaWatIDidThere",
+      "index": 100,
+      "rank": 12,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "601858447801122816",
+      "name": "texag1882",
+      "index": 100,
+      "rank": 13,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "463446043212640256",
+      "name": "TheCannon927",
+      "index": 100,
+      "rank": 14,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "525504445538111488",
+      "name": "Tynski",
+      "index": 100,
       "rank": 15,
       "flags": [],
       "draft": {
-       "n": 16,
-       "z": -1.0043,
-       "mean": -60.85,
-       "shrunk": -44.25
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 24,
-       "z": -0.904365,
-       "mean": -703.78,
-       "shrunk": -625.58
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 56,
-       "z": 0.41868,
-       "mean": 364.5,
-       "shrunk": 334.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "338510810072502272",
       "name": "XElGingeroX",
-      "index": 74.41458373942122,
+      "index": 100,
       "rank": 16,
       "flags": [],
       "draft": {
-       "n": 8,
-       "z": -2.202832,
-       "mean": -860.83,
-       "shrunk": -491.9
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 22,
-       "z": -0.984975,
-       "mean": -781.38,
-       "shrunk": -687.61
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 7,
-       "z": -1.730249,
-       "mean": 130.29,
-       "shrunk": 76.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      }
     ],
     "meta": {
-     "nPicksScored": 440,
-     "nTradesScored": 110,
+     "nPicksScored": 0,
+     "nTradesScored": 0,
      "nTrades": 129,
      "nTradesUnbalanced": 0,
      "nTradesWithFaab": 0,
-     "nWaivers": 388,
-     "unvaluedAssets": 48,
-     "liveComponents": [
-      "draft",
-      "trade",
-      "waiver"
-     ],
-     "floor": 491
+     "nWaivers": 0,
+     "unvaluedAssets": 0,
+     "liveComponents": [],
+     "floor": 0
     }
    }
   },
@@ -5311,47 +4772,20 @@
    "lineage_root": "1126621778744287232",
    "discovered_via": "zdubyah",
    "hop": 1,
-   "retained_from": "2026-09-21T17:07:30.457657+00:00",
+   "retained_from": "2026-09-21T17:16:56.472441+00:00",
    "result": {
     "managers": [
      {
-      "id": "336977305060511744",
-      "name": "zganga",
-      "index": 114.2618603697459,
+      "id": "866789311293566976",
+      "name": "aaronkubala",
+      "index": 100,
       "rank": 1,
       "flags": [],
       "draft": {
-       "n": 29,
-       "z": 2.134692,
-       "mean": 1303.48,
-       "shrunk": 1080.02
-      },
-      "trade": {
-       "n": 1,
-       "z": -0.985123,
-       "mean": -4287.0,
-       "shrunk": -1071.75
-      },
-      "waiver": {
-       "n": 45,
-       "z": 1.521585,
-       "mean": 1312.89,
-       "shrunk": 1181.6
-      }
-     },
-     {
-      "id": "730233780220059648",
-      "name": "Buck3411",
-      "index": 107.52403210597423,
-      "rank": 2,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
-      "draft": {
-       "n": 30,
-       "z": 1.486548,
-       "mean": 1107.19,
-       "shrunk": 922.66
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -5360,233 +4794,248 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 5,
-       "z": -1.611145,
-       "mean": 829.4,
-       "shrunk": 414.7
-      }
-     },
-     {
-      "id": "1126670727425466368",
-      "name": "JakeVeith1",
-      "index": 101.86587796082425,
-      "rank": 3,
-      "flags": [],
-      "draft": {
-       "n": 34,
-       "z": -0.63992,
-       "mean": 478.08,
-       "shrunk": 406.37
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.450219,
-       "mean": 2148.44,
-       "shrunk": 1227.68
-      },
-      "waiver": {
-       "n": 23,
-       "z": -0.421498,
-       "mean": 859.39,
-       "shrunk": 705.93
-      }
-     },
-     {
-      "id": "1126627332791390208",
-      "name": "jeetgohil814",
-      "index": 101.24618227306652,
-      "rank": 4,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
-      "draft": {
-       "n": 30,
-       "z": -0.192074,
-       "mean": 618.12,
-       "shrunk": 515.1
-      },
-      "trade": {
        "n": 0,
        "z": 0.0,
        "mean": 0.0,
        "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 32,
-       "z": 1.194106,
-       "mean": 1273.53,
-       "shrunk": 1101.43
-      }
-     },
-     {
-      "id": "866789311293566976",
-      "name": "aaronkubala",
-      "index": 99.11192690691058,
-      "rank": 5,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
-      "draft": {
-       "n": 30,
-       "z": -0.292903,
-       "mean": 588.75,
-       "shrunk": 490.62
-      },
-      "trade": {
-       "n": 0,
-       "z": 0.0,
-       "mean": 0.0,
-       "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 21,
-       "z": 0.581643,
-       "mean": 1178.05,
-       "shrunk": 951.5
-      }
-     },
-     {
-      "id": "999542239800037376",
-      "name": "McMysteryVan",
-      "index": 97.25521822280731,
-      "rank": 6,
-      "flags": [],
-      "draft": {
-       "n": 30,
-       "z": -1.371974,
-       "mean": 274.36,
-       "shrunk": 228.63
-      },
-      "trade": {
-       "n": 2,
-       "z": 1.351423,
-       "mean": 2836.0,
-       "shrunk": 1134.4
-      },
-      "waiver": {
-       "n": 46,
-       "z": 0.200023,
-       "mean": 951.35,
-       "shrunk": 858.08
-      }
-     },
-     {
-      "id": "1126629040112234496",
-      "name": "MikeMoore28",
-      "index": 96.81533932889266,
-      "rank": 7,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
-      "draft": {
-       "n": 30,
-       "z": -0.303162,
-       "mean": 585.76,
-       "shrunk": 488.13
-      },
-      "trade": {
-       "n": 0,
-       "z": 0.0,
-       "mean": 0.0,
-       "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 3,
-       "z": -0.404866,
-       "mean": 1893.33,
-       "shrunk": 710.0
-      }
-     },
-     {
-      "id": "735376123499827200",
-      "name": "zdubyah",
-      "index": 95.85916449851271,
-      "rank": 8,
-      "flags": [],
-      "draft": {
-       "n": 29,
-       "z": 0.28007,
-       "mean": 760.03,
-       "shrunk": 629.74
-      },
-      "trade": {
-       "n": 2,
-       "z": -0.597049,
-       "mean": -1763.33,
-       "shrunk": -705.33
-      },
-      "waiver": {
-       "n": 7,
-       "z": -1.380823,
-       "mean": 807.57,
-       "shrunk": 471.08
       }
      },
      {
       "id": "1126736991288147968",
       "name": "Bones333",
-      "index": 95.71682009518244,
-      "rank": 9,
+      "index": 100,
+      "rank": 2,
       "flags": [],
       "draft": {
-       "n": 28,
-       "z": -0.405694,
-       "mean": 562.5,
-       "shrunk": 463.24
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": -0.605828,
-       "mean": -1784.06,
-       "shrunk": -713.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 65,
-       "z": 0.862278,
-       "mean": 1098.68,
-       "shrunk": 1020.2
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "730233780220059648",
+      "name": "Buck3411",
+      "index": 100,
+      "rank": 3,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1126670727425466368",
+      "name": "JakeVeith1",
+      "index": 100,
+      "rank": 4,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1126627332791390208",
+      "name": "jeetgohil814",
+      "index": 100,
+      "rank": 5,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "999542239800037376",
+      "name": "McMysteryVan",
+      "index": 100,
+      "rank": 6,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1126629040112234496",
+      "name": "MikeMoore28",
+      "index": 100,
+      "rank": 7,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "472199225149485056",
       "name": "SimpleSims",
-      "index": 90.3435782380834,
+      "index": 100,
+      "rank": 8,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "735376123499827200",
+      "name": "zdubyah",
+      "index": 100,
+      "rank": 9,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "336977305060511744",
+      "name": "zganga",
+      "index": 100,
       "rank": 10,
       "flags": [],
       "draft": {
-       "n": 30,
-       "z": -0.695583,
-       "mean": 471.43,
-       "shrunk": 392.86
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 1,
-       "z": -0.613642,
-       "mean": -2884.0,
-       "shrunk": -721.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 30,
-       "z": -0.541303,
-       "mean": 789.37,
-       "shrunk": 676.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      }
     ],
     "meta": {
-     "nPicksScored": 300,
-     "nTradesScored": 6,
+     "nPicksScored": 0,
+     "nTradesScored": 0,
      "nTrades": 6,
      "nTradesUnbalanced": 0,
      "nTradesWithFaab": 0,
-     "nWaivers": 277,
+     "nWaivers": 0,
      "unvaluedAssets": 0,
-     "liveComponents": [
-      "draft",
-      "trade",
-      "waiver"
-     ],
-     "floor": 491
+     "liveComponents": [],
+     "floor": 0
     }
    }
   },
@@ -5602,176 +5051,45 @@
    "lineage_root": "1265188752372793344",
    "discovered_via": "wstebbins",
    "hop": 1,
-   "retained_from": "2026-09-21T17:07:30.457657+00:00",
+   "retained_from": "2026-09-21T17:16:56.472441+00:00",
    "result": {
     "managers": [
      {
-      "id": "1267965532389253120",
-      "name": "jackreichert",
-      "index": 111.8339513295789,
-      "rank": 1,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
-      "draft": {
-       "n": 25,
-       "z": 1.699811,
-       "mean": 1248.95,
-       "shrunk": 1007.22
-      },
-      "trade": {
-       "n": 0,
-       "z": 0.0,
-       "mean": 0.0,
-       "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 11,
-       "z": -0.406504,
-       "mean": 1262.09,
-       "shrunk": 867.69
-      }
-     },
-     {
-      "id": "1256055880542072832",
-      "name": "TheAlpino",
-      "index": 109.68554413684546,
-      "rank": 2,
-      "flags": [],
-      "draft": {
-       "n": 25,
-       "z": 1.009965,
-       "mean": 901.3,
-       "shrunk": 726.86
-      },
-      "trade": {
-       "n": 3,
-       "z": -0.096219,
-       "mean": -56.67,
-       "shrunk": -28.33
-      },
-      "waiver": {
-       "n": 36,
-       "z": 1.162648,
-       "mean": 1815.31,
-       "shrunk": 1593.93
-      }
-     },
-     {
-      "id": "1265342777697243136",
-      "name": "gbuckley98",
-      "index": 103.40372885614549,
-      "rank": 3,
-      "flags": [],
-      "draft": {
-       "n": 28,
-       "z": -0.376051,
-       "mean": 198.61,
-       "shrunk": 163.56
-      },
-      "trade": {
-       "n": 4,
-       "z": 1.691969,
-       "mean": 2481.75,
-       "shrunk": 1418.14
-      },
-      "waiver": {
-       "n": 23,
-       "z": -1.181658,
-       "mean": 619.57,
-       "shrunk": 508.93
-      }
-     },
-     {
-      "id": "971129080676433920",
-      "name": "wstebbins",
-      "index": 101.90525646344726,
-      "rank": 4,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
-      "draft": {
-       "n": 25,
-       "z": 0.322723,
-       "mean": 554.97,
-       "shrunk": 447.55
-      },
-      "trade": {
-       "n": 0,
-       "z": 0.0,
-       "mean": 0.0,
-       "shrunk": 0.0
-      },
-      "waiver": {
-       "n": 16,
-       "z": -0.228964,
-       "mean": 1246.69,
-       "shrunk": 949.86
-      }
-     },
-     {
-      "id": "1181310624269803520",
-      "name": "SimpsDontCry",
-      "index": 99.04427679942751,
-      "rank": 5,
-      "flags": [],
-      "draft": {
-       "n": 24,
-       "z": 0.410699,
-       "mean": 604.14,
-       "shrunk": 483.31
-      },
-      "trade": {
-       "n": 6,
-       "z": -1.393444,
-       "mean": -1616.5,
-       "shrunk": -1077.67
-      },
-      "waiver": {
-       "n": 29,
-       "z": 1.457608,
-       "mean": 2028.79,
-       "shrunk": 1730.44
-      }
-     },
-     {
       "id": "1265444081589293056",
       "name": "cookcookcookcook",
-      "index": 96.7303038830199,
-      "rank": 6,
+      "index": 100,
+      "rank": 1,
       "flags": [],
       "draft": {
-       "n": 25,
-       "z": -0.465758,
-       "mean": 157.61,
-       "shrunk": 127.11
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 1,
-       "z": -0.389104,
-       "mean": -1061.0,
-       "shrunk": -265.25
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 16,
-       "z": 1.007239,
-       "mean": 1997.62,
-       "shrunk": 1522.0
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "1267969454147387392",
       "name": "coweyes",
-      "index": 90.47412981496781,
-      "rank": 7,
-      "flags": [
-       "no trade activity \u2014 scored as league average"
-      ],
+      "index": 100,
+      "rank": 2,
+      "flags": [],
       "draft": {
-       "n": 25,
-       "z": -1.105975,
-       "mean": -165.03,
-       "shrunk": -133.09
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -5780,52 +5098,173 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 15,
-       "z": -0.547136,
-       "mean": 1070.13,
-       "shrunk": 802.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1265342777697243136",
+      "name": "gbuckley98",
+      "index": 100,
+      "rank": 3,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1267965532389253120",
+      "name": "jackreichert",
+      "index": 100,
+      "rank": 4,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1181310624269803520",
+      "name": "SimpsDontCry",
+      "index": 100,
+      "rank": 5,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "1256055880542072832",
+      "name": "TheAlpino",
+      "index": 100,
+      "rank": 6,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "1265463542870462464",
       "name": "tuckerb98",
-      "index": 86.92280871656766,
+      "index": 100,
+      "rank": 7,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "971129080676433920",
+      "name": "wstebbins",
+      "index": 100,
       "rank": 8,
       "flags": [],
       "draft": {
-       "n": 23,
-       "z": -1.495414,
-       "mean": -367.37,
-       "shrunk": -291.36
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": 0.186797,
-       "mean": 501.5,
-       "shrunk": 200.6
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 18,
-       "z": -1.263233,
-       "mean": 602.06,
-       "shrunk": 471.17
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      }
     ],
     "meta": {
-     "nPicksScored": 200,
-     "nTradesScored": 8,
+     "nPicksScored": 0,
+     "nTradesScored": 0,
      "nTrades": 8,
      "nTradesUnbalanced": 0,
      "nTradesWithFaab": 1,
-     "nWaivers": 164,
+     "nWaivers": 0,
      "unvaluedAssets": 0,
-     "liveComponents": [
-      "draft",
-      "trade",
-      "waiver"
-     ],
-     "floor": 491
+     "liveComponents": [],
+     "floor": 0
     }
    }
   },
@@ -5847,300 +5286,20 @@
    "lineage_root": "418506758122651648",
    "discovered_via": "drew0602",
    "hop": 2,
-   "retained_from": "2026-09-21T17:07:30.457657+00:00",
+   "retained_from": "2026-09-21T17:16:56.472441+00:00",
    "result": {
     "managers": [
      {
-      "id": "862563083640492032",
-      "name": "DLoBroncoGuy",
-      "index": 123.22070134182847,
-      "rank": 1,
-      "flags": [
-       "only 3 scored picks \u2014 heavily shrunk"
-      ],
-      "draft": {
-       "n": 3,
-       "z": 2.402612,
-       "mean": 2829.83,
-       "shrunk": 943.28
-      },
-      "trade": {
-       "n": 4,
-       "z": 0.58601,
-       "mean": 639.97,
-       "shrunk": 365.7
-      },
-      "waiver": {
-       "n": 17,
-       "z": 0.944247,
-       "mean": 706.41,
-       "shrunk": 545.86
-      }
-     },
-     {
-      "id": "425009971994841088",
-      "name": "DanG24",
-      "index": 109.68197330067746,
-      "rank": 2,
-      "flags": [],
-      "draft": {
-       "n": 52,
-       "z": 0.954597,
-       "mean": 657.14,
-       "shrunk": 589.16
-      },
-      "trade": {
-       "n": 51,
-       "z": 0.244737,
-       "mean": 95.25,
-       "shrunk": 89.96
-      },
-      "waiver": {
-       "n": 76,
-       "z": 0.550056,
-       "mean": 525.78,
-       "shrunk": 493.32
-      }
-     },
-     {
-      "id": "419188415423053824",
-      "name": "tdster17",
-      "index": 108.55228627042523,
-      "rank": 3,
-      "flags": [],
-      "draft": {
-       "n": 53,
-       "z": 0.911703,
-       "mean": 644.18,
-       "shrunk": 578.67
-      },
-      "trade": {
-       "n": 55,
-       "z": 0.532713,
-       "mean": 340.23,
-       "shrunk": 322.64
-      },
-      "waiver": {
-       "n": 95,
-       "z": -0.480991,
-       "mean": 374.62,
-       "shrunk": 355.89
-      }
-     },
-     {
-      "id": "340374832103362560",
-      "name": "rpatterson831",
-      "index": 108.42696213303917,
-      "rank": 4,
-      "flags": [],
-      "draft": {
-       "n": 54,
-       "z": -0.17926,
-       "mean": 346.53,
-       "shrunk": 311.88
-      },
-      "trade": {
-       "n": 14,
-       "z": 2.324492,
-       "mean": 2149.71,
-       "shrunk": 1770.35
-      },
-      "waiver": {
-       "n": 56,
-       "z": -1.080964,
-       "mean": 300.55,
-       "shrunk": 275.92
-      }
-     },
-     {
-      "id": "382283172198653952",
-      "name": "The1Hudsonian",
-      "index": 104.13806003458285,
-      "rank": 5,
-      "flags": [],
-      "draft": {
-       "n": 58,
-       "z": -0.249745,
-       "mean": 325.12,
-       "shrunk": 294.64
-      },
-      "trade": {
-       "n": 53,
-       "z": 0.541724,
-       "mean": 348.59,
-       "shrunk": 329.92
-      },
-      "waiver": {
-       "n": 91,
-       "z": 1.407598,
-       "mean": 641.01,
-       "shrunk": 607.62
-      }
-     },
-     {
-      "id": "418503369217282048",
-      "name": "ChrisMo2413",
-      "index": 101.46882205916748,
-      "rank": 6,
-      "flags": [],
-      "draft": {
-       "n": 68,
-       "z": -0.423205,
-       "mean": 274.47,
-       "shrunk": 252.22
-      },
-      "trade": {
-       "n": 97,
-       "z": 0.756584,
-       "mean": 519.09,
-       "shrunk": 503.52
-      },
-      "waiver": {
-       "n": 107,
-       "z": 0.29813,
-       "mean": 481.22,
-       "shrunk": 459.74
-      }
-     },
-     {
-      "id": "341446083597119488",
-      "name": "Icewalker",
-      "index": 98.86813543852423,
-      "rank": 7,
-      "flags": [],
-      "draft": {
-       "n": 46,
-       "z": -0.067418,
-       "mean": 383.48,
-       "shrunk": 339.23
-      },
-      "trade": {
-       "n": 25,
-       "z": -0.307652,
-       "mean": -399.12,
-       "shrunk": -356.36
-      },
-      "waiver": {
-       "n": 153,
-       "z": 0.43953,
-       "mean": 494.23,
-       "shrunk": 478.59
-      }
-     },
-     {
-      "id": "320727231292788736",
-      "name": "drew0602",
-      "index": 98.09379975160545,
-      "rank": 8,
-      "flags": [],
-      "draft": {
-       "n": 45,
-       "z": 0.03433,
-       "mean": 412.66,
-       "shrunk": 364.11
-      },
-      "trade": {
-       "n": 64,
-       "z": -0.689252,
-       "mean": -695.84,
-       "shrunk": -664.68
-      },
-      "waiver": {
-       "n": 281,
-       "z": 0.646621,
-       "mean": 515.2,
-       "shrunk": 506.19
-      }
-     },
-     {
       "id": "418800165009235968",
       "name": "badaceandy",
-      "index": 96.54797614215718,
-      "rank": 9,
+      "index": 100,
+      "rank": 1,
       "flags": [],
       "draft": {
-       "n": 47,
-       "z": 0.079871,
-       "mean": 423.15,
-       "shrunk": 375.25
-      },
-      "trade": {
-       "n": 41,
-       "z": -0.687654,
-       "mean": -711.93,
-       "shrunk": -663.39
-      },
-      "waiver": {
-       "n": 281,
-       "z": -0.195944,
-       "mean": 400.89,
-       "shrunk": 393.88
-      }
-     },
-     {
-      "id": "419011867357224960",
-      "name": "Jay505",
-      "index": 93.81350518139818,
-      "rank": 10,
-      "flags": [],
-      "draft": {
-       "n": 34,
-       "z": 0.113512,
-       "mean": 451.15,
-       "shrunk": 383.47
-      },
-      "trade": {
-       "n": 18,
-       "z": -0.605716,
-       "mean": -696.72,
-       "shrunk": -597.19
-      },
-      "waiver": {
-       "n": 71,
-       "z": -1.714589,
-       "mean": 204.94,
-       "shrunk": 191.46
-      }
-     },
-     {
-      "id": "420047060323016704",
-      "name": "bcoop12",
-      "index": 91.56029771068637,
-      "rank": 11,
-      "flags": [],
-      "draft": {
-       "n": 41,
-       "z": -0.409962,
-       "mean": 292.84,
-       "shrunk": 255.46
-      },
-      "trade": {
-       "n": 16,
-       "z": -1.355576,
-       "mean": -1428.62,
-       "shrunk": -1203.05
-      },
-      "waiver": {
-       "n": 77,
-       "z": 0.778572,
-       "mean": 557.79,
-       "shrunk": 523.78
-      }
-     },
-     {
-      "id": "roster:1180576062946091008:7",
-      "name": "Team 7",
-      "index": 88.7252875057154,
-      "rank": 12,
-      "flags": [
-       "no trade activity \u2014 scored as league average",
-       "only 4 scored picks \u2014 heavily shrunk"
-      ],
-      "draft": {
-       "n": 4,
-       "z": -1.623982,
-       "mean": -103.58,
-       "shrunk": -41.43
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
        "n": 0,
@@ -6149,54 +5308,323 @@
        "shrunk": 0.0
       },
       "waiver": {
-       "n": 3,
-       "z": 0.402291,
-       "mean": 1263.0,
-       "shrunk": 473.62
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "420047060323016704",
+      "name": "bcoop12",
+      "index": 100,
+      "rank": 2,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      },
      {
       "id": "1110772586587340800",
       "name": "byatoe61",
-      "index": 76.90219313019256,
-      "rank": 13,
-      "flags": [
-       "only 5 scored picks \u2014 heavily shrunk"
-      ],
+      "index": 100,
+      "rank": 3,
+      "flags": [],
       "draft": {
-       "n": 5,
-       "z": -1.543053,
-       "mean": -47.61,
-       "shrunk": -21.64
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "trade": {
-       "n": 2,
-       "z": -1.340411,
-       "mean": -2977.0,
-       "shrunk": -1190.8
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       },
       "waiver": {
-       "n": 2,
-       "z": -1.994557,
-       "mean": 539.5,
-       "shrunk": 154.14
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "418503369217282048",
+      "name": "ChrisMo2413",
+      "index": 100,
+      "rank": 4,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "425009971994841088",
+      "name": "DanG24",
+      "index": 100,
+      "rank": 5,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "862563083640492032",
+      "name": "DLoBroncoGuy",
+      "index": 100,
+      "rank": 6,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "320727231292788736",
+      "name": "drew0602",
+      "index": 100,
+      "rank": 7,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "341446083597119488",
+      "name": "Icewalker",
+      "index": 100,
+      "rank": 8,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "419011867357224960",
+      "name": "Jay505",
+      "index": 100,
+      "rank": 9,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "340374832103362560",
+      "name": "rpatterson831",
+      "index": 100,
+      "rank": 10,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "419188415423053824",
+      "name": "tdster17",
+      "index": 100,
+      "rank": 11,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "roster:1180576062946091008:7",
+      "name": "Team 7",
+      "index": 100,
+      "rank": 12,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      }
+     },
+     {
+      "id": "382283172198653952",
+      "name": "The1Hudsonian",
+      "index": 100,
+      "rank": 13,
+      "flags": [],
+      "draft": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "trade": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
+      },
+      "waiver": {
+       "n": 0,
+       "z": 0.0,
+       "mean": 0.0,
+       "shrunk": 0.0
       }
      }
     ],
     "meta": {
-     "nPicksScored": 510,
-     "nTradesScored": 219,
+     "nPicksScored": 0,
+     "nTradesScored": 0,
      "nTrades": 232,
      "nTradesUnbalanced": 0,
      "nTradesWithFaab": 1,
-     "nWaivers": 1310,
-     "unvaluedAssets": 62,
-     "liveComponents": [
-      "draft",
-      "trade",
-      "waiver"
-     ],
-     "floor": 491
+     "nWaivers": 0,
+     "unvaluedAssets": 0,
+     "liveComponents": [],
+     "floor": 0
     }
    }
   }
@@ -6204,8 +5632,8 @@
  "values": {
   "available": true,
   "floor": 491,
-  "n_mapped": 458,
+  "n_mapped": 462,
   "captured_at": "2026-06-01T20:47:54.396363+00:00",
-  "history_days": 0
+  "history_days": 27
  }
 }
