@@ -519,6 +519,410 @@ function msScoreLeague(input, opts) {
   };
 }
 
+/* ============================================================
+ * REALIZED PRODUCTION — the second lens
+ * ============================================================
+ *
+ * Everything above prices a transaction against the KeepTradeCut market:
+ * it answers "was this a good bet at the time". It cannot answer the
+ * question an owner actually remembers -- "did this work out". A trade for
+ * a back who then carries you to a title and a trade for a back who then
+ * tears an achilles can price identically on the day they are made.
+ *
+ * This half answers the second question from ground truth: the points the
+ * acquired players actually scored for the manager who acquired them,
+ * taken from Sleeper's own weekly matchup records.
+ *
+ * Why this source and not a stat line
+ * -----------------------------------
+ * ``/league/{id}/matchups/{week}`` returns, per roster, a
+ * ``players_points`` map of ``player_id -> points``. Those numbers are
+ * computed by Sleeper with THAT LEAGUE'S OWN scoring settings. This league,
+ * for instance, is half-PPR with a tight-end bonus, so a generic PPR stat
+ * feed would be wrong for it in a way that quietly favours receivers. Using
+ * the league's own numbers means the realized lens is exact rather than
+ * approximate, and needs no scoring configuration of its own.
+ *
+ * Ownership is read from the same records, not inferred from dates
+ * ----------------------------------------------------------------
+ * The matchup record for a week lists the roster each player was actually
+ * on that week. So "was this player still on the acquiring roster in week
+ * 14" is a lookup, not a calculation. That disposes of every awkward case
+ * in one move: a player traded on again, dropped, stashed on someone else's
+ * taxi squad, or acquired the day before kickoff. We never count a week a
+ * player did not spend on the acquiring roster, and we never have to guess
+ * what a transaction date implies about a lineup lock.
+ *
+ * The normalisation problem
+ * -------------------------
+ * Raw points make a week-2 trade look better than a week-12 trade purely
+ * because it had ten more weeks to accumulate. Two defences, both reported:
+ *
+ *   - points per week held, which is a rate and so span-independent; and
+ *   - PAR, points above replacement, where "replacement" is the MEDIAN
+ *     score of a started player at the same position in the same week of
+ *     the same league.
+ *
+ * PAR is the headline. Being position-relative it does not reward acquiring
+ * a quarterback over a running back for the structural reason that
+ * quarterbacks score more, and being week-relative it self-normalises for
+ * span: a quiet week contributes near zero on both sides rather than
+ * padding whoever held the ball longest. It is also league-relative, so a
+ * high-scoring format does not inflate it.
+ *
+ * Bench points are counted in the raw total but NOT in PAR, which sums only
+ * weeks the player was actually started. The distinction is deliberate and
+ * both numbers are shown: the raw total is what you acquired, PAR is what
+ * it did for your record. A star who rode your bench produced points that
+ * never won you a game, and flattening that into one number would hide a
+ * real and interesting failure.
+ */
+
+function msWeekId(season, week) {
+  return String(season) + ':' + String(week);
+}
+
+/* Position of a player, via the values artifact, with a caller-supplied
+ * lookup so the core stays free of globals and the tests can inject one. */
+function msPosLookup(map) {
+  return function (playerId) {
+    var e = map ? map[String(playerId)] : null;
+    if (!e) return '';
+    return (typeof e === 'string' ? e : e[2]) || '';
+  };
+}
+
+/* Fold raw Sleeper matchup responses into a chronological ledger.
+ *
+ * `weeksIn` is [{ season, week, leagueId, matchups: [...] }] in any order;
+ * `rosterToUser` maps "leagueId:rosterId" -> userId, because roster ids are
+ * reassigned between seasons and user ids are not. Ownership is therefore
+ * recorded against the manager, which is what survives the chain.
+ */
+function msBuildLedger(weeksIn, rosterToUser) {
+  var weeks = {};
+  var keys = [];
+  (weeksIn || []).forEach(function (entry) {
+    if (!entry) return;
+    var id = msWeekId(entry.season, entry.week);
+    var bucket = weeks[id];
+    if (!bucket) {
+      bucket = weeks[id] = { id: id, season: String(entry.season),
+                             week: Number(entry.week), owner: {},
+                             pts: {}, start: {} };
+      keys.push(id);
+    }
+    (entry.matchups || []).forEach(function (m) {
+      if (!m) return;
+      var uid = (rosterToUser || {})[entry.leagueId + ':' + m.roster_id];
+      if (!uid) uid = 'roster:' + entry.leagueId + ':' + m.roster_id;
+      var pp = m.players_points || {};
+      var starters = {};
+      (m.starters || []).forEach(function (s) { starters[String(s)] = true; });
+      /* `players` is the full roster; `players_points` covers it too, but a
+       * roster entry with no points row still proves ownership, so both are
+       * walked. Ownership and scoring are separate facts. */
+      (m.players || []).forEach(function (pid) {
+        bucket.owner[String(pid)] = uid;
+      });
+      for (var pid in pp) {
+        if (!Object.prototype.hasOwnProperty.call(pp, pid)) continue;
+        bucket.owner[String(pid)] = uid;
+        var v = pp[pid];
+        if (typeof v === 'number' && isFinite(v)) bucket.pts[String(pid)] = v;
+        if (starters[String(pid)]) bucket.start[String(pid)] = true;
+      }
+    });
+  });
+  /* Drop weeks that have not been played.
+   *
+   * Sleeper answers `matchups/{week}` for the WHOLE season the moment it
+   * opens: an unplayed week comes back as a full set of roster objects with
+   * every `players_points` value at 0, indistinguishable at a glance from a
+   * real week. Verified against the live API mid-season: 2026 weeks 3-18
+   * returned twelve rosters each and not one non-zero score.
+   *
+   * Left in, those phantom weeks are counted as weeks held. That does not
+   * change any points total, but it wrecks every rate: a player acquired
+   * last November showed 26 weeks held in September, so points-per-week and
+   * PAR-per-week were diluted by a factor of three by weeks that do not
+   * exist yet. A week counts only once somebody has actually scored in it.
+   */
+  var played = keys.filter(function (id) {
+    var w = weeks[id];
+    for (var pid in w.pts) {
+      if (w.pts[pid]) return true;
+    }
+    delete weeks[id];
+    return false;
+  });
+  played.sort(function (a, b) {
+    var A = a.split(':'), B = b.split(':');
+    return (Number(A[0]) - Number(B[0])) || (Number(A[1]) - Number(B[1]));
+  });
+  return { order: played, weeks: weeks };
+}
+
+function msWeekIndex(ledger, season, week) {
+  var id = msWeekId(season, week);
+  var order = (ledger && ledger.order) || [];
+  for (var i = 0; i < order.length; i++) if (order[i] === id) return i;
+  return -1;
+}
+
+/* Replacement level per week per position: the median score among players
+ * actually STARTED at that position in that league that week. Median rather
+ * than mean because a single 45-point week should move the bar for what a
+ * typical starter gave you hardly at all. */
+function msBaselines(ledger, posOf) {
+  var out = {};
+  var order = (ledger && ledger.order) || [];
+  var weeks = (ledger && ledger.weeks) || {};
+  order.forEach(function (id) {
+    var w = weeks[id];
+    if (!w) return;
+    var buckets = {};
+    for (var pid in w.start) {
+      if (!w.start[pid]) continue;
+      var pos = posOf(pid);
+      if (!pos) continue;
+      var v = w.pts[pid];
+      if (typeof v !== 'number' || !isFinite(v)) continue;
+      (buckets[pos] = buckets[pos] || []).push(v);
+    }
+    var per = {};
+    for (var p in buckets) per[p] = msMedian(buckets[p]);
+    out[id] = per;
+  });
+  return out;
+}
+
+/* Tenure + production for one acquired player, from `startIdx` forward.
+ *
+ * `graceWeeks` exists because a trade agreed after a lineup lock shows up on
+ * the new roster the following week. Before the player is first seen on the
+ * acquiring roster we tolerate a short wait; once the tenure has started,
+ * the first week they are elsewhere (or on nobody) ends it. Without the
+ * grace we would report zero for a Saturday trade; without the hard stop
+ * after first sighting we would credit a manager for a player they had
+ * already traded on.
+ */
+function msRealizedAsset(ledger, baselines, posOf, startIdx, playerId, userId, opts) {
+  opts = opts || {};
+  var grace = opts.graceWeeks == null ? 3 : opts.graceWeeks;
+  var order = (ledger && ledger.order) || [];
+  var weeks = (ledger && ledger.weeks) || {};
+  var pid = String(playerId);
+  var pos = posOf(pid) || '';
+
+  var out = {
+    playerId: pid, pos: pos, weekIds: [],
+    weeksHeld: 0, starts: 0,
+    ptsTotal: 0, ptsStarted: 0,
+    par: 0, parWeeks: 0, parAvailable: false,
+    firstWeek: null, lastWeek: null, departedWeek: null,
+    arrived: false, truncated: false
+  };
+  if (startIdx < 0) return out;
+
+  var waited = 0;
+  for (var i = startIdx; i < order.length; i++) {
+    var id = order[i];
+    var w = weeks[id];
+    if (!w) continue;                       /* week not fetched at all */
+    var owner = w.owner[pid];
+    if (owner !== userId) {
+      if (out.arrived) { out.departedWeek = id; break; }
+      waited++;
+      if (waited > grace) break;            /* never actually delivered */
+      continue;
+    }
+    if (!out.arrived) { out.arrived = true; out.firstWeek = id; }
+    out.lastWeek = id;
+    out.weekIds.push(id);
+    out.weeksHeld++;
+    var v = w.pts[pid];
+    if (typeof v === 'number' && isFinite(v)) {
+      out.ptsTotal += v;
+      if (w.start[pid]) {
+        out.ptsStarted += v;
+        out.starts++;
+        var base = pos ? ((baselines || {})[id] || {})[pos] : null;
+        if (typeof base === 'number' && isFinite(base)) {
+          out.par += (v - base);
+          out.parWeeks++;
+        }
+      }
+    }
+  }
+  /* Still on the roster at the end of the record: production is ongoing,
+   * not final. The page says so rather than presenting a running total as
+   * a settled result. */
+  if (out.arrived && out.departedWeek == null &&
+      out.lastWeek === order[order.length - 1]) {
+    out.truncated = true;
+  }
+  out.parAvailable = out.parWeeks > 0;
+  out.ppw = out.weeksHeld ? out.ptsTotal / out.weeksHeld : 0;
+  out.parPerWeek = out.weeksHeld ? out.par / out.weeksHeld : 0;
+  return out;
+}
+
+/* Where a player ranked at their own position, by total points, among every
+ * player rostered in this league over the same span. This is what makes a
+ * number like "147 points" legible: 147 is meaningless until you know it
+ * was RB2 over those weeks. */
+function msPosRankInSpan(ledger, posOf, weekIds, pos, playerId) {
+  var totals = {};
+  var weeks = (ledger && ledger.weeks) || {};
+  (weekIds || []).forEach(function (id) {
+    var w = weeks[id];
+    if (!w) return;
+    for (var pid in w.pts) {
+      if (posOf(pid) !== pos) continue;
+      var v = w.pts[pid];
+      if (typeof v !== 'number' || !isFinite(v)) continue;
+      totals[pid] = (totals[pid] || 0) + v;
+    }
+  });
+  var arr = [];
+  for (var k in totals) arr.push({ id: k, pts: totals[k] });
+  arr.sort(function (a, b) { return b.pts - a.pts || a.id.localeCompare(b.id); });
+  var rank = 0;
+  for (var i = 0; i < arr.length; i++) {
+    if (arr[i].id === String(playerId)) { rank = i + 1; break; }
+  }
+  return { rank: rank, of: arr.length,
+           points: totals[String(playerId)] || 0, pos: pos };
+}
+
+/* Realized view of one trade.
+ *
+ * Draft picks are deliberately NOT given a realized value. Sleeper's trade
+ * record names a traded pick by (season, round, original roster) but the
+ * draft-results feed does not expose which selection descended from which
+ * traded slot, so attributing a drafted player's production back to the
+ * pick that bought him would require a guess. Guessing here would be
+ * indistinguishable from evidence on the page, so picks are reported as
+ * unattributed and the trade is flagged `partial`. This is exactly the case
+ * the market lens already handles well -- KTC prices picks directly -- which
+ * is the clearest argument for showing both lenses rather than one blended
+ * number.
+ */
+function msRealizedTrade(trade, ledger, baselines, posOf, opts) {
+  /* Deriving these when absent rather than treating a missing table as an
+   * empty one: a null here would otherwise yield PAR 0 everywhere, which
+   * reads as "replacement level" rather than "not computed" and would be
+   * indistinguishable from a real result on the page. */
+  if (!baselines) baselines = msBaselines(ledger, posOf);
+  var startIdx = msWeekIndex(ledger, trade.season, trade.week);
+  var sides = (trade.sides || []).map(function (s) {
+    var assets = [], picks = 0;
+    (s.received || []).forEach(function (a) {
+      if (a.kind === 'pick' || !a.playerId) { picks++; return; }
+      var r = msRealizedAsset(ledger, baselines, posOf, startIdx,
+                              a.playerId, s.managerId, opts);
+      r.label = a.label;
+      r.rank = r.weeksHeld && r.pos
+        ? msPosRankInSpan(ledger, posOf, r.weekIds, r.pos, a.playerId)
+        : null;
+      assets.push(r);
+    });
+    var tot = { ptsTotal: 0, ptsStarted: 0, par: 0, weeksHeld: 0, starts: 0 };
+    var anyPar = false, ongoing = false;
+    assets.forEach(function (r) {
+      tot.ptsTotal += r.ptsTotal;
+      tot.ptsStarted += r.ptsStarted;
+      tot.par += r.par;
+      tot.starts += r.starts;
+      if (r.weeksHeld > tot.weeksHeld) tot.weeksHeld = r.weeksHeld;
+      if (r.parAvailable) anyPar = true;
+      if (r.truncated) ongoing = true;
+    });
+    return {
+      managerId: s.managerId, assets: assets, picksUnattributed: picks,
+      ptsTotal: tot.ptsTotal, ptsStarted: tot.ptsStarted, par: tot.par,
+      starts: tot.starts, weeksHeld: tot.weeksHeld,
+      parPerWeek: tot.weeksHeld ? tot.par / tot.weeksHeld : 0,
+      ppw: tot.weeksHeld ? tot.ptsTotal / tot.weeksHeld : 0,
+      parAvailable: anyPar, ongoing: ongoing
+    };
+  });
+
+  var measurable = sides.length >= 2 && sides.some(function (s) {
+    return s.assets.length > 0;
+  });
+  var partial = sides.some(function (s) { return s.picksUnattributed > 0; });
+  var ongoing = sides.some(function (s) { return s.ongoing; });
+
+  /* Net is stated from each side's own point of view: what I got minus what
+   * the other side got. Unlike the market lens this is NOT guaranteed
+   * zero-sum -- both managers can genuinely win a trade, because points are
+   * produced rather than exchanged. That is a property of the measure, not
+   * a bug, and the page says so. */
+  sides.forEach(function (s) {
+    var others = sides.filter(function (o) { return o !== s; });
+    var oppPar = 0, oppPts = 0, oppPpw = 0;
+    others.forEach(function (o) {
+      oppPar += o.par; oppPts += o.ptsTotal; oppPpw += o.parPerWeek;
+    });
+    s.netPar = s.par - oppPar;
+    s.netPts = s.ptsTotal - oppPts;
+    s.netParPerWeek = s.parPerWeek - oppPpw;
+  });
+
+  return {
+    id: trade.id, date: trade.date || null,
+    season: trade.season, week: trade.week,
+    startIdx: startIdx, measurable: measurable && startIdx >= 0,
+    partial: partial, ongoing: ongoing, sides: sides
+  };
+}
+
+/* Annotate a scored result in place with the realized lens.
+ *
+ * Kept separate from msScoreLeague on purpose. The Manager Score index
+ * stays exactly what it was -- the owner's feedback was that the score
+ * reads well for drafts and waivers, so silently folding a second measure
+ * into the headline would break something that already works. Realized
+ * production is displayed beside the market view, never averaged into it.
+ */
+function msAttachRealized(result, input, ledger, posOf, opts) {
+  if (!result || !result.audit) return result;
+  var baselines = msBaselines(ledger, posOf);
+  var byId = {};
+  (input.trades || []).forEach(function (t) {
+    byId[String(t.id)] = msRealizedTrade(t, ledger, baselines, posOf, opts);
+  });
+  var measurable = 0;
+  result.audit.trades.forEach(function (t) {
+    var r = byId[String(t.id)];
+    if (!r) return;
+    t.realized = r;
+    if (r.measurable) measurable++;
+  });
+  /* Per-manager rollup, reported beside the index rather than inside it. */
+  var perMgr = {};
+  result.audit.trades.forEach(function (t) {
+    if (!t.realized || !t.realized.measurable) return;
+    t.realized.sides.forEach(function (s) {
+      var m = perMgr[s.managerId] ||
+        (perMgr[s.managerId] = { n: 0, par: 0, pts: 0, netPar: 0 });
+      m.n++; m.par += s.par; m.pts += s.ptsTotal; m.netPar += s.netPar;
+    });
+  });
+  (result.managers || []).forEach(function (m) {
+    var p = perMgr[m.id];
+    m.realized = p
+      ? { n: p.n, par: p.par, pts: p.pts, netPar: p.netPar,
+          netParPerTrade: p.n ? p.netPar / p.n : 0 }
+      : { n: 0, par: 0, pts: 0, netPar: 0, netParPerTrade: 0 };
+  });
+  result.meta = result.meta || {};
+  result.meta.nTradesRealized = measurable;
+  return result;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = {
     MS_WEIGHTS: MS_WEIGHTS, MS_SHRINK_K: MS_SHRINK_K,
@@ -528,7 +932,12 @@ if (typeof module !== 'undefined' && module.exports) {
     msExpectedCurve: msExpectedCurve, msOrdinal: msOrdinal,
     msSeriesValueAt: msSeriesValueAt, msSeriesPeakAfter: msSeriesPeakAfter,
     msCapture: msCapture,
-    msResolvePickValue: msResolvePickValue, msScoreLeague: msScoreLeague
+    msResolvePickValue: msResolvePickValue, msScoreLeague: msScoreLeague,
+    msWeekId: msWeekId, msPosLookup: msPosLookup,
+    msBuildLedger: msBuildLedger, msWeekIndex: msWeekIndex,
+    msBaselines: msBaselines, msRealizedAsset: msRealizedAsset,
+    msPosRankInSpan: msPosRankInSpan, msRealizedTrade: msRealizedTrade,
+    msAttachRealized: msAttachRealized
   };
 }
 """
@@ -551,6 +960,8 @@ var MSX = {
   series: null,        /* managerscore_series.json - the dated value history */
   result: null,
   leagueChain: [],
+  ledger: null,        /* weekly ownership + points, the realized lens */
+  posOf: null,
   loadError: null
 };
 
@@ -706,10 +1117,12 @@ function msFetchLeagueData(leagueId, includeHistory) {
         msGetJSONSoft(SLEEPER + '/league/' + id + '/users', []),
         msGetJSONSoft(SLEEPER + '/league/' + id + '/rosters', []),
         msGetJSONSoft(SLEEPER + '/league/' + id + '/drafts', []),
-        msFetchTransactions(id)
+        msFetchTransactions(id),
+        msFetchMatchups(id, lg.season)
       ]).then(function (parts) {
         return { league: lg, users: parts[0] || [], rosters: parts[1] || [],
-                 drafts: parts[2] || [], transactions: parts[3] || [] };
+                 drafts: parts[2] || [], transactions: parts[3] || [],
+                 matchupWeeks: parts[4] || [] };
       });
     }));
   }).then(function (seasons) {
@@ -721,6 +1134,29 @@ function msFetchLeagueData(leagueId, includeHistory) {
           .then(function (p) { return { draft: d, picks: p || [] }; });
       })).then(function (drafts) { s.draftPicks = drafts; return s; });
     }));
+  });
+}
+
+/* Weekly matchup records for one league season.
+ *
+ * This is the realized lens's entire data source. Each week's response
+ * carries, per roster, `players_points` (the league's OWN scoring applied
+ * to every rostered player, bench included) and `starters`. Weeks that do
+ * not exist yet come back empty and are simply absent from the ledger,
+ * which is why an in-season league needs no current-week lookup: we file
+ * what Sleeper actually has.
+ */
+function msFetchMatchups(leagueId, season) {
+  var weeks = [];
+  for (var w = 1; w <= 18; w++) weeks.push(w);
+  return Promise.all(weeks.map(function (w) {
+    return msGetJSONSoft(SLEEPER + '/league/' + leagueId + '/matchups/' + w, [])
+      .then(function (m) {
+        return { season: String(season), week: w, leagueId: leagueId,
+                 matchups: (m && m.length) ? m : [] };
+      });
+  })).then(function (rows) {
+    return rows.filter(function (r) { return r.matchups.length > 0; });
   });
 }
 
@@ -833,7 +1269,8 @@ function msBuildInput(seasons) {
             var sd = side(uid); if (!sd) return;
             var c = msCaptureForPlayer(pid, date, null);
             if (c.evaluable) evaluable++; else if (c.vAt != null) tooRecent++; else offBoard++;
-            sd.received.push({ kind: 'player', label: c.name, pos: c.pos,
+            sd.received.push({ kind: 'player', playerId: String(pid),
+                               label: c.name, pos: c.pos,
                                evaluable: c.evaluable, capture: c.capture,
                                vAt: c.vAt, peak: c.peak, reason: c.reason });
           });
@@ -841,7 +1278,8 @@ function msBuildInput(seasons) {
             var uid = userFor(lid, t.drops[pid]);
             var sd = side(uid); if (!sd) return;
             var c = msCaptureForPlayer(pid, date, null);
-            sd.given.push({ kind: 'player', label: c.name, pos: c.pos,
+            sd.given.push({ kind: 'player', playerId: String(pid),
+                            label: c.name, pos: c.pos,
                             evaluable: c.evaluable, capture: c.capture,
                             vAt: c.vAt, peak: c.peak, reason: c.reason });
           });
@@ -867,9 +1305,14 @@ function msBuildInput(seasons) {
           });
           var sides = Object.keys(bySide).map(function (k) { return bySide[k]; });
           if (sides.length >= 2) {
+            /* season + leg locate the trade in the weekly ledger, which is
+             * how the realized lens knows where to start counting. `leg` is
+             * Sleeper's own scoring week for the transaction. */
             trades.push({ id: String(t.transaction_id || ''), date: date,
                           basis: date ? null : 'current', sides: sides,
-                          faab: faabLegs });
+                          faab: faabLegs, leagueId: lid,
+                          season: String(s.league.season || ''),
+                          week: Number(t.leg || 1) });
           }
         } else if (type === 'waiver' || type === 'free_agent') {
           var faab = null;
@@ -895,7 +1338,11 @@ function msBuildInput(seasons) {
         managers: Object.keys(managers).map(function (k) { return managers[k]; }),
         drafts: drafts, trades: trades, waivers: waivers
       },
-      coverage: { evaluable: evaluable, tooRecent: tooRecent, offBoard: offBoard }
+      coverage: { evaluable: evaluable, tooRecent: tooRecent, offBoard: offBoard },
+      /* The realized lens resolves weekly matchup rosters to managers with
+       * this, for the same reason the scoring does: roster ids are recycled
+       * between seasons, user ids are not. */
+      rosterToUser: rosterToUser
     };
   });
 }
@@ -1072,6 +1519,7 @@ function msRenderAudit(managerId) {
     : '<p class="ms-sub">No scored draft picks.</p>';
 
   html += '<h4>Trades (' + trades.length + ')</h4>';
+  html += msRenderLensCompare(mgr, trades);
   html += trades.length ? trades.map(function (t) {
     var mine = null;
     t.sides.forEach(function (s) { if (s.managerId === managerId) mine = s; });
@@ -1089,7 +1537,7 @@ function msRenderAudit(managerId) {
     }
     return '<div class="ms-trade' + (t.scored ? '' : ' ms-trade-unscored') + '">' +
       '<div class="ms-trade-head">' + msEsc(t.date || 'undated') +
-      ' · net <span class="' + msDeltaClass(mine.net) + '">' +
+      ' · market net <span class="' + msDeltaClass(mine.net) + '">' +
       msSigned(mine.net) + '</span>' +
       (t.scored ? '' : (t.unbalanced
         ? ' · <strong>not scored</strong> (sides did not balance — likely a' +
@@ -1103,7 +1551,9 @@ function msRenderAudit(managerId) {
       '<div class="ms-trade-body"><span class="ms-got">got</span> ' +
       assets(mine.assets.received || []) + '<br>' +
       '<span class="ms-gave">gave</span> ' + assets(mine.assets.given || []) +
-      '</div></div>';
+      '</div>' +
+      msRenderRealizedTrade(t, managerId) +
+      '</div>';
   }).join('') : '<p class="ms-sub">No trades on record.</p>';
 
   html += '<h4>Waiver / free-agent adds (' + waivers.length + ')</h4>';
@@ -1125,6 +1575,131 @@ function msRenderAudit(managerId) {
   box.style.display = 'block';
   box.innerHTML = html;
   box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ------------------------------------------- realized production render */
+
+/* The two lenses answer different questions, so they are reported as two
+ * numbers and never reconciled into one. Where they point opposite ways
+ * that is said out loud: a manager who traded badly by the market and well
+ * by the scoreboard has learned something real about their own league, and
+ * averaging the two would delete exactly that signal. */
+function msRenderLensCompare(mgr, trades) {
+  var rz = mgr.realized;
+  if (!rz || !rz.n) return '';
+  var market = mgr.trade.total;
+  var html = '<p class="ms-sub" style="margin-bottom:8px">' +
+    '<span class="ms-lens ms-lens-market">market</span>' +
+    'net captured value ' + msSigned(market) + ' over ' + mgr.trade.n +
+    ' scored trade' + (mgr.trade.n === 1 ? '' : 's') + ' · ' +
+    '<span class="ms-lens ms-lens-real">realized</span>' +
+    'net ' + msSigned(rz.netPar, 1) + ' PAR (' + msFmt(rz.pts, 1) +
+    ' pts acquired) over ' + rz.n + ' measurable trade' +
+    (rz.n === 1 ? '' : 's') + '.</p>';
+
+  var disagree = (market > 0 && rz.netPar < 0) || (market < 0 && rz.netPar > 0);
+  if (disagree) {
+    html += '<div class="ms-disagree"><strong>The two lenses disagree here.</strong> ' +
+      (market > 0
+        ? 'By market value this manager acquired the better assets; by the ' +
+          'scoreboard those assets produced less than what they gave up. ' +
+          'That is the shape of buying talent that did not play, got hurt, ' +
+          'or sat on the bench.'
+        : 'By market value this manager gave up more than they got; by the ' +
+          'scoreboard what they acquired outproduced it. That is the shape ' +
+          'of buying win-now production cheaply — which is a real way to ' +
+          'win a league, and a real way to lose value doing it.') +
+      '</div>';
+  }
+  return html;
+}
+
+/* One line per acquired player: what he actually produced for the manager
+ * who traded for him, and where that ranked at his position over exactly
+ * the weeks the manager held him. The rank is what makes the total mean
+ * something -- "147 points" is a number, "147 points, RB2 over those
+ * weeks" is an argument. */
+function msRealizedAssetLine(r) {
+  var bits = [];
+  bits.push('<strong>' + msFmt(r.ptsTotal, 1) + ' pts</strong>');
+  bits.push('over ' + r.weeksHeld + ' wk' + (r.weeksHeld === 1 ? '' : 's'));
+  if (r.starts < r.weeksHeld) {
+    bits.push(msFmt(r.ptsStarted, 1) + ' started (' + r.starts + ')');
+  }
+  if (r.parAvailable) {
+    bits.push('PAR <span class="' + msDeltaClass(r.par) + '">' +
+              msSigned(r.par, 1) + '</span>');
+  }
+  if (r.rank && r.rank.rank) {
+    bits.push(msEsc(r.pos) + msEsc(String(r.rank.rank)) + ' of ' +
+              r.rank.of + ' in that span');
+  }
+  var tail = '';
+  if (r.departedWeek) {
+    tail = ' <span class="ms-basis">(left the roster ' +
+           msEsc(r.departedWeek.replace(':', ' wk')) + ')</span>';
+  } else if (r.truncated) {
+    tail = ' <span class="ms-basis">(still rostered — still accruing)</span>';
+  }
+  if (!r.arrived) {
+    return '<li>' + msEsc(r.label) + ' <span class="ms-basis">— never appeared ' +
+           'on the acquiring roster in the weekly records</span></li>';
+  }
+  return '<li>' + msEsc(r.label) + ' — ' + bits.join(' · ') + tail + '</li>';
+}
+
+function msRenderRealizedTrade(t, managerId) {
+  var rz = t.realized;
+  if (!rz) return '';
+  if (!rz.measurable) {
+    return '<div class="ms-realized"><div class="ms-realized-head">' +
+      'Realized production</div><p class="ms-sub" style="margin:.3rem 0 0">' +
+      'Nothing to measure yet — no weekly scoring records cover this trade.' +
+      '</p></div>';
+  }
+  var mine = null, theirs = [];
+  rz.sides.forEach(function (s) {
+    if (s.managerId === managerId) mine = s; else theirs.push(s);
+  });
+  if (!mine) return '';
+
+  var html = '<div class="ms-realized"><div class="ms-realized-head">' +
+    'Realized production <span class="ms-basis">— points actually scored ' +
+    'for the acquiring roster, in this league\'s own scoring</span></div>';
+
+  html += '<div class="ms-realized-net">You received <strong>' +
+    msFmt(mine.ptsTotal, 1) + '</strong> pts';
+  if (mine.parAvailable) {
+    html += ' (PAR <span class="' + msDeltaClass(mine.par) + '">' +
+      msSigned(mine.par, 1) + '</span>, ' +
+      msSigned(mine.parPerWeek, 2) + '/wk)';
+  }
+  var oppPts = 0;
+  theirs.forEach(function (s) { oppPts += s.ptsTotal; });
+  html += ' · they received <strong>' + msFmt(oppPts, 1) + '</strong> pts';
+  html += ' · realized net <span class="' + msDeltaClass(mine.netPar) + '">' +
+    msSigned(mine.netPar, 1) + ' PAR</span>';
+  if (rz.ongoing) html += ' <span class="ms-basis">(ongoing)</span>';
+  html += '</div>';
+
+  if (mine.assets.length) {
+    html += '<ul class="ms-realized-list">' +
+      mine.assets.map(msRealizedAssetLine).join('') + '</ul>';
+  }
+  theirs.forEach(function (s) {
+    if (!s.assets.length) return;
+    html += '<div class="ms-basis" style="margin-top:.35rem">Other side received:</div>' +
+      '<ul class="ms-realized-list ms-realized-other">' +
+      s.assets.map(msRealizedAssetLine).join('') + '</ul>';
+  });
+  if (rz.partial) {
+    html += '<p class="ms-sub" style="margin:.35rem 0 0">Draft picks in this ' +
+      'trade carry no realized figure — Sleeper does not say which selection ' +
+      'came from which traded slot, so attributing a drafted player back to ' +
+      'the pick that bought him would be a guess. The market lens above does ' +
+      'price those picks.</p>';
+  }
+  return html + '</div>';
 }
 
 function msRenderDrafts(result) {
@@ -1164,7 +1739,10 @@ function msRun(leagueId, includeHistory) {
     return msFetchLeagueData(leagueId, includeHistory)
       .then(function (seasons) {
         msStatus('Pricing ' + seasons.length + ' season(s) of transactions…');
-        return msBuildInput(seasons);
+        return msBuildInput(seasons).then(function (built) {
+          built.seasons = seasons;
+          return built;
+        });
       })
       .then(function (built) {
         var result = msScoreLeague(built.input, {});
@@ -1174,6 +1752,17 @@ function msRun(leagueId, includeHistory) {
                    'rosters for that league id.', 'warn');
           return null;
         }
+        /* Second lens. Built from the weekly matchup records already
+         * fetched alongside the transactions, and attached to the same
+         * audit rows so the page can show market and realized side by
+         * side. It never touches the index computed above. */
+        var weekRows = [];
+        (built.seasons || []).forEach(function (s) {
+          (s.matchupWeeks || []).forEach(function (w) { weekRows.push(w); });
+        });
+        MSX.ledger = msBuildLedger(weekRows, built.rosterToUser);
+        MSX.posOf = msPosLookup((MSX.values && MSX.values.by_sleeper) || {});
+        msAttachRealized(result, built.input, MSX.ledger, MSX.posOf, {});
         msStatus('');
         msRenderBasisBanner(built.coverage);
         msRenderSummary(result, built.coverage);

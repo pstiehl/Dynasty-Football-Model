@@ -330,6 +330,23 @@ tr.ms-row:hover { background: var(--hover); cursor: pointer; }
   font-weight: 700; color: #047857; text-transform: uppercase; }
 .ms-gave { display: inline-block; min-width: 42px; font-size: 11px;
   font-weight: 700; color: #b91c1c; text-transform: uppercase; }
+.ms-realized { margin-top: 10px; padding-top: 9px;
+  border-top: 1px dashed var(--border); }
+.ms-realized-head { font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .03em; color: #1d4ed8; }
+.ms-realized-head .ms-basis { font-weight: 400; text-transform: none;
+  letter-spacing: 0; }
+.ms-realized-net { font-size: 13px; margin-top: 5px; }
+.ms-realized-list { margin: 5px 0 0 0; padding-left: 18px; font-size: 12.5px;
+  line-height: 1.75; }
+.ms-realized-other { opacity: .75; }
+.ms-lens { display: inline-block; font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px;
+  border-radius: 999px; margin-right: 6px; }
+.ms-lens-market { background: #eef2ff; color: #3730a3; }
+.ms-lens-real { background: #dbeafe; color: #1d4ed8; }
+.ms-disagree { background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 8px; padding: 10px 14px; font-size: 12.5px; margin: 10px 0; }
 .ms-formula { background: #f8fafc; border: 1px solid var(--border);
   border-radius: 8px; padding: 14px 18px; font-size: 13px; }
 .ms-formula code { background: #eef2ff; padding: 1px 5px; border-radius: 4px; }
@@ -433,6 +450,90 @@ trade made last week.</li>
 series densifies from here even though the past cannot be filled in.</p>
 </div>
 
+<h2>The second lens: <span class="accent">realized production</span></h2>
+<div class="ms-formula">
+<p>Everything above prices a trade against the market. It answers <em>was
+this a good bet at the time</em>. It cannot answer the question you actually
+remember &mdash; <em>did it work out</em>. Trade for a back who then carries
+you to a title, and trade for a back who then tears an achilles, and on the
+day you made them the two can price identically.</p>
+<p>So every trade now carries a second, independent figure: <strong>the
+points the players you acquired actually scored for you, from the week of
+the trade onward</strong>.</p>
+<p><strong>Where the points come from.</strong> Sleeper's own weekly matchup
+records, which report each rostered player's score computed with
+<em>your league's</em> scoring settings. Not a generic PPR approximation:
+this league is half-PPR with a tight-end bonus, and a generic feed would be
+wrong for it in a way that quietly favours receivers. The realized lens
+therefore needs no scoring configuration and is exact rather than close.</p>
+<p><strong>Who held whom is read, not inferred.</strong> The same weekly
+record says which roster each player was on that week. So a player traded
+on again, dropped, or acquired the day before kickoff needs no special
+case: we count the weeks he actually spent on the acquiring roster and no
+others. Production before the trade stays with the manager who earned it.</p>
+<p><strong>Normalisation.</strong> Raw points would make a week-2 trade beat
+a week-12 trade for no better reason than having ten more weeks to
+accumulate. Two defences are reported:</p>
+<ul>
+<li><strong>PAR &mdash; points above replacement</strong>, the headline.
+Replacement is the <em>median score of a started player at the same
+position, in the same week, in this league</em>. Being position-relative it
+does not reward acquiring a quarterback simply because quarterbacks score
+more; being week-relative it self-normalises for span; being
+league-relative it does not inflate in a high-scoring format.</li>
+<li><strong>Points per week held</strong>, a plain rate, for readers who
+want the unadjusted version.</li>
+</ul>
+<p><strong>Bench points count in the raw total but never in PAR</strong>,
+which sums only weeks the player was actually started. Both numbers are
+shown. A star who rode your bench produced points that never won you a
+game, and flattening that into a single figure would hide a real failure.</p>
+<p><strong>The two lenses are never averaged.</strong> They answer different
+questions and will sometimes disagree; where they do, the page says so
+explicitly. A manager who lost value by the market and won by the
+scoreboard bought win-now production cheaply &mdash; which is a real way to
+win a league and a real way to bleed value doing it. Averaging deletes
+exactly that signal.</p>
+<p>One property worth stating: unlike the market lens, realized value is
+<strong>not zero-sum</strong>. Points are produced, not exchanged, so both
+sides of a trade can genuinely come out ahead.</p>
+</div>
+
+<h2>On <span class="accent">projected</span> points</h2>
+<div class="ms-formula">
+<p>The obvious follow-up is "what was he <em>projected</em> to score at the
+time, and did he beat it?". That was investigated directly against the live
+API rather than assumed, and the answer is more awkward than either yes or
+no.</p>
+<p>Sleeper <em>does</em> return per-week projection rows for past seasons
+&mdash; 2023 through 2026 all answer. But they are <strong>not a trustworthy
+point-in-time archive</strong>, for two independent reasons:</p>
+<ul>
+<li><strong>The rows are rewritten after the fact.</strong> Each carries an
+<code>updated_at</code>. For 2025 week 11 it reads 2025-11-18, a day after
+those games. For 2025 week 2 &mdash; games played 11-15 September &mdash; it
+reads <strong>2025-10-06</strong>, three weeks later. For 2023 the field is
+absent entirely. There is no way to recover what was on screen before
+kickoff, which is the only number worth comparing against.</li>
+<li><strong>The units are wrong for your league.</strong> Projections are
+published as generic <code>pts_ppr</code>, <code>pts_half_ppr</code> and
+<code>pts_std</code>. None of them is your league's scoring. Comparing a
+generic projection against a league-scored actual produces a difference
+that is partly just the two formats disagreeing.</li>
+</ul>
+<p>So no expected-vs-actual figure is shown, and none has been invented.
+<strong>Realized production answers the owner's question without
+projections anyway</strong>: "he scored this much for you, and that ranked
+him here" is a stronger claim than "he beat a forecast", because it is
+measured in the only units that decided your matchups.</p>
+<p>Going forward this becomes answerable honestly.
+<code>scripts/archive_sleeper_projections.py</code> files a dated snapshot
+per run, in the same pattern the KTC archive uses, stamped with the date it
+was actually captured. Once a trade is made after a snapshot exists, the
+expected-versus-actual comparison can be made from a projection that
+provably predates the outcome. It cannot be backfilled.</p>
+</div>
+
 <h2>What this <span class="accent">cannot</span> tell you</h2>
 <div class="ms-formula">
 <ul style="margin:0">
@@ -440,6 +541,17 @@ series densifies from here even though the past cannot be filled in.</p>
 the assets went on to do. A defensible process that ran into an injury
 scores badly here, and a reckless punt that hit scores well. It is a
 measure of results, not of reasoning.</li>
+<li><strong>Realized production says nothing about draft picks.</strong>
+Sleeper's trade record names a traded pick, but the draft-results feed does
+not say which selection descended from which traded slot, so attributing a
+drafted player's points back to the pick that bought him would be a guess.
+Picks in a trade are reported as unattributed for this lens. The market
+lens prices them directly, which is the clearest argument for showing both
+rather than one blended number.</li>
+<li><strong>A trade made this week has produced nothing yet.</strong>
+Realized value needs weeks to accrue, and trades still accruing are labelled
+ongoing rather than presented as settled. This is the mirror of the market
+lens's blind spot, which is strongest exactly where this one is weakest.</li>
 <li><strong>KeepTradeCut is a crowd, not an oracle.</strong> Where the
 consensus was wrong, this page is wrong the same way.</li>
 <li><strong>Only players on the board are priced.</strong> KTC publishes a

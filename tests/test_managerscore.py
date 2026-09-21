@@ -931,5 +931,115 @@ class JavaScriptTests(unittest.TestCase):
             )
 
 
+class ProjectionArchiveTests(unittest.TestCase):
+    """The forward-only projection archive.
+
+    The reason this script exists is that Sleeper's served projection
+    history is rewritten after the fact and therefore cannot be used as a
+    point-in-time expectation. The tests that matter are the ones proving
+    this archive does not repeat that mistake with its own files.
+    """
+
+    def setUp(self):
+        import importlib.util
+
+        path = REPO_ROOT / "scripts" / "archive_sleeper_projections.py"
+        spec = importlib.util.spec_from_file_location("_archive_proj", path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.mod = mod
+
+    @staticmethod
+    def _row(pid, name, pos, pts, date="2026-10-04", updated=123):
+        return {
+            "player_id": pid,
+            "player": {"first_name": name.split()[0], "last_name": name.split()[-1],
+                       "position": pos},
+            "team": "DET", "opponent": "GB", "date": date,
+            "updated_at": updated,
+            "stats": {"pts_ppr": pts, "pts_half_ppr": pts - 1, "pts_std": pts - 2},
+        }
+
+    def test_endpoint_carries_required_season_type(self):
+        """Without season_type the live endpoint answers 400. Verified against
+        the API; pinned so a future edit cannot quietly drop it."""
+        self.assertIn("season_type=regular", self.mod.SLEEPER_PROJ)
+
+    def test_distill_keeps_every_published_scoring_variant(self):
+        """None of Sleeper's variants is a given league's own scoring, so the
+        choice belongs to the consumer and all three must survive."""
+        out = self.mod.distill([self._row("1", "Jahmyr Gibbs", "RB", 20.0)])
+        self.assertEqual(len(out), 1)
+        self.assertEqual(set(out[0]["stats"]), {"pts_ppr", "pts_half_ppr", "pts_std"})
+        self.assertEqual(out[0]["name"], "Jahmyr Gibbs")
+
+    def test_distill_retains_sleeper_updated_at(self):
+        """This is the field that disqualified the historical archive, so a
+        reader must be able to audit it per row."""
+        out = self.mod.distill([self._row("1", "A B", "RB", 9.0, updated=999)])
+        self.assertEqual(out[0]["sleeper_updated_at"], 999)
+
+    def test_distill_drops_rows_with_no_projected_points(self):
+        rows = [self._row("1", "A B", "RB", 10.0)]
+        rows.append({"player_id": "2", "player": {}, "stats": {}})
+        self.assertEqual(len(self.mod.distill(rows)), 1)
+
+    def test_snapshot_before_kickoff_is_flagged_valid(self):
+        rows = self.mod.distill([self._row("1", "A B", "RB", 10.0, date="2099-01-01")])
+        with tempfile.TemporaryDirectory() as td:
+            self.mod.OUT_DIR = Path(td)
+            path = self.mod.write_snapshot("2026", 5, rows, dry_run=False)
+            payload = json.loads(path.read_text())
+        self.assertTrue(payload["pre_kickoff"])
+        self.assertEqual(payload["first_game_date"], "2099-01-01")
+
+    def test_snapshot_after_kickoff_is_flagged_invalid(self):
+        """The whole point. A capture that postdates its own games is exactly
+        the post-hoc 'forecast' this project refuses to present, so it is
+        recorded as such rather than filed as a clean expectation."""
+        rows = self.mod.distill([self._row("1", "A B", "RB", 10.0, date="2000-01-01")])
+        with tempfile.TemporaryDirectory() as td:
+            self.mod.OUT_DIR = Path(td)
+            path = self.mod.write_snapshot("2026", 5, rows, dry_run=False)
+            payload = json.loads(path.read_text())
+        self.assertFalse(payload["pre_kickoff"])
+
+    def test_snapshot_carries_its_caveat_in_the_artifact(self):
+        """The caveat must travel with the data, not live only in a docstring
+        that a downstream consumer will never read."""
+        rows = self.mod.distill([self._row("1", "A B", "RB", 10.0)])
+        with tempfile.TemporaryDirectory() as td:
+            self.mod.OUT_DIR = Path(td)
+            path = self.mod.write_snapshot("2026", 5, rows, dry_run=False)
+            payload = json.loads(path.read_text())
+        self.assertEqual(payload["schema"], "sleeper.projections.v1")
+        self.assertIn("captured_at", payload)
+        self.assertIn("rewrites projection rows", payload["note"])
+
+    def test_dry_run_writes_nothing(self):
+        rows = self.mod.distill([self._row("1", "A B", "RB", 10.0)])
+        with tempfile.TemporaryDirectory() as td:
+            self.mod.OUT_DIR = Path(td)
+            self.assertIsNone(self.mod.write_snapshot("2026", 5, rows, dry_run=True))
+            self.assertEqual(list(Path(td).iterdir()), [])
+
+    def test_committed_snapshot_is_a_valid_forecast(self):
+        """Any snapshot committed to the repo must predate its own games, or
+        the archive is repeating the flaw it was built to avoid."""
+        hist = REPO_ROOT / "data" / "projections" / "history"
+        if not hist.exists():
+            self.skipTest("no projection archive committed yet")
+        files = sorted(hist.glob("projections_*.json"))
+        self.assertTrue(files, "archive directory exists but is empty")
+        for f in files:
+            payload = json.loads(f.read_text())
+            self.assertEqual(payload["schema"], "sleeper.projections.v1", f.name)
+            self.assertTrue(payload["n_players"] > 0, f.name)
+            self.assertTrue(
+                payload["pre_kickoff"],
+                "%s postdates its own kickoff and must not be committed" % f.name,
+            )
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
