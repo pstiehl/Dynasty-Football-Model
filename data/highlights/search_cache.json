@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-21T18:28:20.608070+00:00",
-  "entry_count": 40,
+  "updated_at": "2026-09-21T18:46:15.863418+00:00",
+  "entry_count": 80,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -33,6 +33,16 @@
       "video_ids": [],
       "query": "Russell Wilson week 1 2026 highlights"
     },
+    "2026:1:1339": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Zach Ertz week 1 2026 highlights"
+    },
+    "2026:1:1352": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Robert Woods week 1 2026 highlights"
+    },
     "2026:1:1373": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [
@@ -46,6 +56,14 @@
       "video_ids": [],
       "query": "DeAndre Hopkins week 1 2026 highlights"
     },
+    "2026:1:1466": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "UM6svm-0Ztw",
+        "IEtmDF1wHUM"
+      ],
+      "query": "Travis Kelce week 1 2026 highlights"
+    },
     "2026:1:1479": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [
@@ -53,15 +71,40 @@
       ],
       "query": "Keenan Allen week 1 2026 highlights"
     },
+    "2026:1:1535": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Cordarrelle Patterson week 1 2026 highlights"
+    },
     "2026:1:1689": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Adam Thielen week 1 2026 highlights"
     },
+    "2026:1:1737": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Case Keenum week 1 2026 highlights"
+    },
+    "2026:1:1800": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Jordan Matthews week 1 2026 highlights"
+    },
+    "2026:1:1837": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Jimmy Garoppolo week 1 2026 highlights"
+    },
     "2026:1:19": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Joe Flacco week 1 2026 highlights"
+    },
+    "2026:1:1992": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Allen Robinson week 1 2026 highlights"
     },
     "2026:1:2028": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -75,6 +118,11 @@
         "GsVjrS5ivWg"
       ],
       "query": "Odell Beckham week 1 2026 highlights"
+    },
+    "2026:1:2152": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Teddy Bridgewater week 1 2026 highlights"
     },
     "2026:1:2197": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -107,15 +155,63 @@
       "video_ids": [],
       "query": "Tyler Lockett week 1 2026 highlights"
     },
+    "2026:1:2410": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Jamison Crowder week 1 2026 highlights"
+    },
+    "2026:1:2505": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Darren Waller week 1 2026 highlights"
+    },
+    "2026:1:2549": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Trevor Siemian week 1 2026 highlights"
+    },
+    "2026:1:2711": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Taylor Heinicke week 1 2026 highlights"
+    },
+    "2026:1:2749": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Raheem Mostert week 1 2026 highlights"
+    },
+    "2026:1:2750": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "DeAndre Carter week 1 2026 highlights"
+    },
     "2026:1:3164": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Ezekiel Elliott week 1 2026 highlights"
     },
+    "2026:1:3200": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "pa6nMl9zUc8",
+        "qAsinju_obA"
+      ],
+      "query": "Sterling Shepard week 1 2026 highlights"
+    },
+    "2026:1:3202": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Austin Hooper week 1 2026 highlights"
+    },
     "2026:1:3214": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Hunter Henry week 1 2026 highlights"
+    },
+    "2026:1:3225": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Tyler Boyd week 1 2026 highlights"
     },
     "2026:1:3257": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -123,6 +219,20 @@
         "YWVS0tigDxU"
       ],
       "query": "Jacoby Brissett week 1 2026 highlights"
+    },
+    "2026:1:3269": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "BmLmF13PxKk"
+      ],
+      "query": "Chris Moore week 1 2026 highlights"
+    },
+    "2026:1:3271": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "o9-YAjMBjns"
+      ],
+      "query": "Tyler Higbee week 1 2026 highlights"
     },
     "2026:1:331": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -135,6 +245,13 @@
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Tyreek Hill week 1 2026 highlights"
+    },
+    "2026:1:3634": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "fQsruq7zvaI"
+      ],
+      "query": "Kalif Raymond week 1 2026 highlights"
     },
     "2026:1:3976": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -152,6 +269,11 @@
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Joe Mixon week 1 2026 highlights"
+    },
+    "2026:1:4029": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Dalvin Cook week 1 2026 highlights"
     },
     "2026:1:4033": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -192,15 +314,59 @@
       ],
       "query": "Patrick Mahomes week 1 2026 highlights"
     },
+    "2026:1:4068": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Mike Williams week 1 2026 highlights"
+    },
+    "2026:1:4080": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Zay Jones week 1 2026 highlights"
+    },
+    "2026:1:4082": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Curtis Samuel week 1 2026 highlights"
+    },
     "2026:1:4098": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Kareem Hunt week 1 2026 highlights"
     },
+    "2026:1:4127": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "C.J. Beathard week 1 2026 highlights"
+    },
     "2026:1:4137": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "James Conner week 1 2026 highlights"
+    },
+    "2026:1:4144": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "AxUzn1KTUw4"
+      ],
+      "query": "Jonnu Smith week 1 2026 highlights"
+    },
+    "2026:1:4147": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Samaje Perine week 1 2026 highlights"
+    },
+    "2026:1:4149": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Jamaal Williams week 1 2026 highlights"
+    },
+    "2026:1:4177": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "pFf-LoTGAE4"
+      ],
+      "query": "Mack Hollins week 1 2026 highlights"
     },
     "2026:1:421": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -209,6 +375,28 @@
         "XAeRaW6fZi4"
       ],
       "query": "Matthew Stafford week 1 2026 highlights"
+    },
+    "2026:1:4351": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Tim Patrick week 1 2026 highlights"
+    },
+    "2026:1:4454": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Kendrick Bourne week 1 2026 highlights"
+    },
+    "2026:1:4464": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Nick Mullens week 1 2026 highlights"
+    },
+    "2026:1:4574": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [
+        "RTDiSxlF_pk"
+      ],
+      "query": "Cooper Rush week 1 2026 highlights"
     },
     "2026:1:4663": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -226,6 +414,16 @@
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Christian Kirk week 1 2026 highlights"
+    },
+    "2026:1:4951": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "DJ Chark week 1 2026 highlights"
+    },
+    "2026:1:4972": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Mason Rudolph week 1 2026 highlights"
     },
     "2026:1:4981": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -257,6 +455,26 @@
         "ysEOQZQbcyQ"
       ],
       "query": "Dallas Goedert week 1 2026 highlights"
+    },
+    "2026:1:5086": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Marquez Valdes-Scantling week 1 2026 highlights"
+    },
+    "2026:1:5110": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Russell Gage week 1 2026 highlights"
+    },
+    "2026:1:5185": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Allen Lazard week 1 2026 highlights"
+    },
+    "2026:1:827": {
+      "searched_at": "2026-09-21T18:46:15.863418+00:00",
+      "video_ids": [],
+      "query": "Tyrod Taylor week 1 2026 highlights"
     },
     "2026:1:829": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
