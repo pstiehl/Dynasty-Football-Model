@@ -12,8 +12,9 @@ What this module owns, and what it does not
 This module builds the *value artifact* and the *page*. It does not score
 anything. Scoring happens once, in JavaScript, in
 ``dynasty.managerscore_js.MANAGERSCORE_CORE_JS``, because league data is
-read live from Sleeper in the browser — the same arrangement My Team and
-the Roster Reel use, and for the same reason: this site is a static GitHub
+read live from Sleeper in the browser — the same arrangement the rest of
+the Input Sleeper Team page uses, and for the same reason: this site is a
+static GitHub
 Pages build with no server to proxy an API through. Keeping the maths in
 one place means there is no Python reimplementation to drift; the test
 suite runs that JS in ``node`` instead of re-deriving it.
@@ -76,6 +77,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from . import ktc_history
+from .branding import page_title
 
 VALUES_ARTIFACT = "managerscore_values.json"
 SERIES_ARTIFACT = "managerscore_series.json"
@@ -616,15 +618,29 @@ one who never does.</li>
 """
 
 
-def build_manager_score(latest_ts: datetime, league_label: str) -> str:
-    """Render managerscore.html. Imported lazily by report.generate_site."""
-    from .report import _page, _site_header  # local import: avoids a cycle
-    from .managerscore_js import MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+def manager_score_section() -> str:
+    """The Manager Score feature markup, for embedding in another page.
 
-    body = """<div class="container">
+    Owner decision (this PR): Manager Score is not a destination, it is a
+    view of the Sleeper league you already told us about, so it lives inside
+    the Input Sleeper Team page instead of behind its own nav tab. Asking
+    for a username on one tab and the same username again on another was
+    the whole reason for moving it.
 
-<h2>Manager <span class="accent">Score</span></h2>
-<p class="lede">Who actually drafts and trades well in your league? This
+    Returns the section only -- no ``.container``, no ``<style>``, no
+    ``<script>``. The host page places those via :func:`manager_score_assets`,
+    so the CSS and the two scripts are emitted exactly once per page no
+    matter how many sections use them.
+
+    Element ids are unchanged (``ms-username``, ``ms-leagueid``,
+    ``ms-results`` …). ``msInit`` null-checks every one of them and binds on
+    ``DOMContentLoaded``, so the feature works identically embedded as it
+    did standalone, and ``msRun(leagueId, includeHistory)`` stays the entry
+    point for scoring a league the host page has already resolved.
+    """
+    return """
+<h3>Manager <span class="accent">Score</span></h3>
+<p class="mt-sub">Who actually drafts and trades well in your league? This
 prices every draft pick, trade and waiver add in a Sleeper league against
 KeepTradeCut consensus value, and ranks the managers on what they acquired
 versus what it cost them. Leagues are read live from Sleeper's public API in
@@ -632,6 +648,8 @@ your browser — nothing is sent to this site.</p>
 
 <div id="ms-artifact-note" style="display:none"></div>
 <div id="ms-basis" style="display:none"></div>
+
+<div id="ms-from-page" style="display:none"></div>
 
 <div class="ms-input">
   <input id="ms-username" type="text" placeholder="Sleeper username" autocomplete="off">
@@ -658,21 +676,50 @@ your browser — nothing is sent to this site.</p>
 </div>
 
 __METHODOLOGY__
+""".replace("__METHODOLOGY__", _methodology_html())
+
+
+def manager_score_assets() -> "tuple[str, str, str]":
+    """``(css, core_js, ui_js)`` for the Manager Score feature."""
+    from .managerscore_js import MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+
+    return _MANAGERSCORE_CSS, MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+
+
+def build_manager_score_pointer(latest_ts: datetime, league_label: str) -> str:
+    """managerscore.html, kept only to say where the feature went.
+
+    The feature moved into myteam.html this PR. Deleting this file would
+    404 every bookmark and shared link made since PR #59, so the URL
+    survives as a signpost. It carries no scoring code -- one home for the
+    feature, not two.
+    """
+    from .report import _page, _site_header  # local import: avoids a cycle
+
+    body = """<div class="container narrow">
+
+<h2>Manager <span class="accent">Score</span> moved</h2>
+<p class="lede">Manager Score is now a section of
+<a href="myteam.html">Input Sleeper Team</a>, under the
+<strong>Manager Score</strong> tab on that page.</p>
+
+<div class="callout"><strong>Why.</strong> Manager Score and Input Sleeper
+Team both start by asking for your Sleeper username, and as separate tabs
+they made you type it twice. It is a view of a league you have already
+identified, so it belongs on the page where you identify it — alongside your
+roster, your league comparison and your roster's highlights.</p>
+
+<p><a class="dfm-hl-playall" href="myteam.html">Go to Input Sleeper Team</a></p>
+
+<p style="font-size:12px;opacity:.6;margin-top:24px">Nothing about the
+scoring changed: same KeepTradeCut value basis, same point-in-time capture,
+same realized-production lens, same audit trail.</p>
 
 </div>
-<style>__MANAGERSCORE_CSS__</style>
-<script>__MANAGERSCORE_CORE_JS__</script>
-<script>__MANAGERSCORE_UI_JS__</script>
 """
-    body = (
-        body.replace("__METHODOLOGY__", _methodology_html())
-        .replace("__MANAGERSCORE_CSS__", _MANAGERSCORE_CSS)
-        .replace("__MANAGERSCORE_CORE_JS__", MANAGERSCORE_CORE_JS)
-        .replace("__MANAGERSCORE_UI_JS__", MANAGERSCORE_UI_JS)
-    )
 
     return _page(
-        "Kings of Dynasty — Manager Score",
+        page_title("Manager Score"),
         _site_header("managerscore", latest_ts, league_label),
         body,
     )

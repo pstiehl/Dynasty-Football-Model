@@ -171,6 +171,7 @@ disappearing.</li>
 def build_cross_league(latest_ts: datetime, league_label: str) -> str:
     """Render crossleague.html. Imported lazily by report.generate_site."""
     from .report import _page, _site_header      # local: avoids import cycle
+    from .branding import page_title
     from .crossleague_js import CROSSLEAGUE_JS
 
     body = """<div class="container">
@@ -210,7 +211,7 @@ __METHODOLOGY__
         .replace("__CROSSLEAGUE_JS__", CROSSLEAGUE_JS)
     )
     return _page(
-        "Kings of Dynasty — Best Dynasty Managers",
+        page_title("Best Dynasty Managers"),
         _site_header("crossleague", latest_ts, league_label),
         body,
     )

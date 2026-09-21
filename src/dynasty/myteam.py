@@ -1,30 +1,56 @@
-"""myteam.html — "my Sleeper team, ranked by the model, against my league".
+"""myteam.html — "Input Sleeper Team": my team, my league, my film, my rivals.
 
-Four views, as tabs:
+Five views, as tabs:
 
 1. **Roster** — every player Sleeper says you own, grouped by position.
    Every one of them carries either a model rank or a stated reason it has
    none; nobody is silently dropped.
-2. **Rankings** — the ranked players ordered by the model's Dynasty
+2. **Dynasty Rankings** — the ranked players ordered by the model's Dynasty
    Rankings, followed by an explicit *Unranked* table giving the reason for
    each of the rest.
 3. **League** — every other team in the selected Sleeper league, scored on
    model rank, with each manager's display name and a roster you can open.
    The scoring method is documented on the tab itself.
-4. **Highlights** — each player's clips from the most recently completed
-   slate, plus the full Roster Reel player.
+4. **Highlights** — the whole roster's film for the most recently completed
+   week. This is what the Roster Reel tab used to be; see below.
+5. **Manager Score** — who drafted and traded well in this league, priced
+   against KeepTradeCut consensus.
 
-Why this page embeds the reel instead of reimplementing it
-----------------------------------------------------------
-``reel.py`` already owns the hard part: username -> leagues -> rosters ->
-team picker, localStorage persistence, the YouTube playlist player, and the
-name matcher mirrored from ``dynasty.highlights``. This page renders the
-reel's markup verbatim inside its Highlights tab and pulls in
-``reel.reel_assets()``, so there is exactly one implementation of that
-plumbing. The reel side gains two hooks only: ``DFM_ON_ROSTER``, which
-hands this page the roster the reel just fetched, and ``DFM_ON_LEAGUE``,
-which hands it every roster plus the league's users so the League tab costs
-no extra Sleeper requests.
+Why Manager Score and the Roster Reel both live here now
+--------------------------------------------------------
+Owner decision, this PR. Both were top-level nav tabs, and both began by
+asking for the Sleeper identity *this* page already asks for — so as
+separate destinations they made the user type the same username two or
+three times.
+
+Manager Score moved in whole, as a pane: ``managerscore.manager_score_section``
+returns the markup and ``manager_score_assets`` the CSS and scripts, so
+there is one implementation and ``managerscore.html`` is now only a
+signpost. When a league has already been resolved on this page,
+``offerManagerScoreForLoadedLeague`` hands that league id to ``msRun``
+directly.
+
+The Roster Reel did not move so much as dissolve. Its two jobs were "my
+whole roster's film" and "one player's film", and the second is now a chip
+on every player name on every page of the site
+(``dynasty.player_highlights``). What is left is the first, which is the
+Highlights pane, rendered by ``DFMHL.renderRoster`` — the same renderer
+behind every chip. ``reel.html`` is no longer built.
+
+Why this page still loads reel.js
+---------------------------------
+``reel.py`` still owns the hard part: username -> leagues -> rosters ->
+team picker, localStorage persistence, and the name matcher mirrored from
+``dynasty.highlights``. This page pulls in ``reel.reel_assets()`` so there
+is exactly one implementation of that plumbing. The reel side provides two
+hooks: ``DFM_ON_ROSTER``, which hands this page the roster the reel just
+fetched, and ``DFM_ON_LEAGUE``, which hands it every roster plus the
+league's users so the League tab costs no extra Sleeper requests.
+
+The reel's own queue renderers still run and now write to nothing — every
+one of their DOM targets (``#queue-list``, ``#play-all``) is guarded and
+absent from this page. That is deliberate: it keeps reel.py an unmodified
+plumbing module rather than a half-gutted one.
 
 The id join, which is the actual new work
 -----------------------------------------
@@ -58,6 +84,8 @@ without a rank, and which of them are bugs versus correct answers.
 from __future__ import annotations
 
 from datetime import datetime
+
+from .branding import page_title
 
 
 # --------------------------------------------------------------------------
@@ -465,12 +493,23 @@ function renderSummary() {
     (winLbl ? ' for ' + esc(winLbl) : '') + '.</div>';
 }
 
+// Every player name this page renders -- your roster, the rankings view,
+// the unranked table, and any opponent's roster you open -- goes through
+// here, so all of them carry the highlights chip. DFMHL.chip emits the
+// same marker report.py emits server-side, and the popover behind it is
+// the same renderer, so a name here and a name on the rankings page behave
+// identically.
+//
+// The sleeper id is passed as well as the gsis id: on this page we have the
+// key highlights.json is actually built on, so the join needs no crosswalk
+// and works for rostered players the gsis bridge cannot reach.
 function playerCell(p) {
-  const label = esc(p.name);
-  if (p.row && p.gsis) {
-    return '<a href="players/' + esc(slugFor(p.row.name, p.gsis)) + '.html">' + label + '</a>';
-  }
-  return label;
+  const href = (p.row && p.gsis)
+    ? 'players/' + slugFor(p.row.name, p.gsis) + '.html'
+    : '';
+  return DFMHL.chip(p.name, {
+    sid: p.sid, gsis: p.gsis, pos: p.pos, href: href
+  });
 }
 
 function renderRosterTab() {
@@ -580,140 +619,57 @@ function renderRankingsTab() {
   box.innerHTML = html;
 }
 
-// The My Team highlights tab. Shares the reel's bucketing helpers
-// (leadWeekKey / weekHeading / clipWeekKey / rankClip) rather than
-// re-deriving any of it, so the two pages group and label identically --
-// reel.js is concatenated ahead of this file in the built page.
+// The Input Sleeper Team highlights view -- the whole roster's film, and
+// what replaced the Roster Reel tab.
+//
+// This used to be ~150 lines: its own week bucketing, its own cut-up vs
+// recap rule, its own group markup and its own clip card (mtClipCard),
+// all of which had to be kept in visual and behavioural lockstep with
+// reel.js by hand. All of it now lives once, in DFMHL.renderRoster, which
+// is the same renderer behind the highlights chip on every player name on
+// every other page. The only thing left here is handing it the roster.
 function renderHighlightsTab() {
   const box = document.getElementById('clips-pane-body');
-  const haveIndex = typeof HL !== 'undefined' && HL && HL.clips &&
-                    Object.keys(HL.clips).length;
-  if (!haveIndex) {
-    box.innerHTML = note('<strong>No highlight index yet.</strong> ' +
-      '<code>highlights.json</code> is written by the scheduled ' +
-      '<em>Refresh YouTube highlight index</em> job. Until it has run once ' +
-      'with a <code>YOUTUBE_API_KEY</code>, the roster and rankings tabs ' +
-      'work normally and this tab stays empty.');
-    return;
-  }
-  const withClips = MT.roster.filter(p => p.clips.length)
-    .sort((a, b) => (a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank));
-  if (!withClips.length) {
-    box.innerHTML = '<div class="empty">None of your players have indexed ' +
-      'clips right now. Enable game recaps above to fall back to team film.</div>';
-    return;
-  }
+  if (!box) return;
 
-  const leadKey = (typeof leadWeekKey === 'function') ? leadWeekKey() : '';
-  const keyOf = (typeof clipWeekKey === 'function')
-    ? clipWeekKey : (c => (c && c.bucket_start) || '');
-  const headingOf = (typeof weekHeading === 'function')
-    ? weekHeading : (k => k);
-  const completeOf = (typeof weekIsComplete === 'function')
-    ? weekIsComplete : (() => true);
-  const order = (typeof rankClip === 'function') ? rankClip : (() => 0);
+  // Model-rank order, best player first. renderRoster preserves the order
+  // it is given, so this is what puts your best asset's film at the top.
+  const ordered = MT.roster.slice().sort((a, b) =>
+    (a.rank == null ? 1e9 : a.rank) - (b.rank == null ? 1e9 : b.rank));
 
-  // week key -> {cutups: [{p, c}], recaps: [{p, c}]}
-  const byWeek = {};
-  const seen = [];
-  function bucket(k) {
-    if (!byWeek[k]) { byWeek[k] = { cutups: [], recaps: [] }; seen.push(k); }
-    return byWeek[k];
-  }
-  if (leadKey) bucket(leadKey);
+  const intro = '<p class="mt-sub" style="margin:0 0 14px">Every rostered ' +
+    'player\'s film, grouped by week, most recent <strong>complete</strong> ' +
+    'week first \u2014 a week qualifies only once its last game has been ' +
+    'played. Clips open on YouTube in a new tab. Click the \u25b8 beside any ' +
+    'player name anywhere on this site for just that player.</p>';
 
-  withClips.forEach(p => {
-    const mine = {};
-    p.clips.forEach(c => {
-      const k = keyOf(c);
-      if (!k) return;
-      (mine[k] = mine[k] || []).push(c);
-    });
-    Object.keys(mine).forEach(k => {
-      const sorted = mine[k].slice().sort(order);
-      const cut = sorted.filter(c => c.kind === 'player_cutup');
-      const rec = sorted.filter(c => c.kind === 'team_game');
-      const b = bucket(k);
-      if (cut.length) {
-        cut.forEach(c => b.cutups.push({ p: p, c: c }));
-      } else if (rec.length) {
-        // Same rule as the reel: a recap stands in for a player only
-        // when that player has no cut-up of their own that week.
-        b.recaps.push({ p: p, c: rec[0] });
-      }
+  // Both toggles live in the reel-owned markup above this pane and are
+  // read here, not duplicated: reel.js binds them to its own in-memory
+  // queue rebuild, and bindHighlightOpts adds a second listener that
+  // redraws this shared view.
+  const optTeam = document.getElementById('opt-team');
+  const optAll = document.getElementById('opt-all');
+
+  // HL, explicitly: this page owns that variable and reel.js keeps it in
+  // step with the shared artifact. Letting the renderer read its own global
+  // instead would make the two silently disagree.
+  box.innerHTML = intro + DFMHL.renderRoster(ordered, {
+    artifact: HL,
+    includeRecaps: !!(optTeam && optTeam.checked),
+    allWeeks: !!(optAll && optAll.checked)
+  });
+}
+
+// The two film toggles must redraw the shared view as well as the reel's
+// queue. Bound once on load rather than re-bound per render -- a listener
+// added on every render would stack up an extra redraw per roster loaded.
+function bindHighlightOpts() {
+  ['opt-team', 'opt-all'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('change', () => {
+      if (MT.roster.length) renderHighlightsTab();
     });
   });
-
-  const rest = seen.filter(k => k !== leadKey).sort().reverse();
-  const keys = (leadKey ? [leadKey] : []).concat(rest);
-
-  const intro = '<p class="mt-sub" style="margin:0 0 14px">Grouped by week, ' +
-    'most recent <strong>complete</strong> week first \u2014 a week qualifies ' +
-    'only once its last game has been played. Clips open on YouTube in a new ' +
-    'tab.</p>';
-
-  box.innerHTML = intro + keys.map(k => {
-    const b = byWeek[k];
-    const n = b.cutups.length + b.recaps.length;
-    const tag = k === leadKey
-      ? '<span class="wk-tag wk-lead">most recent complete week</span>'
-      : (completeOf(k) ? '' : '<span class="wk-tag wk-live">still in progress</span>');
-    const body = n
-      ? mtGroup('Player highlights', '', b.cutups) +
-        mtGroup('Game recaps',
-                'Shown only for players with no individual cut-up this week.',
-                b.recaps)
-      : '<div class="empty">No film indexed for ' + esc(headingOf(k)) +
-        ' yet.</div>';
-    if (k === leadKey) {
-      return '<section class="wk wk-open"><h3 class="wk-head">' +
-        esc(headingOf(k)) + tag + '</h3>' + body + '</section>';
-    }
-    return '<details class="wk"><summary class="wk-head">' +
-      esc(headingOf(k)) + tag + '<span class="q-count">' + n +
-      '</span></summary>' + body + '</details>';
-  }).join('');
-}
-
-function mtGroup(title, note_, rows) {
-  if (!rows.length) return '';
-  return '<div class="q-group">' +
-    '<div class="q-group-head">' + esc(title) +
-      ' <span class="q-count">' + rows.length + '</span></div>' +
-    (note_ ? '<div class="q-group-note">' + esc(note_) + '</div>' : '') +
-    '<div class="mt-clips">' + rows.map(r => mtClipCard(r.p, r.c)).join('') +
-    '</div></div>';
-}
-
-// An anchor straight to YouTube. This replaces playClip(), which tried to
-// hand the video to the embedded player first and only fell back to
-// opening a tab. There is no embedded player any more, and the fallback
-// path was the one that always worked.
-function mtClipCard(p, c) {
-  const meta = [
-    (typeof fmtDay === 'function' ? fmtDay(c.published_at) : ''),
-    c.opponent ? 'vs ' + esc(c.opponent) : '',
-    c.duration_seconds ? fmtDuration(c.duration_seconds) : '',
-    (typeof fmtViews === 'function' && c.view_count) ? fmtViews(c.view_count) : '',
-    esc(c.channel_title || '')
-  ].filter(Boolean).join(' \u00b7 ');
-
-  const href = (typeof WATCH === 'function')
-    ? WATCH(c.video_id)
-    : ('https://www.youtube.com/watch?v=' + encodeURIComponent(c.video_id));
-
-  return '<a class="mt-clip" href="' + esc(href) + '" target="_blank" ' +
-    'rel="noopener noreferrer">' +
-    '<span class="q-thumb"><img loading="lazy" src="' +
-      esc(THUMB(c.video_id)) + '" alt=""></span>' +
-    '<span class="mt-clip-body">' +
-      '<span class="mt-clip-who">' + posBadge(p.pos) + ' ' +
-        esc(p.name || '') +
-        (c.trusted ? ' <span class="q-trust" title="Curated channel">\u2713</span>' : '') +
-      '</span>' +
-      '<span class="mt-clip-title">' + esc(c.title) + '</span>' +
-      '<span class="mt-clip-meta">' + meta + '</span>' +
-    '</span></a>';
 }
 
 // ---------------------------------------------------------------- league
@@ -892,8 +848,33 @@ window.DFM_ON_LEAGUE = function (league) {
   MT.openTeamId = null;
   MODEL_READY.then(() => {
     if (document.getElementById('league-pane-body')) renderLeagueTab();
+    // Manager Score is a pane on this page now, so it can be offered the
+    // league the user just loaded instead of asking for it a second time.
+    offerManagerScoreForLoadedLeague();
   }).catch(e => console.warn('league view failed', e));
 };
+
+// Manager Score lives in a pane on this page now. When the user has
+// already resolved a league here, hand that league id straight to it
+// rather than making them find it again -- which was the whole reason for
+// moving the feature in. msRun is managerscore_js's entry point.
+function offerManagerScoreForLoadedLeague() {
+  const box = document.getElementById('ms-from-page');
+  if (!box) return;
+  const id = MT.league && MT.league.leagueId;
+  if (!id) { box.style.display = 'none'; return; }
+
+  box.style.display = '';
+  box.className = 'callout';
+  box.innerHTML = 'You already loaded league <code>' + esc(id) +
+    '</code> on this page. ' +
+    '<button class="mt-open" id="ms-score-loaded">Score this league</button>';
+  const btn = document.getElementById('ms-score-loaded');
+  if (btn) btn.addEventListener('click', () => {
+    const hist = document.getElementById('ms-history');
+    if (typeof msRun === 'function') msRun(String(id), !hist || hist.checked);
+  });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.view-tab').forEach(b => {
@@ -904,6 +885,8 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById(b.dataset.view).style.display = '';
     });
   });
+
+  bindHighlightOpts();
 
   MODEL_READY.then(() => {
     if (!MT.rankings) {
@@ -986,19 +969,29 @@ def _pos_color_json() -> str:
 
 
 def build_my_team(latest_ts: datetime, league_label: str) -> str:
-    """Render myteam.html. Imported lazily by report.generate_site."""
+    """Render myteam.html. Imported lazily by report.generate_site.
+
+    Five views now, not four. Manager Score moved in here from its own nav
+    tab (owner, this PR) because it starts by asking for the same Sleeper
+    username this page already asks for, and two tabs asking the same
+    question is one tab too many.
+    """
     from .report import _page, _site_header  # local: avoids a cycle
     from .reel import reel_assets
+    from .managerscore import manager_score_assets, manager_score_section
 
     reel_js, reel_css = reel_assets()
+    ms_css, ms_core_js, ms_ui_js = manager_score_assets()
 
     body = """<div class="container">
 
-<h2>My <span class="accent">Team</span></h2>
+<h2>Input <span class="accent">Sleeper</span> Team</h2>
 <p class="lede">Pull your Sleeper roster in, see where the model ranks every
-player you own, compare your team against the rest of your league, and watch
-their film from the most recently completed slate. Rosters are read live from
-Sleeper's public API in your browser — nothing is sent to this site.</p>
+player you own, compare your team against the rest of your league, watch your
+whole roster's film from the most recently completed slate, and score every
+manager in the league on what they drafted and traded for. Rosters and leagues
+are read live from Sleeper's public API in your browser — nothing is sent to
+this site.</p>
 <div class="hl-meta" id="hl-meta">Loading highlight index…</div>
 <div id="mt-artifact-note" style="display:none"></div>
 
@@ -1040,6 +1033,7 @@ Sleeper's public API in your browser — nothing is sent to this site.</p>
     <button class="view-tab" data-view="view-rankings">Dynasty Rankings</button>
     <button class="view-tab" data-view="view-league">League</button>
     <button class="view-tab" data-view="view-highlights">Highlights</button>
+    <button class="view-tab" data-view="view-managerscore">Manager Score</button>
   </div>
 
   <div class="view-pane" id="view-roster">
@@ -1055,11 +1049,7 @@ Sleeper's public API in your browser — nothing is sent to this site.</p>
   </div>
 
   <div class="view-pane" id="view-highlights" style="display:none">
-    <div id="clips-pane-body"></div>
-
-    <h3>Roster Reel</h3>
-    <p class="mt-sub">The same film as one ordered queue — or send the whole
-    week to YouTube as a playlist and watch it end to end.</p>
+    <h3>Your roster's <span class="accent">highlights</span></h3>
 
     <div id="step-reel" style="display:none">
       <div id="roster-summary" style="font-size:13px;opacity:.75;margin-top:10px"></div>
@@ -1068,13 +1058,13 @@ Sleeper's public API in your browser — nothing is sent to this site.</p>
         <label><input type="checkbox" id="opt-team"> include game recaps when no cut-up exists</label>
         <label><input type="checkbox" id="opt-all"> show every week, not just the latest complete one</label>
       </div>
-
-      <a class="btn btn-lg btn-disabled" id="play-all" target="_blank"
-         rel="noopener noreferrer">Watch all on YouTube</a>
-      <div id="play-all-note"></div>
-
-      <div id="queue-list"></div>
     </div>
+
+    <div id="clips-pane-body"></div>
+  </div>
+
+  <div class="view-pane" id="view-managerscore" style="display:none">
+    __MANAGER_SCORE__
   </div>
 </div>
 
@@ -1088,19 +1078,25 @@ League standings are computed in your browser from the rosters Sleeper
 returns; the method is documented on the League tab.</p>
 
 </div>
-<style>__REEL_CSS____MYTEAM_CSS__</style>
+<style>__REEL_CSS____MYTEAM_CSS____MANAGER_SCORE_CSS__</style>
 <script>__REEL_JS__</script>
 <script>__MYTEAM_JS__</script>
+<script>__MANAGER_SCORE_CORE_JS__</script>
+<script>__MANAGER_SCORE_UI_JS__</script>
 """
     body = (body
+            .replace("__MANAGER_SCORE__", manager_score_section())
             .replace("__REEL_CSS__", reel_css)
             .replace("__MYTEAM_CSS__", _MYTEAM_CSS)
+            .replace("__MANAGER_SCORE_CSS__", ms_css)
             .replace("__REEL_JS__", reel_js)
             .replace("__MYTEAM_JS__",
-                     _MYTEAM_JS.replace("__POS_COLOR__", _pos_color_json())))
+                     _MYTEAM_JS.replace("__POS_COLOR__", _pos_color_json()))
+            .replace("__MANAGER_SCORE_CORE_JS__", ms_core_js)
+            .replace("__MANAGER_SCORE_UI_JS__", ms_ui_js))
 
     return _page(
-        "Kings of Dynasty — My Team",
+        page_title("Input Sleeper Team"),
         _site_header("myteam", latest_ts, league_label),
         body,
     )

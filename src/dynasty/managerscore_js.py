@@ -1075,7 +1075,12 @@ var MSX = {
   loadError: null
 };
 
-var SLEEPER = 'https://api.sleeper.app/v1';
+/* Prefixed like every other global in this file. It must be: this
+ * script now shares a document with reel.js, which declares its own
+ * top-level `const SLEEPER`, and two same-named top-level bindings in
+ * one document are a SyntaxError that takes the whole page down.
+ * scripts/check_site_js.py checks the concatenation for exactly this. */
+var MS_SLEEPER = 'https://api.sleeper.app/v1';
 
 function msEsc(s) {
   return String(s == null ? '' : s)
@@ -1225,7 +1230,7 @@ function msMapLimit(items, limit, fn) {
  * not asked for weeks that have not happened. Cached; failure is
  * non-fatal and simply means we fall back to asking for all 18. */
 function msNflState() {
-  return msGetCached(SLEEPER + '/state/nfl', null, {}).then(function (s) {
+  return msGetCached(MS_SLEEPER + '/state/nfl', null, {}).then(function (s) {
     return s || null;
   });
 }
@@ -1326,7 +1331,7 @@ function msLeagueChain(leagueId, maxHops) {
   var hops = maxHops == null ? 12 : maxHops;
   function step(id) {
     if (!id || chain.length >= hops) return Promise.resolve(chain);
-    return msGetCached(SLEEPER + '/league/' + id, null, {}).then(function (lg) {
+    return msGetCached(MS_SLEEPER + '/league/' + id, null, {}).then(function (lg) {
       if (!lg || !lg.league_id) return chain;
       chain.push(lg);
       return step(lg.previous_league_id);
@@ -1338,7 +1343,7 @@ function msLeagueChain(leagueId, maxHops) {
 function msFetchLeagueData(leagueId, includeHistory) {
   return msNflState().then(function (state) {
   return (includeHistory ? msLeagueChain(leagueId) :
-          msGetCached(SLEEPER + '/league/' + leagueId, null, {})
+          msGetCached(MS_SLEEPER + '/league/' + leagueId, null, {})
             .then(function (lg) { return lg ? [lg] : []; })
   ).then(function (chain) {
     MSX.leagueChain = chain;
@@ -1349,9 +1354,9 @@ function msFetchLeagueData(leagueId, includeHistory) {
     return msMapLimit(chain, 1, function (lg) {
       var id = lg.league_id;
       return Promise.all([
-        msGetCached(SLEEPER + '/league/' + id + '/users', [], {}),
-        msGetCached(SLEEPER + '/league/' + id + '/rosters', [], {}),
-        msGetCached(SLEEPER + '/league/' + id + '/drafts', [], {}),
+        msGetCached(MS_SLEEPER + '/league/' + id + '/users', [], {}),
+        msGetCached(MS_SLEEPER + '/league/' + id + '/rosters', [], {}),
+        msGetCached(MS_SLEEPER + '/league/' + id + '/drafts', [], {}),
         msFetchTransactions(id, lg.season, state),
         msFetchMatchups(id, lg.season, state, lg)
       ]).then(function (parts) {
@@ -1365,7 +1370,7 @@ function msFetchLeagueData(leagueId, includeHistory) {
       return Promise.all((s.drafts || []).map(function (d) {
         var did = d.draft_id || d.id;
         if (!did) return Promise.resolve({ draft: d, picks: [] });
-        return msGetCached(SLEEPER + '/draft/' + did + '/picks', [], {})
+        return msGetCached(MS_SLEEPER + '/draft/' + did + '/picks', [], {})
           .then(function (p) { return { draft: d, picks: p || [] }; });
       })).then(function (drafts) { s.draftPicks = drafts; return s; });
     }));
@@ -1421,7 +1426,7 @@ function msFetchMatchups(leagueId, season, state, league) {
   }
 
   return msMapLimit(weeks, MS_MAX_CONCURRENCY, function (w) {
-    return msGetCached(SLEEPER + '/league/' + leagueId + '/matchups/' + w, [],
+    return msGetCached(MS_SLEEPER + '/league/' + leagueId + '/matchups/' + w, [],
                        { immutable: knownPast, distil: distil })
       .then(function (m) {
         return { season: String(season), week: w, leagueId: leagueId,
@@ -1439,7 +1444,7 @@ function msFetchTransactions(leagueId, season, state) {
   var weeks = [];
   for (var w = 0; w <= 18; w++) weeks.push(w);
   return msMapLimit(weeks, MS_MAX_CONCURRENCY, function (w) {
-    return msGetCached(SLEEPER + '/league/' + leagueId + '/transactions/' + w, [],
+    return msGetCached(MS_SLEEPER + '/league/' + leagueId + '/transactions/' + w, [],
                        { immutable: knownPast });
   }).then(function (chunks) {
     var all = [];
@@ -2070,16 +2075,16 @@ function msRun(leagueId, includeHistory) {
 
 function msFindLeagues(username) {
   msStatus('Looking up ' + msEsc(username) + '…');
-  return msGetJSONSoft(SLEEPER + '/user/' + encodeURIComponent(username), null)
+  return msGetJSONSoft(MS_SLEEPER + '/user/' + encodeURIComponent(username), null)
     .then(function (u) {
       if (!u || !u.user_id) throw new Error('No Sleeper user called "' + username + '".');
       var year = new Date().getFullYear();
       return msGetJSONSoft(
-        SLEEPER + '/user/' + u.user_id + '/leagues/nfl/' + year, []
+        MS_SLEEPER + '/user/' + u.user_id + '/leagues/nfl/' + year, []
       ).then(function (ls) {
         if (ls && ls.length) return ls;
         return msGetJSONSoft(
-          SLEEPER + '/user/' + u.user_id + '/leagues/nfl/' + (year - 1), []);
+          MS_SLEEPER + '/user/' + u.user_id + '/leagues/nfl/' + (year - 1), []);
       });
     })
     .then(function (leagues) {
