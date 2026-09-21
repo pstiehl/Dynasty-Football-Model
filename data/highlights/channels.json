@@ -1,0 +1,34 @@
+{
+  "_comment": [
+    "Channels whose uploads get walked for player cut-ups.",
+    "channel_id is preferred: it lets the script derive the uploads playlist",
+    "(UC.. -> UU..) and skip a channels.list call. If you only have a handle,",
+    "the script resolves it at runtime and prints the id so you can paste it",
+    "back here. Handles below are UNVERIFIED placeholders - run the script",
+    "once and check the resolution log before trusting them.",
+    "Set enabled:false to mute a channel without deleting its config."
+  ],
+  "channels": [
+    {
+      "name": "NFL",
+      "handle": "@NFL",
+      "channel_id": null,
+      "enabled": true,
+      "notes": "Official. Game recaps + some player cut-ups. Best team_game fallback source."
+    },
+    {
+      "name": "NFL Films",
+      "handle": "@NFLFilms",
+      "channel_id": null,
+      "enabled": true,
+      "notes": "Unverified handle."
+    },
+    {
+      "name": "Fantasy Film Room",
+      "handle": "@FantasyFilmRoom",
+      "channel_id": null,
+      "enabled": false,
+      "notes": "Placeholder - verify before enabling."
+    }
+  ]
+}
