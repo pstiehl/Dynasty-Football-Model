@@ -23,7 +23,10 @@ const RANKINGS = [
   { player_id: '00-0090001', name: 'Chris Olave', position: 'WR',
     overall_rank: 70, age: 26, tier: 4, comp_tier: 'solid', production_score: 690 },
   { player_id: '00-0090002', name: 'Chris Olave', position: 'WR',
-    overall_rank: 300, age: 24, tier: 9, comp_tier: 'fringe', production_score: 90 }
+    overall_rank: 300, age: 24, tier: 9, comp_tier: 'fringe', production_score: 90 },
+  // The whitespace case: the crosswalk stores this id with a leading space.
+  { player_id: '00-0035228', name: 'Kyler Murray', position: 'QB',
+    overall_rank: 12, age: 29, tier: 1, comp_tier: 'elite', production_score: 1400 }
 ];
 
 for (let i = 0; i < 40; i++) {
@@ -52,7 +55,10 @@ const CROSSWALK = {
     '5000': ['Harrison Butker', 'K', 'KC', '00-0033433'],
     '5001': ['Micah Parsons', 'LB', 'GB', '00-0036612'],
     '5002': ['Rookie Nobody', 'WR', 'SEA', '00-0099999'], // ranked by nobody
-    '5003': ['Chris Olave', 'WR', 'NO', '']              // ambiguous by name
+    '5003': ['Chris Olave', 'WR', 'NO', ''],             // ambiguous by name
+    // Leading space, exactly as 866 live entries carried it. The id is
+    // correct; only the whitespace broke the join.
+    '5849': ['Kyler Murray', 'QB', 'ARI', ' 00-0035228']
   }
 };
 for (let i = 0; i < 40; i++) {

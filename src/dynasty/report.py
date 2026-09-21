@@ -2098,11 +2098,18 @@ def _load_sleeper_player_index() -> Dict[str, list]:
                 sid = getattr(p, "sleeper_id", None)
                 if not sid:
                     continue
+                # Every field is stripped. 866 rows of the live artifact
+                # stored the gsis id as " 00-0035228" with a leading
+                # space, which silently broke the string join myteam.html
+                # does against engine_rankings.json -- Kyler Murray, A.J.
+                # Brown, DK Metcalf and Terry McLaurin among the casualties.
+                # Normalizing at the point of write stops it recurring.
                 out[str(sid)] = [
-                    getattr(p, "full_name", None) or "",
-                    getattr(p, "position", None) or "",
-                    getattr(p, "nfl_team", None) or getattr(p, "team", None) or "",
-                    getattr(p, "gsis_id", None) or "",
+                    (getattr(p, "full_name", None) or "").strip(),
+                    (getattr(p, "position", None) or "").strip(),
+                    (getattr(p, "nfl_team", None)
+                     or getattr(p, "team", None) or "").strip(),
+                    (getattr(p, "gsis_id", None) or "").strip(),
                 ]
         return out
     except Exception:  # noqa: BLE001
@@ -2213,12 +2220,52 @@ def generate_site(
     # the page can tell "the build ran but the DB was empty" apart from
     # "this artifact was never generated" and say the right thing.
     _sleeper_index = _load_sleeper_player_index()
+
+    # Repair the join before writing it. The player table has no gsis id for
+    # most of its rows, so 68% of this crosswalk shipped with an empty gsis
+    # slot and My Team could reach only 170 of 735 ranking rows -- Hurts,
+    # Lawrence, Gibbs, Herbert, Bijan and Amon-Ra among the 565 it could
+    # not. Both sides of the join are in hand right here, so fill it once at
+    # build time rather than leaving every browser to work around it.
+    _xwalk_stats = {}
+    try:
+        from .roster_crosswalk import backfill, unreachable_rankings
+
+        _xwalk_stats = backfill(_sleeper_index, engine.rankings)
+        import logging
+        _log = logging.getLogger(__name__)
+        _log.info(
+            "roster crosswalk: %d entries, %d gsis present, %d backfilled by "
+            "name, %d ambiguous, %d still missing -> %d/%d ranking rows "
+            "reachable",
+            _xwalk_stats["entries"], _xwalk_stats["gsis_present"],
+            _xwalk_stats["gsis_backfilled"], _xwalk_stats["gsis_ambiguous"],
+            _xwalk_stats["gsis_missing"], _xwalk_stats["rankings_reachable"],
+            _xwalk_stats["rankings_total"],
+        )
+        for _row in unreachable_rankings(_sleeper_index, engine.rankings)[:20]:
+            _log.info(
+                "  unreachable from any Sleeper id: #%s %s (%s)",
+                _row.get("overall_rank"), _row.get("name"),
+                _row.get("position"),
+            )
+    except Exception as exc:  # noqa: BLE001
+        # A crosswalk repair failure must never break the build: the page
+        # still has its own name-join fallback.
+        import logging
+        logging.getLogger(__name__).warning(
+            "roster crosswalk backfill failed: %s", exc
+        )
+
     (out_root / "roster_index.json").write_text(
         json.dumps(
             {
                 "generated_at": latest_ts.isoformat(),
                 "available": bool(_sleeper_index),
                 "fields": ["name", "position", "team", "gsis_id"],
+                # Published so the page (and a reviewer) can see how much of
+                # the model is reachable, rather than inferring it.
+                "join_stats": _xwalk_stats,
                 "players": _sleeper_index,
             },
             separators=(",", ":"),

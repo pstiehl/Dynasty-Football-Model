@@ -59,7 +59,7 @@ function eq(got, want, label) {
 
   console.log('\n-- default queue is the completed slate (reel.js) --');
   const ROSTER_IDS = ['3294', '12001', '7564', '5000', '5001', '5002', '5003',
-                      '4046', 'DAL', '999999'];
+                      '4046', 'DAL', '999999', '5849'];
   buildRoster(ROSTER_IDS);
   document.getElementById('opt-all').checked = false;
   document.getElementById('opt-team').checked = false;
@@ -105,6 +105,12 @@ function eq(got, want, label) {
   eq(by['12001'].rank, 64, 'name join repairs the empty-gsis gap (Dart #64)');
   eq(by['12001'].rankSource, 'name', 'Dart joined by name, and says so');
 
+  // The whitespace defect, client side. The page is served against
+  // whatever artifact is deployed or cached, so it must repair this itself
+  // rather than depending on the next site build.
+  eq(by['5849'].rank, 12, 'leading-space gsis still joins (Kyler Murray #12)');
+  eq(by['5849'].rankSource, 'gsis', 'and joins on the id, not by name');
+
   eq(by['DAL'].rank, null, 'team defense has no rank');
   eq(by['DAL'].unrankedCode, 'team_defense', 'team defense is labelled as such');
   eq(by['DAL'].name, 'Cowboys defense', 'team defense gets a readable name');
@@ -134,6 +140,24 @@ function eq(got, want, label) {
      'roster tab carries a reason column');
   ok(rosterHtml.indexOf('Cowboys defense') >= 0,
      'roster tab shows the team defense by name');
+
+  console.log('\n-- build fell back to another slate --');
+  // loadHighlights re-reads the artifact through fetch, so the fixture is
+  // what has to carry the flag -- mutating HL directly would be undone by
+  // the very call under test.
+  const pristine = FIXTURES['highlights.json'];
+  const adjusted = JSON.parse(JSON.stringify(HIGHLIGHTS));
+  adjusted.window.adjusted_from = 'Sep 3\u20137';
+  FIXTURES['highlights.json'] = adjusted;
+  await loadHighlights();
+  ok(document.getElementById('reel-status').textContent
+       .indexOf('No film is indexed for Sep 3\u20137') >= 0,
+     'a fallback window is disclosed, not presented as the current one');
+  ok(document.getElementById('reel-status').textContent
+       .indexOf('Sep 10\u201314') >= 0,
+     'and it names the window actually being shown');
+  FIXTURES['highlights.json'] = pristine;
+  await loadHighlights();
 
   console.log('\n-- graceful degradation --');
   const realRankings = MT.rankings;

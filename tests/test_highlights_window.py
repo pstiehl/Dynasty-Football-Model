@@ -1,13 +1,23 @@
 """Tests for the rolling game window that drives highlight recency.
 
-The bug these exist for: on Monday 2026-09-21 the old ``current_nfl_week()``
-returned 2, because 11 days had elapsed since the Sep 10 kickoff. Week 2's
-slate was still being played, so nothing from it had been uploaded, and the
-reel keyed its ordering off a week number no clip could match yet. The fix
-is to select on publish timestamps inside the most recently *completed*
-Thursday-to-Monday slate.
+The bug these exist for: the old ``current_nfl_week()`` derived a week from
+a season-start constant and ``_sort_clips`` ordered on a week number parsed
+out of video titles -- a field absent from many uploads, which therefore
+sorted as week 0 and fell behind everything however recent it was. The fix
+is to select and order on publish timestamps inside a rolling slate window.
 
-No network, no DB, no clock dependency -- every case pins ``as_of``.
+The *anchor* of that window was then corrected against the live index of
+2026-09-21T13:08Z, and these tests pin the corrected behaviour. All 28
+videos in that index were published Sep 20-21, so a window anchored to the
+slate's final day (changeover Tuesday 12:00 UTC) resolved to Sep 10-14 and
+matched 0 of 737 clip rows -- a completely blank reel on a Monday morning
+while Sunday's film sat unshown. The window now opens 36h after the start
+of its *Sunday*, i.e. Monday 12:00 UTC.
+
+Nothing here asserts a particular week number as "the" answer; the week is
+only a label, and every case pins ``as_of`` explicitly.
+
+No network, no DB, no clock dependency.
 """
 from __future__ import annotations
 
@@ -23,6 +33,7 @@ from dynasty.highlights import (
     build_index,
     resolve_game_window,
     week_number_for,
+    window_containing,
 )
 
 
@@ -55,31 +66,54 @@ def window_at(as_of, **kw):
 # The Monday case
 # --------------------------------------------------------------------------
 
-def test_monday_morning_serves_the_last_completed_slate():
-    """08:41 EDT on Monday 2026-09-21 -- the owner's reported case."""
-    w = window_at(utc(2026, 9, 21, 12, 41))
-    assert w.start == utc(2026, 9, 10)
-    assert w.end.date() == datetime(2026, 9, 14).date()
-    assert w.label == "Sep 10\u201314"
-    # Not week 2, which is the number the old season-start arithmetic gave.
-    assert w.week == 1
+def test_monday_morning_serves_the_slate_whose_film_exists():
+    """09:00 EDT on Monday 2026-09-21, matching the live index.
+
+    Sunday's games were the day before and 21 of the index's 28 videos were
+    published on that Sunday, so Sep 17-21 is the slate with film in it.
+    """
+    w = window_at(utc(2026, 9, 21, 13))
+    assert w.start == utc(2026, 9, 17)
+    assert w.end.date() == datetime(2026, 9, 21).date()
+    assert w.label == "Sep 17\u201321"
+    assert w.week == 2                       # agrees with live expected_week
 
 
-def test_monday_window_is_stable_all_day():
-    for hour in (0, 6, 12, 18, 23):
-        assert window_at(utc(2026, 9, 21, hour)).label == "Sep 10\u201314"
+def test_changeover_is_monday_noon_utc():
+    """Before 12:00 UTC Monday the previous slate still leads."""
+    assert window_at(utc(2026, 9, 21, 11, 59)).label == "Sep 10\u201314"
+    assert window_at(utc(2026, 9, 21, 12, 0)).label == "Sep 17\u201321"
+    assert window_at(utc(2026, 9, 21, 12, 0)).opens_at == utc(2026, 9, 21, 12)
 
 
-def test_window_does_not_advance_while_monday_night_is_still_on():
-    """MNF ends around 03:30 UTC Tuesday; nothing is cut up yet."""
-    assert window_at(utc(2026, 9, 22, 3, 30)).label == "Sep 10\u201314"
+def test_weekend_viewer_still_gets_the_previous_finished_slate():
+    """The grace period's real job: Thu-Sun must not jump to a barely
+    started slate just because Thursday night football has happened."""
+    for moment in (utc(2026, 9, 17, 20),     # TNF in progress
+                   utc(2026, 9, 18, 12),     # Friday
+                   utc(2026, 9, 19, 12),      # Saturday
+                   utc(2026, 9, 20, 18),     # Sunday 1pm ET games
+                   utc(2026, 9, 20, 23)):    # Sunday night
+        assert window_at(moment).label == "Sep 10\u201314", moment
 
 
-def test_window_advances_once_the_cut_ups_have_landed():
-    """Grace expires Tuesday midday UTC, before the Tuesday 16:00 CI pass."""
-    assert window_at(utc(2026, 9, 22, 11, 59)).label == "Sep 10\u201314"
-    assert window_at(utc(2026, 9, 22, 12, 0)).label == "Sep 17\u201321"
-    assert window_at(utc(2026, 9, 22, 16, 0)).label == "Sep 17\u201321"
+def test_window_holds_through_monday_night_and_into_midweek():
+    for moment in (utc(2026, 9, 21, 23),     # MNF kickoff
+                   utc(2026, 9, 22, 3, 30),  # MNF just ended
+                   utc(2026, 9, 22, 16),     # Tuesday CI pass
+                   utc(2026, 9, 23, 11)):    # Wednesday daily pass
+        assert window_at(moment).label == "Sep 17\u201321", moment
+
+
+def test_anchor_does_not_wait_a_full_day_for_the_final_game():
+    """Regression on the corrected anchor.
+
+    Anchoring grace to the slate's final day put the changeover at Tuesday
+    12:00 UTC, which left Monday viewers a week behind the film that
+    existed. Monday afternoon must already be on the current slate.
+    """
+    assert window_at(utc(2026, 9, 21, 18)).label != "Sep 10\u201314"
+    assert window_at(utc(2026, 9, 21, 18)).week == 2
 
 
 def test_thursday_night_game_does_not_open_a_new_window():
@@ -93,6 +127,11 @@ def test_sunday_afternoon_still_serves_the_finished_week():
     assert window_at(utc(2026, 9, 27, 18)).label == "Sep 17\u201321"
 
 
+def test_next_monday_advances_one_slate():
+    assert window_at(utc(2026, 9, 28, 13)).label == "Sep 24\u201328"
+    assert window_at(utc(2026, 9, 28, 13)).week == 3
+
+
 # --------------------------------------------------------------------------
 # Overrides
 # --------------------------------------------------------------------------
@@ -102,8 +141,8 @@ def test_grace_hours_override_holds_the_window_open():
     assert late.label == "Sep 10\u201314"
 
 
-def test_zero_grace_flips_as_soon_as_the_final_day_starts():
-    w = window_at(utc(2026, 9, 21, 12, 41), grace_hours=0)
+def test_zero_grace_flips_as_soon_as_the_sunday_starts():
+    w = window_at(utc(2026, 9, 20, 1), grace_hours=0)
     assert w.label == "Sep 17\u201321"
 
 
@@ -121,8 +160,9 @@ def test_defaults_are_the_documented_ones():
 
 
 def test_naive_as_of_is_treated_as_utc():
-    naive = datetime(2026, 9, 21, 12, 41)
-    assert resolve_game_window(naive, season_start=SEASON_START).label == "Sep 10\u201314"
+    naive = datetime(2026, 9, 21, 13)
+    assert resolve_game_window(
+        naive, season_start=SEASON_START).label == "Sep 17\u201321"
 
 
 # --------------------------------------------------------------------------
@@ -154,17 +194,32 @@ def test_week_number_is_none_before_the_season_and_off_the_end():
 # --------------------------------------------------------------------------
 
 def test_contains_covers_the_slate_and_the_upload_lag():
-    w = window_at(utc(2026, 9, 21, 12, 41))
-    assert w.contains("2026-09-10T00:00:00Z")          # Thursday kickoff
-    assert w.contains("2026-09-14T23:00:00Z")          # Monday night
-    assert w.contains("2026-09-15T14:00:00Z")          # Tuesday cut-up
-    assert not w.contains("2026-09-09T23:59:00Z")      # Wednesday before
-    assert not w.contains("2026-09-17T12:00:00Z")      # next slate
+    w = window_at(utc(2026, 9, 21, 13))               # Sep 17-21
+    assert w.contains("2026-09-17T00:00:00Z")          # Thursday kickoff
+    assert w.contains("2026-09-20T21:00:00Z")          # Sunday film
+    assert w.contains("2026-09-21T13:00:00Z")          # Monday uploads
+    assert w.contains("2026-09-22T14:00:00Z")          # MNF cut-up, Tuesday
+    assert not w.contains("2026-09-16T23:59:00Z")      # Wednesday before
+    assert not w.contains("2026-09-14T22:00:00Z")      # previous slate
+
+
+def test_live_index_publish_dates_all_fall_inside_the_window():
+    """The concrete regression, using the live index's real timestamps.
+
+    Every video in highlights.json at 2026-09-21T13:08Z was published on
+    Sep 20 or Sep 21. Under the previous anchor none of them were in the
+    resolved window and the reel was empty.
+    """
+    w = window_at(utc(2026, 9, 21, 13))
+    for stamp in ("2026-09-20T16:02:00Z", "2026-09-20T21:45:00Z",
+                  "2026-09-20T23:58:00Z", "2026-09-21T02:11:00Z",
+                  "2026-09-21T12:40:00Z"):
+        assert w.contains(stamp), stamp
 
 
 def test_undated_upload_is_not_counted_as_current():
     """An unparsable timestamp must not outrank a genuine in-window clip."""
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     assert not w.contains("")
     assert not w.contains(None)
     assert not w.contains("not a date")
@@ -175,10 +230,10 @@ def test_undated_upload_is_not_counted_as_current():
 # --------------------------------------------------------------------------
 
 def test_in_window_clips_lead_and_older_clips_are_kept():
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     videos = [
-        vid("old", "Dak Prescott Highlights Week 18", "2026-08-30T18:00:00Z"),
-        vid("new", "Dak Prescott Highlights", "2026-09-14T22:00:00Z"),
+        vid("old", "Dak Prescott Highlights Week 18", "2026-09-06T18:00:00Z"),
+        vid("new", "Dak Prescott Highlights", "2026-09-20T22:00:00Z"),
     ]
     clips = build_index(PLAYERS, videos, window=w)["clips"]["3294"]
 
@@ -195,10 +250,10 @@ def test_a_titled_week_no_longer_beats_a_newer_upload():
     mention a week at all. Recency has to win, or a reel leads on film from
     a slate that has not been played.
     """
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     videos = [
-        vid("titled", "Dak Prescott Highlights Week 2", "2026-09-02T18:00:00Z"),
-        vid("current", "Dak Prescott Every Throw", "2026-09-13T18:00:00Z"),
+        vid("titled", "Dak Prescott Highlights Week 2", "2026-09-08T18:00:00Z"),
+        vid("current", "Dak Prescott Every Throw", "2026-09-20T18:00:00Z"),
     ]
     clips = build_index(PLAYERS, videos, window=w)["clips"]["3294"]
     assert clips[0]["video_id"] == "current"
@@ -206,35 +261,36 @@ def test_a_titled_week_no_longer_beats_a_newer_upload():
 
 def test_untitled_week_clip_is_not_buried():
     """Two in-window clips, only one with a week in its title."""
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     videos = [
-        vid("has_week", "Dak Prescott Highlights Week 1", "2026-09-13T10:00:00Z"),
-        vid("no_week", "Dak Prescott Highlights", "2026-09-14T10:00:00Z"),
+        vid("has_week", "Dak Prescott Highlights Week 2", "2026-09-20T10:00:00Z"),
+        vid("no_week", "Dak Prescott Highlights", "2026-09-20T22:00:00Z"),
     ]
     clips = build_index(PLAYERS, videos, window=w)["clips"]["3294"]
     assert clips[0]["video_id"] == "no_week"
 
 
 def test_cutup_still_outranks_a_recap_inside_the_window():
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     videos = [
-        vid("recap", "Cowboys vs Giants Game Highlights", "2026-09-14T23:00:00Z"),
-        vid("cutup", "Dak Prescott Highlights", "2026-09-14T12:00:00Z"),
+        vid("recap", "Cowboys vs Giants Game Highlights", "2026-09-20T23:00:00Z"),
+        vid("cutup", "Dak Prescott Highlights", "2026-09-20T12:00:00Z"),
     ]
     clips = build_index(PLAYERS, videos, window=w)["clips"]["3294"]
     assert clips[0]["kind"] == KIND_PLAYER
 
 
 def test_window_metadata_is_published_on_the_artifact():
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     idx = build_index(PLAYERS, [vid("v", "Dak Prescott Highlights",
-                                    "2026-09-14T22:00:00Z")], window=w)
+                                    "2026-09-20T22:00:00Z")], window=w)
 
-    assert idx["window_start"].startswith("2026-09-10")
-    assert idx["window_end"].startswith("2026-09-14")
-    assert idx["window"]["label"] == "Sep 10\u201314"
+    assert idx["window_start"].startswith("2026-09-17")
+    assert idx["window_end"].startswith("2026-09-21")
+    assert idx["window"]["label"] == "Sep 17\u201321"
     assert idx["window"]["grace_hours"] == 36
-    assert idx["window"]["week"] == 1
+    assert idx["window"]["week"] == 2
+    assert idx["window"]["adjusted_from"] is None
     assert idx["stats"]["clips_in_window"] == 1
     assert idx["stats"]["players_with_window_clips"] == 1
 
@@ -250,11 +306,46 @@ def test_index_without_a_window_is_unchanged():
 
 
 def test_in_window_clip_scores_above_the_same_clip_out_of_window():
-    w = window_at(utc(2026, 9, 21, 12, 41))
+    w = window_at(utc(2026, 9, 21, 13))
     inside = build_index(PLAYERS, [vid("a", "Dak Prescott Highlights",
-                                       "2026-09-14T22:00:00Z")],
+                                       "2026-09-20T22:00:00Z")],
                          window=w)["clips"]["3294"][0]["confidence"]
     outside = build_index(PLAYERS, [vid("b", "Dak Prescott Highlights",
                                         "2026-08-14T22:00:00Z")],
                           window=w)["clips"]["3294"][0]["confidence"]
     assert inside > outside
+
+
+# --------------------------------------------------------------------------
+# window_containing: the empty-slate safety net
+# --------------------------------------------------------------------------
+
+def test_window_containing_ignores_the_grace_gate():
+    """Sunday's own slate, asked for on that Sunday.
+
+    resolve_game_window() would still be on the previous slate here;
+    window_containing answers the different question "which slate does this
+    upload belong to".
+    """
+    w = window_containing(utc(2026, 9, 20, 21), season_start=SEASON_START)
+    assert w.label == "Sep 17\u201321"
+    assert w.week == 2
+    assert window_at(utc(2026, 9, 20, 21)).label == "Sep 10\u201314"
+
+
+def test_window_containing_brackets_its_own_moment():
+    for moment in (utc(2026, 9, 17, 0), utc(2026, 9, 19, 12),
+                   utc(2026, 9, 21, 23, 59)):
+        w = window_containing(moment, season_start=SEASON_START)
+        assert w.start <= moment <= w.end, moment
+
+
+def test_adjusted_from_is_carried_onto_the_artifact():
+    """What the pages read to say "nothing for X, showing Y" honestly."""
+    w = window_containing(utc(2026, 9, 20, 21), season_start=SEASON_START)
+    w.adjusted_from = "Sep 10\u201314"
+    idx = build_index(PLAYERS, [vid("v", "Dak Prescott Highlights",
+                                    "2026-09-20T22:00:00Z")], window=w)
+    assert idx["window"]["adjusted_from"] == "Sep 10\u201314"
+    assert idx["window"]["label"] == "Sep 17\u201321"
+    assert idx["stats"]["clips_in_window"] == 1
