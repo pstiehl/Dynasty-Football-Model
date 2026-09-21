@@ -29,8 +29,17 @@ log = logging.getLogger(__name__)
 
 PFR_BASE = "https://www.pro-football-reference.com"
 CACHE_DIR = Path("data/pfr_cache/draft_class")
+# Self-identifying User-Agent, matching the rest of the project.
+#
+# This previously impersonated Firefox 120 on Linux. Pretending to be a
+# human browser to get past bot detection is not something this project
+# should do: Sports Reference's terms do not permit scraping, and a 403 is
+# a deliberate answer, not an obstacle. If a source declines us, the right
+# response is to use a source that permits programmatic access - which is
+# why the career panel is moving to nflverse.
 USER_AGENT = (
-    "Mozilla/5.0 (X11; Linux x86_64; rv:120.0) Gecko/20100101 Firefox/120.0"
+    "sandpaw-dynasty-model/3.13 "
+    "(+https://pstiehl.github.io/Dynasty-Football-Model/)"
 )
 HTTP_TIMEOUT_SECS = 30
 # Wayback snapshot timestamps to try in order.
@@ -40,6 +49,28 @@ WAYBACK_TIMESTAMPS = (
     "20260601000000",
     "20251101000000",
 )
+
+# Same kill switch the seasonal scraper honours. web.archive.org refuses
+# every connection from GitHub-hosted runners, so in CI each of these
+# timestamps is 2s of sleep plus a connection attempt for nothing.
+WAYBACK_DISABLED_BY_ENV = os.environ.get("PFR_DISABLE_WAYBACK", "").strip().lower() in (
+    "1", "true", "yes",
+)
+
+
+def _is_connection_level(exc: BaseException) -> bool:
+    """True when the host refused or dropped us rather than answering.
+
+    A refused connection means the archive is unreachable from this network;
+    every remaining timestamp will fail identically, so there is nothing to
+    gain by walking the rest of the list.
+    """
+    if isinstance(exc, urllib.error.HTTPError):
+        return False
+    if isinstance(exc, urllib.error.URLError):
+        reason = getattr(exc, "reason", None)
+        return isinstance(reason, OSError)
+    return isinstance(exc, (ConnectionError, TimeoutError, OSError))
 
 
 def _http_get(url: str) -> str:
@@ -54,6 +85,12 @@ def _http_get(url: str) -> str:
 
 def _wayback_get(year: int, max_attempts: int = 4) -> str:
     pfr_path = f"/years/{year}/draft.htm"
+
+    if WAYBACK_DISABLED_BY_ENV:
+        raise RuntimeError(
+            f"Wayback disabled via PFR_DISABLE_WAYBACK; no draft source for {year}"
+        )
+
     last_exc: Optional[Exception] = None
     for ts in WAYBACK_TIMESTAMPS[:max_attempts]:
         url = f"https://web.archive.org/web/{ts}/{PFR_BASE}{pfr_path}"
@@ -63,6 +100,15 @@ def _wayback_get(year: int, max_attempts: int = 4) -> str:
         except Exception as exc:  # noqa: BLE001
             log.warning("Wayback ts=%s failed for year %d: %s", ts, year, exc)
             last_exc = exc
+            # The archive is unreachable, not merely missing this snapshot.
+            # Walking the remaining timestamps just burns wall-clock.
+            if _is_connection_level(exc):
+                log.warning(
+                    "Wayback unreachable (connection refused) - abandoning "
+                    "remaining timestamps for year %d",
+                    year,
+                )
+                break
             time.sleep(2.0)
     if last_exc is None:
         raise RuntimeError(
