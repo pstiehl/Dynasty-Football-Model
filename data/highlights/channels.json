@@ -1,34 +1,50 @@
 {
   "_comment": [
     "Channels whose uploads get walked for player cut-ups.",
-    "channel_id is preferred: it lets the script derive the uploads playlist",
-    "(UC.. -> UU..) and skip a channels.list call. If you only have a handle,",
-    "the script resolves it at runtime and prints the id so you can paste it",
-    "back here. Handles below are UNVERIFIED placeholders - run the script",
-    "once and check the resolution log before trusting them.",
-    "Set enabled:false to mute a channel without deleting its config."
+    "",
+    "Every channel_id below was RESOLVED AND VERIFIED on 2026-09-21, either",
+    "from the refresh job's own resolution log (run 35601948180) or by reading",
+    "the channel page directly. Carrying the id means the script derives the",
+    "uploads playlist (UC.. -> UU..) and skips a channels.list call per run.",
+    "",
+    "Each channel's recent uploads were inspected via its public RSS feed",
+    "before enabling or disabling it. The notes record what was actually seen,",
+    "so nobody has to re-litigate the decision later.",
+    "",
+    "Set enabled:false to mute a channel without losing its verified id."
   ],
   "channels": [
     {
+      "name": "Curtain Call Replays",
+      "handle": "@CurtainCallReplays",
+      "channel_id": "UC_hzY5r_WT4C5gi0Tl2u0yg",
+      "enabled": true,
+      "notes": "The per-player cut-up source this feature was designed around. 15/15 recent uploads matched cut-up phrasing, e.g. 'Amon-Ra St. Brown Week 2 Highlights vs Bills | Every Target and Catch', 'Jahmyr Gibbs Week 1 Highlights vs Saints | Every Play'. Posts daily through the season, full-length rather than Shorts. Verified 2026-09-21."
+    },
+    {
       "name": "NFL",
       "handle": "@NFL",
-      "channel_id": null,
+      "channel_id": "UCDVYQ4Zhbm3S2dlz7P1GBDg",
       "enabled": true,
-      "notes": "Official. Game recaps + some player cut-ups. Best team_game fallback source."
+      "notes": "Official. Best source of full game recaps (team_game fallback) plus 'best plays from' player cut-ups. Caveat: posts a very high volume of Shorts - 52 of the 80 videos in the first real index came from here and were under 75s. The MIN_CLIP_SECONDS filter in highlights.py exists largely because of this channel. Verified 2026-09-21."
     },
     {
       "name": "NFL Films",
       "handle": "@NFLFilms",
-      "channel_id": null,
-      "enabled": true,
-      "notes": "Unverified handle."
+      "channel_id": "UCY3NEq2LYrmdoGkevo9BH5A",
+      "enabled": false,
+      "notes": "DISABLED on evidence, not suspicion. Resolves fine and returned 6 uploads in the first real run, but the content is documentary/feature work - 'The Art of The Challenge Flag', 'Like Father, Like Son: The Lake Family Story', 'NFL Sounds of the Summer'. No per-game player cut-ups, so it contributed nothing to the index while costing quota. Verified 2026-09-21."
     },
     {
-      "name": "Fantasy Film Room",
-      "handle": "@FantasyFilmRoom",
-      "channel_id": null,
+      "name": "NFL Fantasy Football",
+      "handle": "@NFLFantasyFootball",
+      "channel_id": "UCUDpxEz7PAI55ptRvMcWEdg",
       "enabled": false,
-      "notes": "Placeholder - verify before enabling."
+      "notes": "DISABLED on evidence. Official and fantasy-relevant, but the uploads are advice and Shorts - 'Starts and Sits for Week 2', 'Top Week 2 Waiver Wire Adds!', '3 Must start running backs'. Those titles hit _NON_GAME_MARKERS and would be rejected anyway, so enabling it only burns quota. Kept here with its verified id so the decision is documented rather than rediscovered. Verified 2026-09-21."
     }
+  ],
+  "_removed": [
+    "@FantasyFilmRoom - REMOVED 2026-09-21. It does not resolve; the channel does not exist. It shipped as an 'UNVERIFIED placeholder' and would have failed silently on every run forever.",
+    "Utree - investigated after a Reddit recommendation and NOT added: @utree resolves to an unrelated channel ('Shingo Kinoshita'). The correct handle could not be established, so it was left out rather than guessed."
   ]
 }
