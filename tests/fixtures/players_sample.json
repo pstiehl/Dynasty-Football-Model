@@ -1,0 +1,15 @@
+[
+ {"sleeper_id":"4046","name":"Patrick Mahomes","position":"QB","team":"KC","gsis_id":"00-0033873","rank":3},
+ {"sleeper_id":"7564","name":"Ja'Marr Chase","position":"WR","team":"CIN","gsis_id":"00-0036900","rank":1},
+ {"sleeper_id":"8146","name":"Amon-Ra St. Brown","position":"WR","team":"DET","gsis_id":"00-0036997","rank":12},
+ {"sleeper_id":"9509","name":"Bijan Robinson","position":"RB","team":"ATL","gsis_id":"00-0038542","rank":5},
+ {"sleeper_id":"6794","name":"Tee Higgins","position":"WR","team":"CIN","gsis_id":"00-0036442","rank":40},
+ {"sleeper_id":"11604","name":"Brock Bowers","position":"TE","team":"LV","gsis_id":"00-0039910","rank":15},
+ {"sleeper_id":"4984","name":"Kenneth Walker III","position":"RB","team":"SEA","gsis_id":"00-0037746","rank":48},
+ {"sleeper_id":"6904","name":"Josh Allen","position":"QB","team":"BUF","gsis_id":"00-0034857","rank":2},
+ {"sleeper_id":"3163","name":"Josh Allen","position":"LB","team":"JAX","gsis_id":"00-0035313"},
+ {"sleeper_id":"4035","name":"Michael Thomas","position":"WR","team":"NO","gsis_id":"00-0031381"},
+ {"sleeper_id":"3164","name":"Michael Thomas","position":"S","team":"HOU","gsis_id":"00-0030926"},
+ {"sleeper_id":"3294","name":"Dak Prescott","position":"QB","team":"DAL","gsis_id":"00-0033077","rank":41},
+ {"sleeper_id":"12001","name":"Jaxson Dart","position":"QB","team":"NYG","gsis_id":"00-0039163","rank":64}
+]
