@@ -223,6 +223,45 @@ def load_history_point(
         return None
 
 
+def build_series(history_dir: Path = HISTORY_DIR) -> Dict:
+    """Collapse every retained day into one aligned time series.
+
+    ``{"dates": [d0, d1, ...], "sf": {ktc_id: [v0, v1, ...]}, "picks": {...}}``
+    with ``null`` where a player was not on the board that day.
+
+    One artifact instead of N dated files because the page needs the *whole*
+    series per asset, not one day: valuing a transaction requires the value
+    on its date **and** the peak over every later date. Fetching 27 files to
+    answer that would be 27 round trips on page load.
+    """
+    dates = available_history_dates(history_dir)
+    sf: Dict[str, List[Optional[int]]] = {}
+    picks: Dict[str, List[Optional[int]]] = {}
+    floors: List[Optional[int]] = []
+
+    for i, day in enumerate(dates):
+        point = load_history_point(day, history_dir) or {}
+        floors.append(point.get("floor"))
+        for key, value in (point.get("sf") or {}).items():
+            sf.setdefault(key, [None] * len(dates))[i] = value
+        for key, value in (point.get("picks") or {}).items():
+            picks.setdefault(key, [None] * len(dates))[i] = value
+
+    # Rows created part-way through are short; pad them to full length.
+    for table in (sf, picks):
+        for key, row in table.items():
+            if len(row) < len(dates):
+                row.extend([None] * (len(dates) - len(row)))
+
+    return {
+        "schema": "ktc.series.v1",
+        "dates": dates,
+        "floors": floors,
+        "sf": sf,
+        "picks": picks,
+    }
+
+
 def nearest_history_date(target: str, dates: List[str]) -> Optional[str]:
     """Latest retained date on or before ``target``.
 

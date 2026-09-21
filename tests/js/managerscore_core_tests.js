@@ -155,10 +155,13 @@ function trade(id, aGot, aGave) {
     ]
   };
 }
-const P = function (label, value) { return { kind: 'player', label: label, value: value }; };
+const P = function (label, cap) {
+  return { kind: 'player', label: label, evaluable: true, capture: cap,
+           vAt: 1000, peak: 1000 + cap };
+};
 
 const t1 = C.msScoreLeague({
-  managers: mgrs, drafts: [], waivers: [], floor: 491,
+  managers: mgrs, drafts: [], waivers: [],
   trades: [trade('t1', [P('Stud', 9000)], [P('Depth', 4000)])]
 }, {});
 const netSum = t1.managers.reduce(function (a, m) { return a + m.trade.total; }, 0);
@@ -175,12 +178,12 @@ ok(byName.Cara.index === C.MS_INDEX_CENTER,
 
 /* An unpriceable asset must not hand the other side a fake steal. */
 const partial = C.msScoreLeague({
-  managers: mgrs, drafts: [], waivers: [], floor: 491,
+  managers: mgrs, drafts: [], waivers: [],
   trades: [{
     id: 'tp', date: '2026-03-01',
     sides: [
-      { managerId: 'A', received: [{ kind: 'pick', label: '2031 7th', value: null }], given: [] },
-      { managerId: 'B', received: [], given: [{ kind: 'pick', label: '2031 7th', value: null }] }
+      { managerId: 'A', received: [{ kind: 'pick', label: '2031 7th', evaluable: false }], given: [] },
+      { managerId: 'B', received: [], given: [{ kind: 'pick', label: '2031 7th', evaluable: false }] }
     ]
   }]
 }, {});
@@ -189,11 +192,11 @@ ok(partial.audit.trades[0].partial === true, 'that trade is flagged partial');
 ok(partial.audit.trades[0].scored === false, 'and marked unscored');
 ok(partial.managers.every(function (m) { return m.trade.n === 0; }),
    'no manager is credited from an unscored trade');
-ok(partial.meta.unvaluedAssets > 0, 'unvalued assets are counted for disclosure');
+ok(partial.meta.notEvaluableAssets > 0, 'unevaluable assets are counted for disclosure');
 
 /* Three-way trades must stay zero-sum, using given/received directly. */
 const t3 = C.msScoreLeague({
-  managers: mgrs, drafts: [], waivers: [], floor: 491,
+  managers: mgrs, drafts: [], waivers: [],
   trades: [{
     id: 't3', date: '2026-03-01',
     sides: [
@@ -216,13 +219,14 @@ function draftPicks() {
     const base = 9000 - slot * 200;
     const owner = ['A', 'B', 'C'][(slot - 1) % 3];
     const bump = owner === 'A' ? 900 : (owner === 'B' ? -900 : 0);
-    out.push({ managerId: owner, slot: slot, value: base + bump,
+    out.push({ managerId: owner, slot: slot, evaluable: true,
+               capture: base + bump, vAt: 500, peak: 500 + base + bump,
                name: 'P' + slot, pos: 'WR' });
   }
   return out;
 }
 const dres = C.msScoreLeague({
-  managers: mgrs, trades: [], waivers: [], floor: 491,
+  managers: mgrs, trades: [], waivers: [],
   drafts: [{ id: 'd1', season: '2026', label: '2026 startup', picks: draftPicks() }]
 }, {});
 const dByName = {};
@@ -249,7 +253,7 @@ ok(Math.abs(totalSurplus / 36) < 400,
 
 /* A draft below the minimum is skipped entirely, not scored badly. */
 const tiny = C.msScoreLeague({
-  managers: mgrs, trades: [], waivers: [], floor: 491,
+  managers: mgrs, trades: [], waivers: [],
   drafts: [{ id: 'd2', season: '2026', label: 'tiny', picks: [
     { managerId: 'A', slot: 1, value: 9000 },
     { managerId: 'B', slot: 2, value: 100 }
@@ -266,34 +270,38 @@ ok(tiny.managers.every(function (m) { return m.index === C.MS_INDEX_CENTER; }),
 /* ------------------------------------------------------ waiver scoring */
 
 const wres = C.msScoreLeague({
-  managers: mgrs, drafts: [], trades: [], floor: 491,
+  managers: mgrs, drafts: [], trades: [],
   waivers: [
-    { managerId: 'A', date: '2026-09-01', value: 4000, name: 'Breakout' },
-    { managerId: 'A', date: '2026-09-08', value: 3000, name: 'Useful' },
-    { managerId: 'B', date: '2026-09-01', value: 491, name: 'Floor guy' },
-    { managerId: 'B', date: '2026-09-02', value: 491, name: 'Another' }
+    { managerId: 'A', date: '2026-09-01', evaluable: true, capture: 4000, name: 'Breakout' },
+    { managerId: 'A', date: '2026-09-08', evaluable: true, capture: 3000, name: 'Useful' },
+    { managerId: 'B', date: '2026-09-01', evaluable: true, capture: 0, name: 'Never rose' },
+    { managerId: 'B', date: '2026-09-02', evaluable: true, capture: 0, name: 'Another' }
   ]
 }, {});
 const wByName = {};
 wres.managers.forEach(function (m) { wByName[m.name] = m; });
-near(wByName.Bravo.waiver.total, 0, 'claiming floor-value players scores zero');
+near(wByName.Bravo.waiver.total, 0, 'adds that never appreciated score zero');
 ok(wByName.Alpha.waiver.total > 0, 'finding real value on the wire scores');
 ok(wByName.Alpha.rank < wByName.Bravo.rank, 'waiver skill affects ranking');
 ok(wres.audit.waivers.length === 4, 'every add is audited');
 
-/* Value below the floor must clamp at zero rather than go negative. */
-const below = C.msScoreLeague({
-  managers: mgrs, drafts: [], trades: [], floor: 1000,
-  waivers: [{ managerId: 'A', date: '2026-09-01', value: 200, name: 'Sub-floor' }]
+/* An add we cannot evaluate must be excluded and counted, never scored. */
+const unev = C.msScoreLeague({
+  managers: mgrs, drafts: [], trades: [],
+  waivers: [{ managerId: 'A', date: '2026-09-01', evaluable: false,
+              reason: 'too recent', name: 'Last week' }]
 }, {});
-ok(below.audit.waivers[0].surplus === 0, 'sub-floor add clamps to zero surplus');
+ok(unev.audit.waivers.length === 0, 'an unevaluable add is not audited as scored');
+ok(unev.meta.notEvaluableAssets === 1, 'and is counted as not evaluable');
+ok(unev.managers.every(function (m) { return m.waiver.n === 0; }),
+   'nobody is credited for an unevaluable add');
 
 /* ------------------------------------------------- weight renormalisation */
 
 /* A league that never trades must not be scored on a component nobody
  * played: the live weights must renormalise to sum to 1. */
 const draftOnly = C.msScoreLeague({
-  managers: mgrs, trades: [], waivers: [], floor: 491,
+  managers: mgrs, trades: [], waivers: [],
   drafts: [{ id: 'd1', season: '2026', label: 'x', picks: draftPicks() }]
 }, {});
 near(draftOnly.weights.draft, 1, 'draft-only league puts all weight on draft');
@@ -303,12 +311,12 @@ ok(draftOnly.meta.liveComponents.join(',') === 'draft',
    'live components reported', draftOnly.meta.liveComponents.join(','));
 
 const mixed = C.msScoreLeague({
-  managers: mgrs, floor: 491,
+  managers: mgrs,
   drafts: [{ id: 'd1', season: '2026', label: 'x', picks: draftPicks() }],
   trades: [trade('t1', [P('Stud', 9000)], [P('Depth', 4000)])],
   waivers: [
-    { managerId: 'A', date: '2026-09-01', value: 4000 },
-    { managerId: 'B', date: '2026-09-01', value: 600 }
+    { managerId: 'A', date: '2026-09-01', evaluable: true, capture: 4000 },
+    { managerId: 'B', date: '2026-09-01', evaluable: true, capture: 600 }
   ]
 }, {});
 near(mixed.weights.draft + mixed.weights.trade + mixed.weights.waiver, 1,
@@ -319,7 +327,7 @@ near(mixed.weights.waiver, 0.15, 'full league keeps the documented waiver weight
 
 /* Flags must explain an abstention rather than hiding it. */
 const abstain = C.msScoreLeague({
-  managers: mgrs, floor: 491, drafts: [], waivers: [],
+  managers: mgrs, drafts: [], waivers: [],
   trades: [trade('t1', [P('Stud', 9000)], [P('Depth', 4000)])]
 }, {});
 const cara = abstain.managers.filter(function (m) { return m.name === 'Cara'; })[0];
@@ -341,7 +349,8 @@ ok(noData.meta.liveComponents.length === 0, 'no live components reported');
 const unpriced = C.msScoreLeague({
   managers: mgrs, trades: [], waivers: [], floor: 0,
   drafts: [{ id: 'd', season: '2026', label: 'x', picks: draftPicks().map(function (p) {
-    return { managerId: p.managerId, slot: p.slot, value: null };
+    return { managerId: p.managerId, slot: p.slot, evaluable: false,
+             reason: 'too recent' };
   }) }]
 }, {});
 ok(!unpriced.drafts[0].scored, 'a draft with no priced picks is not scored');
@@ -351,11 +360,128 @@ ok(unpriced.managers.every(function (m) { return m.index === C.MS_INDEX_CENTER; 
 /* A single participant cannot define a distribution. */
 const solo = C.msScoreLeague({
   managers: [{ id: 'A', name: 'Alpha' }, { id: 'B', name: 'Bravo' }],
-  drafts: [], trades: [], floor: 0,
-  waivers: [{ managerId: 'A', date: '2026-09-01', value: 5000 }]
+  drafts: [], trades: [],
+  waivers: [{ managerId: 'A', date: '2026-09-01', evaluable: true, capture: 5000 }]
 }, {});
 ok(solo.managers.every(function (m) { return m.waiver.z === 0; }),
    'one active manager yields no z-spread');
+
+/* ============================================================
+ * Point-in-time series + value capture
+ *
+ * This is the basis the whole page rests on, so it is pinned hard.
+ * Series: 5 dated boards. Player R rises then falls (peaks mid-series),
+ * player D only declines, player L joins the board late.
+ * ============================================================ */
+
+const SERIES = {
+  dates: ['2024-01-01', '2024-06-01', '2025-01-01', '2025-06-01', '2026-01-01'],
+  sf: {
+    R: [3000, 5000, 9000, 6000, 4000],   /* rises to a 2025-01 peak, then fades */
+    D: [9000, 8000, 7000, 6000, 5000],   /* monotonic decline */
+    L: [null, null, 2000, 4000, 8000]    /* not on the board until 2025 */
+  },
+  picks: { '2026 Mid 1st': [1000, 2000, 3000, 4000, 5000] }
+};
+
+/* ---- value at a date: never looks forward ---- */
+near(C.msSeriesValueAt(SERIES, 'R', '2024-06-01').value, 5000, 'exact date hit');
+near(C.msSeriesValueAt(SERIES, 'R', '2024-08-15').value, 5000,
+     'between boards uses the one before');
+ok(C.msSeriesValueAt(SERIES, 'R', '2024-08-15').asOf === '2024-06-01',
+   'and reports which board it used');
+ok(C.msSeriesValueAt(SERIES, 'R', '2023-12-31') === null,
+   'before the archive begins there is no value -- it does not reach forward');
+ok(C.msSeriesValueAt(SERIES, 'L', '2024-06-01') === null,
+   'a player not yet on the board has no value');
+near(C.msSeriesValueAt(SERIES, 'L', '2025-03-01').value, 2000,
+     'once on the board, the last on-board day is used');
+ok(C.msSeriesValueAt(SERIES, 'NOPE', '2025-01-01') === null,
+   'unknown asset yields no value');
+
+/* ---- peak after a date ---- */
+near(C.msSeriesPeakAfter(SERIES, 'R', '2024-01-01').value, 9000,
+     'peak after the start is the global max');
+near(C.msSeriesPeakAfter(SERIES, 'R', '2025-06-01').value, 6000,
+     'peak after the peak excludes the earlier high');
+ok(C.msSeriesPeakAfter(SERIES, 'R', '2026-06-01') === null,
+   'no board after the date means it cannot be judged yet');
+
+/* ---- capture: the metric itself ---- */
+const capEarly = C.msCapture(SERIES, 'R', '2024-01-01');
+ok(capEarly.evaluable, 'an early acquisition is evaluable');
+near(capEarly.vAt, 3000, 'priced on its own date');
+near(capEarly.peak, 9000, 'against the later peak');
+near(capEarly.capture, 6000, 'capture is the gap');
+ok(capEarly.peakDate === '2025-01-01', 'and names the peak date');
+
+/* THE point of the owner's design: buying before the rise beats buying at
+ * the top, even though it is the same player. */
+const capLate = C.msCapture(SERIES, 'R', '2025-01-01');
+near(capLate.capture, 0, 'buying exactly at the peak captures nothing');
+ok(capEarly.capture > capLate.capture,
+   'acquiring before the rise scores above acquiring at the top');
+
+/* A purely declining asset captures zero rather than a large negative --
+ * the comparison is always relative, so age decay cannot dominate. */
+const capDecl = C.msCapture(SERIES, 'D', '2024-01-01');
+near(capDecl.capture, 0, 'an asset that only declined captures zero');
+ok(capDecl.capture >= 0, 'capture is never negative');
+
+/* Every asset/date combination in the fixture must respect capture >= 0. */
+['R', 'D', 'L'].forEach(function (k) {
+  SERIES.dates.forEach(function (d) {
+    const c = C.msCapture(SERIES, k, d);
+    if (c.evaluable) ok(c.capture >= 0, 'capture >= 0 for ' + k + ' @ ' + d);
+  });
+});
+
+/* Not-evaluable paths must be explicit, never silently zero. */
+const tooEarly = C.msCapture(SERIES, 'R', '2023-01-01');
+ok(!tooEarly.evaluable, 'a transaction before the archive is not evaluable');
+ok(/no value recorded/.test(tooEarly.reason), 'and says why', tooEarly.reason);
+const tooRecent = C.msCapture(SERIES, 'R', '2026-09-01');
+ok(!tooRecent.evaluable, 'a transaction after the last board is not evaluable');
+ok(/too recent/.test(tooRecent.reason), 'and says why', tooRecent.reason);
+ok(tooRecent.vAt === 4000,
+   'a too-recent transaction still knows its price, just not its outcome');
+
+/* Picks use their own table. */
+const capPick = C.msCapture(SERIES, '2026 Mid 1st', '2024-01-01', 'picks');
+ok(capPick.evaluable, 'pick capture works off the picks table');
+near(capPick.capture, 4000, 'pick captured 1000 -> 5000');
+ok(!C.msCapture(SERIES, '2026 Mid 1st', '2024-01-01').evaluable,
+   'a pick key is not found in the player table');
+
+/* Degenerate series must not throw. */
+ok(!C.msCapture(null, 'R', '2025-01-01').evaluable, 'null series degrades');
+ok(!C.msCapture({}, 'R', '2025-01-01').evaluable, 'empty series degrades');
+ok(!C.msCapture({ dates: [], sf: {} }, 'R', '2025-01-01').evaluable,
+   'series with no dates degrades');
+
+/* ---- capture feeds trades zero-sum ---- */
+const capTrade = C.msScoreLeague({
+  managers: mgrs, drafts: [], waivers: [],
+  trades: [{
+    id: 'tc', date: '2024-01-01',
+    sides: [
+      { managerId: 'A',
+        received: [Object.assign({ kind: 'player', label: 'Riser' }, C.msCapture(SERIES, 'R', '2024-01-01'))],
+        given: [Object.assign({ kind: 'player', label: 'Decliner' }, C.msCapture(SERIES, 'D', '2024-01-01'))] },
+      { managerId: 'B',
+        received: [Object.assign({ kind: 'player', label: 'Decliner' }, C.msCapture(SERIES, 'D', '2024-01-01'))],
+        given: [Object.assign({ kind: 'player', label: 'Riser' }, C.msCapture(SERIES, 'R', '2024-01-01'))] }
+    ]
+  }]
+}, {});
+const ctByName = {};
+capTrade.managers.forEach(function (m) { ctByName[m.name] = m; });
+near(ctByName.Alpha.trade.total, 6000, 'taking the riser for the decliner nets +6000');
+near(ctByName.Bravo.trade.total, -6000, 'the other side nets the mirror');
+near(ctByName.Alpha.trade.total + ctByName.Bravo.trade.total, 0,
+     'capture-based trades remain exactly zero-sum');
+ok(ctByName.Alpha.rank < ctByName.Bravo.rank,
+   'the manager who acquired the riser ranks higher');
 
 console.log('core: ' + (checks - failures) + '/' + checks + ' checks passed');
 process.exit(failures ? 1 : 0);
