@@ -28,6 +28,9 @@ Usage
 
     # see what would be matched without writing
     python scripts/refresh_highlights.py --fixture ... --dry-run
+
+    # pretend it is Monday morning and print the window that resolves
+    python scripts/refresh_highlights.py --fixture ... --as-of 2026-09-21T12:41:00Z --dry-run
 """
 from __future__ import annotations
 
@@ -44,10 +47,14 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from dynasty.highlights import (  # noqa: E402
+    DEFAULT_GRACE_HOURS,
+    DEFAULT_WINDOW_DAYS,
     PlayerRef,
     Video,
     build_index,
     load_players_from_db,
+    parse_ts,
+    resolve_game_window,
 )
 
 API_BASE = "https://www.googleapis.com/youtube/v3"
@@ -56,9 +63,12 @@ DEFAULT_OUTPUT = REPO_ROOT / "dynasty_site" / "highlights.json"
 
 #: (month, day) that week 1 kicks off. The NFL opens on the Thursday after
 #: Labor Day, so this moves every year -- 2026 week 1 is Thursday Sep 10.
-#: Kept as a module constant so rolling the season forward is a one-line
-#: edit, and overridable per-run with ``--season-start YYYY-MM-DD`` (useful
-#: for backfills and for testing an off-season build).
+#:
+#: This no longer drives clip selection. Since the rolling game window took
+#: over (see ``dynasty.highlights.resolve_game_window``), the season start
+#: only converts the resolved window into an advisory week *label*; being
+#: wrong about it mislabels a reel and nothing else. Overridable per run
+#: with ``--season-start YYYY-MM-DD``.
 SEASON_START_MONTH_DAY = (9, 10)
 
 # ISO-8601 duration -> seconds ("PT4M13S" -> 253)
@@ -255,27 +265,16 @@ def load_players() -> List[PlayerRef]:
         return []
 
 
-def current_nfl_week(
-    today: Optional[datetime] = None,
-    season_start: Optional[datetime] = None,
-) -> Optional[int]:
-    """Rough NFL week number, used only as a confidence nudge.
+def default_season_start(as_of: datetime) -> datetime:
+    """Week-1 kickoff Thursday for the season ``as_of`` falls in.
 
-    Week 1 of the 2026 season kicks off Sep 10 (``SEASON_START_MONTH_DAY``).
-    Being off by one costs a 0.10 confidence bump on some clips; it never
-    changes a match.
-
-    ``season_start`` overrides the module constant for the whole
-    calculation, including the pre-season ``None`` guard.
+    January and February belong to the *previous* calendar year's season,
+    so a February run labels its windows against last autumn's kickoff
+    rather than one seven months in the future.
     """
-    today = today or datetime.now(timezone.utc)
-    if season_start is None:
-        month, day = SEASON_START_MONTH_DAY
-        season_start = datetime(today.year, month, day, tzinfo=timezone.utc)
-    if today < season_start:
-        return None
-    week = ((today - season_start).days // 7) + 1
-    return week if 1 <= week <= 18 else None
+    month, day = SEASON_START_MONTH_DAY
+    year = as_of.year - 1 if as_of.month < 3 else as_of.year
+    return datetime(year, month, day, tzinfo=timezone.utc)
 
 
 def parse_season_start(value: str) -> datetime:
@@ -286,6 +285,20 @@ def parse_season_start(value: str) -> datetime:
         raise argparse.ArgumentTypeError(
             f"expected YYYY-MM-DD, got {value!r}"
         ) from exc
+
+
+def parse_as_of(value: str) -> datetime:
+    """ISO-8601 instant or ``YYYY-MM-DD``, for ``--as-of``.
+
+    A bare date means 00:00 UTC, which is the useful default for "pretend
+    the build ran on this day".
+    """
+    ts = parse_ts(value)
+    if ts is None:
+        raise argparse.ArgumentTypeError(
+            f"expected an ISO-8601 date or datetime, got {value!r}"
+        )
+    return ts
 
 
 # --------------------------------------------------------------------------
@@ -309,13 +322,42 @@ def main(argv: Optional[List[str]] = None) -> int:
                     metavar="YYYY-MM-DD",
                     help="Override week-1 kickoff (default: "
                          f"{SEASON_START_MONTH_DAY[0]:02d}-"
-                         f"{SEASON_START_MONTH_DAY[1]:02d} of the current year).")
+                         f"{SEASON_START_MONTH_DAY[1]:02d} of the current "
+                         "season). Labels the window; does not select clips.")
+    ap.add_argument("--window-days", type=int, default=DEFAULT_WINDOW_DAYS,
+                    help="Length of the game window in days, counted from "
+                         f"its Thursday (default {DEFAULT_WINDOW_DAYS}, i.e. "
+                         "Thursday through Monday).")
+    ap.add_argument("--grace-hours", type=float, default=DEFAULT_GRACE_HOURS,
+                    help="How long after a slate's final day begins before "
+                         "it counts as the current window (default "
+                         f"{DEFAULT_GRACE_HOURS}). This is what keeps "
+                         "Monday-morning viewers on last week's finished film.")
+    ap.add_argument("--as-of", type=parse_as_of, default=None,
+                    metavar="ISO8601",
+                    help="Resolve the window as if it were this instant "
+                         "(e.g. 2026-09-21T12:41:00Z). Testing only.")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args(argv)
 
     print("=" * 60)
     print("Highlights refresh")
     print("=" * 60)
+
+    as_of = args.as_of or datetime.now(timezone.utc)
+    season_start = args.season_start or default_season_start(as_of)
+    window = resolve_game_window(
+        as_of,
+        window_days=args.window_days,
+        grace_hours=args.grace_hours,
+        season_start=season_start,
+    )
+    print(f"\n  game window ............ {window.label} "
+          f"({window.start.date()} -> {window.end.date()}"
+          f"{f', week {window.week}' if window.week else ''})")
+    print(f"  publish cutoff ......... {window.publish_cutoff.isoformat()} "
+          f"(+{window.grace_hours:g}h grace)")
+    print(f"  resolved as of ......... {as_of.isoformat()}")
 
     quota = Quota()
     videos: List[Video] = []
@@ -332,7 +374,12 @@ def main(argv: Optional[List[str]] = None) -> int:
 
         channels = load_channels()
         print(f"\n[1/3] Fetching uploads from {len(channels)} channels...")
-        cutoff = datetime.now(timezone.utc) - timedelta(days=args.days)
+        # Never walk back less far than the window itself, or a long
+        # ``--window-days`` would silently index a truncated slate.
+        cutoff = min(
+            datetime.now(timezone.utc) - timedelta(days=args.days),
+            window.start,
+        )
         rows: List[dict] = []
 
         with httpx.Client() as client:
@@ -372,15 +419,19 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not players:
         return 1
 
-    week = current_nfl_week(season_start=args.season_start)
     index = build_index(
         players, videos,
         min_confidence=args.min_confidence,
         max_clips_per_player=args.max_clips,
-        expected_week=week,
+        expected_week=window.week,
+        window=window,
     )
     index["generated_at"] = datetime.now(timezone.utc).isoformat()
-    index["expected_week"] = week
+    index["resolved_as_of"] = as_of.isoformat()
+    # Retained for readers that still key off a week number. It is the
+    # window's label now, not an independently computed "today" week, so it
+    # can no longer point at an in-progress slate.
+    index["expected_week"] = window.week
     index["quota_units"] = quota.units
 
     s = index["stats"]
@@ -390,7 +441,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"  no player matched ...... {s['videos_unmatched']:,}")
     print(f"  ambiguous name ......... {s['videos_ambiguous']:,}")
     print(f"  players with clips ..... {s['players_with_clips']:,}")
+    print(f"  ... inside the window .. {s['players_with_window_clips']:,}")
     print(f"  total clips ............ {s['total_clips']:,}")
+    print(f"  ... inside the window .. {s['clips_in_window']:,}")
     print(f"  quota spent ............ {quota.report()}")
 
     if args.dry_run:

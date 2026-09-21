@@ -75,6 +75,44 @@ function fmtTotal(sec) {
   return m + (m === 1 ? ' minute' : ' minutes');
 }
 
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+// Date parts are read in UTC deliberately. The window is resolved in UTC by
+// the build, so formatting it in the viewer's local zone would render a
+// window labelled "Sep 10-14" in the artifact as "Sep 9-13" west of
+// Greenwich -- the page and the JSON would disagree about which slate this
+// is.
+function fmtDay(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (isNaN(d)) return '';
+  return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
+}
+
+// "Sep 10-14" for the resolved game window, or '' when the index predates
+// windowing / was built without one.
+function windowLabel() {
+  const w = HL && HL.window;
+  if (w && w.label) return w.label;
+  const a = fmtDay(HL && HL.window_start), b = fmtDay(HL && HL.window_end);
+  if (!a || !b) return '';
+  // Same month -> "Sep 10-14"; across a boundary -> "Sep 30-Oct 4".
+  const bShort = a.split(' ')[0] === b.split(' ')[0] ? b.split(' ')[1] : b;
+  return a + '\u2013' + bShort;
+}
+
+function hasWindow() {
+  return !!windowLabel();
+}
+
+// A clip counts as current when the build said so. With no window in the
+// artifact every clip is treated as current, which is the pre-windowing
+// behaviour and keeps an older highlights.json usable.
+function inWindow(clip) {
+  if (!hasWindow()) return true;
+  return clip.in_window === true;
+}
+
 function status(msg, isError) {
   const el = document.getElementById('reel-status');
   el.textContent = msg || '';
@@ -111,9 +149,16 @@ async function loadHighlights() {
     return false;
   }
   const n = Object.keys(HL.clips || {}).length;
-  const wk = HL.expected_week ? (' · week ' + HL.expected_week) : '';
+  const lbl = windowLabel();
+  // The date window leads. A week number is a label the channels type and
+  // frequently get wrong or omit, so it trails in parentheses when the
+  // build was able to derive one at all.
+  const wk = (HL.window && HL.window.week) || HL.expected_week;
+  const win = lbl
+    ? ' · clips from ' + lbl + (wk ? ' (week ' + wk + ')' : '')
+    : (wk ? ' · week ' + wk : '');
   document.getElementById('hl-meta').textContent =
-    n.toLocaleString() + ' players with clips' + wk +
+    n.toLocaleString() + ' players with clips' + win +
     (HL.generated_at ? ' · indexed ' + HL.generated_at.slice(0, 10) : '');
   return true;
 }
@@ -170,20 +215,62 @@ function renderLeagues(leagues) {
   show('step-league', true);
 }
 
+// Sleeper keeps IR and taxi-squad players out of ``roster.players`` in some
+// league configurations. Reading only that field silently drops players the
+// user definitely owns, which is one of the ways a roster came back short.
+function rosterPlayerIds(r) {
+  const out = [], seen = new Set();
+  [r && r.players, r && r.reserve, r && r.taxi].forEach(list => {
+    (list || []).forEach(id => {
+      const s = String(id);
+      if (!seen.has(s)) { seen.add(s); out.push(s); }
+    });
+  });
+  return out;
+}
+
 async function loadRoster(leagueId) {
   status('Pulling rosters…');
   try {
     const rosters = await getJSON(SLEEPER + '/league/' + leagueId + '/rosters');
+    // Owner display names are needed for the league table and for the team
+    // picker below, so they are fetched once here rather than twice.
+    let users = [];
+    try {
+      users = await getJSON(SLEEPER + '/league/' + leagueId + '/users');
+    } catch (e) {
+      // Non-fatal: the reel only needs rosters. The league view degrades to
+      // "Team 1..N" and says so.
+      console.warn('league users fetch failed', e);
+    }
+
     let mine = userId ? rosters.find(r => r.owner_id === userId) : null;
     if (!mine && rosters.length === 1) mine = rosters[0];
+
+    // Extension point, same contract as DFM_ON_ROSTER: hand the whole
+    // league to any page that wants it, before the single-roster path
+    // narrows to one team. A throwing hook must never take the reel down.
+    if (typeof window.DFM_ON_LEAGUE === 'function') {
+      try {
+        window.DFM_ON_LEAGUE({
+          leagueId: leagueId,
+          rosters: rosters,
+          users: users,
+          userId: userId,
+          myRosterId: mine ? mine.roster_id : null
+        });
+      } catch (err) {
+        console.warn('DFM_ON_LEAGUE failed', err);
+      }
+    }
+
     if (!mine) {
       // League id entered directly, no user context — let them pick a team.
-      const users = await getJSON(SLEEPER + '/league/' + leagueId + '/users');
       renderTeamPicker(rosters, users);
       status('');
       return;
     }
-    buildRoster(mine.players || []);
+    buildRoster(rosterPlayerIds(mine));
   } catch (e) {
     status('Could not load that league: ' + e.message, true);
   }
@@ -196,10 +283,10 @@ function renderTeamPicker(rosters, users) {
   box.innerHTML = '<div class="pick-label">Which team is yours?</div>' + rosters.map((r, i) =>
     '<button class="league-btn" data-idx="' + i + '">' +
     '<span class="lg-name">' + escapeHtml(byId[r.owner_id] || ('Team ' + (i + 1))) + '</span>' +
-    '<span class="lg-meta">' + (r.players || []).length + ' players</span></button>'
+    '<span class="lg-meta">' + rosterPlayerIds(r).length + ' players</span></button>'
   ).join('');
   box.querySelectorAll('.league-btn').forEach(b => {
-    b.addEventListener('click', () => buildRoster(rosters[+b.dataset.idx].players || []));
+    b.addEventListener('click', () => buildRoster(rosterPlayerIds(rosters[+b.dataset.idx])));
   });
 }
 
@@ -245,12 +332,17 @@ function buildRoster(sleeperIds) {
   // Best players first — a reel that opens on your WR5 feels wrong.
   roster.sort((a, b) => a.rank - b.rank);
 
-  const withClips = roster.length;
   const total = sleeperIds.length;
+  const inWin = roster.filter(p => p.clips.some(inWindow)).length;
+  const onlyOld = roster.length - inWin;
+  const lbl = windowLabel();
   const summaryEl = document.getElementById('roster-summary');
   if (summaryEl) {
-    summaryEl.textContent =
-      withClips + ' of ' + total + ' rostered players have clips this week';
+    summaryEl.textContent = lbl
+      ? (inWin + ' of ' + total + ' rostered players have film from ' + lbl +
+         (onlyOld ? ' · ' + onlyOld + ' more have older clips — tick “every ' +
+                    'clip per player” to queue them' : ''))
+      : (roster.length + ' of ' + total + ' rostered players have clips');
   }
 
   rebuildQueue();
@@ -285,7 +377,13 @@ function rebuildQueue() {
   queue = [];
   roster.forEach(p => {
     let clips = p.clips.filter(c => includeTeam || c.kind === 'player_cutup');
-    if (!allClips) clips = clips.slice(0, 1);
+    // Default view is the completed slate only. Clips from earlier windows
+    // stay in the index and stay reachable — they are exactly what the
+    // "every clip per player" toggle is for — but a reel that silently
+    // mixes in a three-week-old cut-up is the bug this replaces.
+    if (!allClips) {
+      clips = clips.filter(inWindow).slice(0, 1);
+    }
     clips.forEach(c => queue.push({ videoId: c.video_id, sid: p.sid, name: p.name, pos: p.pos, clip: c }));
   });
 
@@ -304,19 +402,32 @@ function rebuildQueue() {
 function renderQueue() {
   const box = document.getElementById('queue-list');
   if (!queue.length) {
-    box.innerHTML = '<div class="empty">Nothing indexed for these players this week. ' +
-      'Try enabling game recaps above.</div>';
+    const lbl = windowLabel();
+    const older = roster.some(p => p.clips.some(c => !inWindow(c)));
+    box.innerHTML = '<div class="empty">' + (lbl
+      ? 'Nothing indexed for these players from ' + escapeHtml(lbl) + '. '
+      : 'Nothing indexed for these players yet. ') +
+      (older
+        ? 'They do have older film — tick “every clip per player” to queue it.'
+        : 'Try enabling game recaps above.') + '</div>';
     return;
   }
   box.innerHTML = queue.map((q, i) => {
     const c = q.clip;
     const bits = [];
+    // Published date first: it is the field selection and ordering are
+    // built on, and it is present on every clip. The title's week number
+    // follows it as a label where the channel bothered to type one.
+    const day = fmtDay(c.published_at);
+    if (day) bits.push(day);
     if (c.week) bits.push('Wk ' + c.week);
+    if (!inWindow(c)) bits.push('older');
     if (c.opponent) bits.push('vs ' + c.opponent);
     if (c.duration_seconds) bits.push(fmtDuration(c.duration_seconds));
     if (c.kind === 'team_game') bits.push('game recap');
     const cls = 'q-item' + (i === currentIdx ? ' active' : '') +
-                (unplayable.has(q.videoId) ? ' dead' : '');
+                (unplayable.has(q.videoId) ? ' dead' : '') +
+                (inWindow(c) ? '' : ' stale');
     return '<button class="' + cls + '" data-idx="' + i + '">' +
       '<img loading="lazy" src="' + THUMB(q.videoId) + '" alt="">' +
       '<span class="q-body"><span class="q-name">' + escapeHtml(q.name) +
@@ -492,6 +603,7 @@ _REEL_CSS = """
 .q-item:hover { border-color: var(--accent); }
 .q-item.active { border-color: var(--accent); background: rgba(127,127,127,.10); }
 .q-item.dead { opacity: .4; }
+.q-item.stale { opacity: .72; border-style: dashed; }
 .q-item img { width: 76px; height: 43px; object-fit: cover; border-radius: 6px;
   background: #222; flex: none; }
 .q-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -520,8 +632,8 @@ def build_reel(latest_ts: datetime, league_label: str) -> str:
 
 <h2>Roster <span class="accent">Reel</span></h2>
 <p class="lede reel-intro">Import a Sleeper roster and watch every rostered
-player's most recent cut-up back to back, ordered by model rank. One player,
-one queue, no clicking between clips.</p>
+player's cut-up from the most recently completed slate, back to back. One
+player, one queue, no clicking between clips.</p>
 <div class="hl-meta" id="hl-meta">Loading highlight index…</div>
 
 <div class="tabs">
@@ -560,7 +672,7 @@ one queue, no clicking between clips.</p>
 
   <div class="reel-opts">
     <label><input type="checkbox" id="opt-team"> include game recaps when no cut-up exists</label>
-    <label><input type="checkbox" id="opt-all"> every clip per player (not just the newest)</label>
+    <label><input type="checkbox" id="opt-all"> every clip per player, including older windows</label>
   </div>
 
   <button class="btn btn-lg" id="play-all" disabled>Play all</button>
@@ -574,11 +686,13 @@ one queue, no clicking between clips.</p>
   </div>
 </div>
 
-<p style="font-size:12px;opacity:.55;margin-top:28px">Clips are matched to
-players automatically from public YouTube uploads and embedded via the
-YouTube player, so views and ad revenue stay with the original uploader.
-Rosters are read live from Sleeper's public API in your browser — nothing
-is sent to this site.</p>
+<p style="font-size:12px;opacity:.55;margin-top:28px">The reel defaults to the
+most recently <em>completed</em> Thursday-to-Monday slate, so on a Monday you
+still get last week's finished film rather than a week nothing has been
+uploaded for yet. Clips are matched to players automatically from public
+YouTube uploads and embedded via the YouTube player, so views and ad revenue
+stay with the original uploader. Rosters are read live from Sleeper's public
+API in your browser — nothing is sent to this site.</p>
 
 </div>
 <style>__CSS__</style>
