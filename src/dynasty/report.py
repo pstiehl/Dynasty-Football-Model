@@ -33,6 +33,7 @@ from .sources.keeptradecut import load_latest as load_latest_ktc
 from .sources import nflverse_career_stats as _career_stats
 from .branding import SITE_NAME, SITE_TAGLINE, page_title, site_name_html
 from . import player_highlights as _hl
+from . import analytics as _analytics
 
 
 # ---------------------------------------------------------------------------
@@ -287,6 +288,12 @@ def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/
       encodes exactly that depth, so there is one place that knows it.
     * ``player_highlights`` JS. Injecting it site-wide is what makes a chip
       work on a page nobody wired up, including pages added later.
+
+    A third thing is injected for the same reason: the analytics beacon.
+    The site is on GitHub Pages and has no server logs, so a page that is
+    not measured here is a page that is not measured at all. It is empty
+    unless ``DFM_ANALYTICS_TOKEN`` is in the build environment -- see
+    ``dynasty.analytics`` and docs/ANALYTICS.md.
     """
     base = "../" if css_href.startswith("../") else ""
     desc = (
@@ -295,6 +302,26 @@ def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/
         "player."
     )
     hl_js, _ = _hl.assets()
+    # The analytics beacon, or the empty string when no token is configured.
+    #
+    # It is interpolated as the LAST thing in <head>, and the rationale is
+    # kept here rather than in an HTML comment on purpose: an unconfigured
+    # build must emit *nothing*, and a comment shipped to every page on the
+    # site is not nothing. It would also make the built HTML differ from a
+    # pre-feature build for no reader's benefit.
+    #
+    # Why <head> and not before </body>, which is what Cloudflare's own
+    # instructions say: PR #71 was a live outage caused by script ORDER in
+    # this very function -- the shared highlight renderer was emitted after
+    # the page body, so a page script reading DFMHL during evaluation threw
+    # and left an empty table. Every provider in dynasty.analytics emits a
+    # DEFERRED EXTERNAL script, which the HTML spec runs only after parsing,
+    # so it cannot execute before, between or during any inline blob below.
+    # Putting it in <head> keeps it out of the body's execution sequence
+    # entirely. The safety is structural, not positional luck -- and it is
+    # verified by executing the page (tests/test_analytics.py), because the
+    # PR #71 bug was invisible to both node --check and to reading this file.
+    analytics_html = _analytics.snippet()
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -312,7 +339,7 @@ def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/
 <meta name="twitter:description" content="{_esc(desc)}">
 <link rel="stylesheet" href="{css_href}">
 <script>window.DFM_BASE = {json.dumps(base)};</script>
-</head>
+{analytics_html}</head>
 <body>
 <!-- Shared highlight renderer. Must be DEFINED BEFORE any page script
      runs, so it is emitted here rather than at the end of the body.
