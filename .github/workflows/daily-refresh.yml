@@ -110,11 +110,29 @@ jobs:
       # to an empty string and the Manager Score page is built exactly as it
       # was before: the submit script is emitted but inert, and no index UI
       # is shown.
+      #
+      # DFM_ANALYTICS_TOKEN is the Cloudflare Web Analytics beacon token
+      # (docs/ANALYTICS.md). Same unset-is-fine contract as CORPUS_URL: with
+      # no CF_ANALYTICS_TOKEN secret on the repository this resolves to an
+      # empty string, report._page emits no beacon markup at all, and the
+      # site is byte-identical to a build with analytics off. The token is
+      # a *write-only* beacon id -- it identifies which site a page view
+      # belongs to and grants no access to the Cloudflare account -- but it
+      # is still a secret, so it must never be echoed. This is the ONLY
+      # step that needs it, because report._page is the only place that
+      # renders HTML, and nothing after this step re-renders a page.
+      #
+      # DFM_ANALYTICS_PROVIDER is intentionally NOT set here: it defaults to
+      # cloudflare. Set the repository variable ANALYTICS_PROVIDER to
+      # 'plausible' or 'fathom' to switch, or to 'none' to keep the secret
+      # in place while measuring nothing.
       - name: Run the model end-to-end
         env:
           PFR_DISABLE_WAYBACK: '1'
           DFM_SKIP_CAREER_STATS: '1'
           DFM_CORPUS_URL: ${{ vars.CORPUS_URL }}
+          DFM_ANALYTICS_TOKEN: ${{ secrets.CF_ANALYTICS_TOKEN }}
+          DFM_ANALYTICS_PROVIDER: ${{ vars.ANALYTICS_PROVIDER }}
         run: |
           python -m dynasty.launcher_headless
 

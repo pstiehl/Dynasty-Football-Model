@@ -293,6 +293,19 @@ PFF_API_KEY=                # optional, enables pff source
 REQUEST_TIMEOUT_SECONDS=30
 ```
 
+### Web analytics (optional)
+
+GitHub Pages provides no server logs, so the published site carries a
+privacy-first page-view beacon — cookieless, no consent banner, off unless
+configured. Set `DFM_ANALYTICS_TOKEN` (in CI: the `CF_ANALYTICS_TOKEN`
+repository secret) to switch it on; with it unset the build emits no beacon
+markup at all and the site is byte-identical.
+
+See **[docs/ANALYTICS.md](docs/ANALYTICS.md)** for how to get the token from
+Cloudflare, how to verify it after deploy, how to swap providers, and — the
+part worth reading before drawing conclusions — what page-view analytics
+cannot tell you.
+
 ---
 
 ## Roadmap
