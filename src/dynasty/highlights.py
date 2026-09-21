@@ -70,7 +70,32 @@ _CUTUP_MARKERS = (
     "route running", "full game", "game highlights",
 )
 
-# Phrases that mean this is talk, not football. Strong negative signal —
+# Shorts and micro-clips.
+#
+# YouTube Shorts report ``status.embeddable: true``, so the ingest-time
+# embeddability check does not catch them - the live index had
+# ``videos_unembeddable: 0`` while 51 of its 80 videos were Shorts. They
+# then fail inside an IFrame *playlist* with "An error occurred. Please try
+# again later", which is what the user sees.
+#
+# They are also not what a roster reel is for. The live index was carrying
+# 7-19 second clips titled "Taylor Swift is a proud wife after Travis
+# Kelce's td" and "Fred Warner, one punch man". A genuine single-player
+# cut-up essentially never runs under ~75s.
+MIN_CLIP_SECONDS = 75
+
+# Reaction/meme uploads that name a player but show a moment, not a game.
+# Matched on the title because duration alone lets a padded 90s montage
+# through. Deliberately narrow: these are phrasings, not single words, so
+# "Chiefs react to the win" is dropped and "Reception" is untouched.
+_MEME_MARKERS = (
+    "is a proud", "was hype", "one punch man", "locked in",
+    "showing how it", "heard the chatter", "with the perfect call",
+    "calm fist pump", "proud wife", "reacts to", "reaction to",
+    "caught on mic", "mic'd up", "micd up",
+)
+
+# Phrases that mean this is talk, not football. Strong negative signal -
 # a "Ja'Marr Chase Trade Rumors" video in a reel is a bad experience.
 _NON_GAME_MARKERS = (
     "podcast", "interview", "press conference", "presser", "mock draft",
@@ -343,9 +368,24 @@ def match_players(
 # Classification + scoring
 # --------------------------------------------------------------------------
 
+def is_short(video: Video, min_seconds: int = MIN_CLIP_SECONDS) -> bool:
+    """True for Shorts / micro-clips that break playlist playback.
+
+    Unknown duration is *not* treated as a Short: the duration comes from a
+    separate ``videos.list`` call that can legitimately be missing, and
+    discarding everything unenriched would silently empty the index.
+    """
+    dur = video.duration_seconds
+    if dur is None:
+        return False
+    return dur < min_seconds
+
+
 def classify(video: Video, matched: Sequence[PlayerRef]) -> str:
     folded = _fold(video.title)
     if _has_any(folded, _NON_GAME_MARKERS):
+        return KIND_OTHER
+    if _has_any(folded, _MEME_MARKERS):
         return KIND_OTHER
     if matched:
         return KIND_PLAYER
@@ -424,6 +464,7 @@ def build_index(
     max_clips_per_player: int = 5,
     expected_week: Optional[int] = None,
     include_team_fallback: bool = True,
+    min_clip_seconds: int = MIN_CLIP_SECONDS,
 ) -> dict:
     """Build the full highlights artifact.
 
@@ -461,12 +502,19 @@ def build_index(
     by_player: Dict[str, List[Clip]] = {}
 
     n_seen = n_unembeddable = n_unmatched = n_other = n_ambiguous = 0
+    n_shorts = 0
 
     for video in videos:
         n_seen += 1
         if not video.embeddable:
             # Would throw a 150 error mid-playlist and stall the reel.
             n_unembeddable += 1
+            continue
+
+        # Shorts pass the embeddable check but break playlist playback,
+        # and a 12-second reaction clip is not a highlight reel anyway.
+        if is_short(video, min_seconds=min_clip_seconds):
+            n_shorts += 1
             continue
 
         matched, n_collisions = match_players_with_ambiguity(video, name_index)
@@ -569,6 +617,8 @@ def build_index(
         "stats": {
             "videos_seen": n_seen,
             "videos_unembeddable": n_unembeddable,
+            "videos_shorts": n_shorts,
+            "min_clip_seconds": min_clip_seconds,
             "videos_non_game": n_other,
             "videos_unmatched": n_unmatched,
             "videos_ambiguous": n_ambiguous,

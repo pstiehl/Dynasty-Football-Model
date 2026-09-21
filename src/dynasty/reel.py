@@ -332,8 +332,19 @@ function renderQueue() {
 
 function onYouTubeIframeAPIReady() {
   ytPlayer = new YT.Player('yt-frame', {
-    host: 'https://www.youtube-nocookie.com',
-    playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+    // The IFrame API is served from youtube.com. Constructing the player
+    // against the youtube-nocookie host while loading the API from
+    // youtube.com mixes origins, and the player reports it as the generic
+    // "An error occurred. Please try again later." Keep both on one host.
+    //
+    // origin is what the API asks embedders to send; omitting it is the
+    // other common cause of that same message.
+    playerVars: {
+      rel: 0,
+      modestbranding: 1,
+      playsinline: 1,
+      origin: window.location.origin
+    },
     events: {
       onReady: () => {
         ytReady = true;
