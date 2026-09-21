@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-21T19:02:02.914442+00:00",
-  "entry_count": 95,
+  "updated_at": "2026-09-21T19:15:22.223143+00:00",
+  "entry_count": 101,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -149,6 +149,11 @@
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [],
       "query": "Amari Cooper week 1 2026 highlights"
+    },
+    "2026:1:2325": {
+      "searched_at": "2026-09-21T19:15:22.223143+00:00",
+      "video_ids": [],
+      "query": "Nelson Agholor week 1 2026 highlights"
     },
     "2026:1:2359": {
       "searched_at": "2026-09-21T19:02:02.914442+00:00",
@@ -418,6 +423,11 @@
       "video_ids": [],
       "query": "Tim Patrick week 1 2026 highlights"
     },
+    "2026:1:4435": {
+      "searched_at": "2026-09-21T19:15:22.223143+00:00",
+      "video_ids": [],
+      "query": "Anthony Firkser week 1 2026 highlights"
+    },
     "2026:1:4454": {
       "searched_at": "2026-09-21T18:46:15.863418+00:00",
       "video_ids": [],
@@ -482,12 +492,22 @@
       "video_ids": [],
       "query": "Nick Chubb week 1 2026 highlights"
     },
+    "2026:1:4992": {
+      "searched_at": "2026-09-21T19:15:22.223143+00:00",
+      "video_ids": [],
+      "query": "Dante Pettis week 1 2026 highlights"
+    },
     "2026:1:5001": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
       "video_ids": [
         "Y2GSREK_wN0"
       ],
       "query": "Dalton Schultz week 1 2026 highlights"
+    },
+    "2026:1:5010": {
+      "searched_at": "2026-09-21T19:15:22.223143+00:00",
+      "video_ids": [],
+      "query": "Will Dissly week 1 2026 highlights"
     },
     "2026:1:5012": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -502,6 +522,11 @@
         "ysEOQZQbcyQ"
       ],
       "query": "Dallas Goedert week 1 2026 highlights"
+    },
+    "2026:1:5076": {
+      "searched_at": "2026-09-21T19:15:22.223143+00:00",
+      "video_ids": [],
+      "query": "John Kelly week 1 2026 highlights"
     },
     "2026:1:5086": {
       "searched_at": "2026-09-21T18:46:15.863418+00:00",
@@ -542,6 +567,11 @@
       "searched_at": "2026-09-21T19:02:02.914442+00:00",
       "video_ids": [],
       "query": "Nyheim Miller-Hines week 1 2026 highlights"
+    },
+    "2026:1:5409": {
+      "searched_at": "2026-09-21T19:15:22.223143+00:00",
+      "video_ids": [],
+      "query": "Tanner Hudson week 1 2026 highlights"
     },
     "2026:1:5773": {
       "searched_at": "2026-09-21T19:02:02.914442+00:00",
