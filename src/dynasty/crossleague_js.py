@@ -40,6 +40,43 @@ function xlEsc(s) {
 
 function xlEl(id) { return document.getElementById(id); }
 
+/* --------------------------------------------------- detail id scoping */
+
+/* Two tables on this page render a row per manager, and in the live corpus
+ * every one of the 1,248 draft-board managers also appears among the 1,791
+ * leaderboard managers. So a detail id of `xl-detail-<managerId>` is emitted
+ * *twice* in one document. getElementById returns only the first, which means
+ * clicking a row in one table toggles a hidden row belonging to the other
+ * table somewhere else on the page -- and therefore appears to do nothing
+ * where the visitor actually clicked.
+ *
+ * Ids are scoped by table instead: `xl-detail-db-<id>` on the draft board and
+ * `xl-detail-lb-<id>` on the leaderboard, so no id repeats anywhere in the
+ * document and each table toggles its own panel. Rows carry the matching
+ * `data-scope` so the delegated handler knows which panel to open. */
+var XL_SCOPES = ['db', 'lb'];
+
+/* An unrecognised scope resolves to the leaderboard, which is the only table
+ * that had detail rows before scoping existed -- that keeps the historical
+ * one-argument xlToggle(managerId) call meaning what it used to mean. */
+function xlNormScope(scope) {
+  return XL_SCOPES.indexOf(String(scope)) >= 0 ? String(scope) : 'lb';
+}
+
+function xlDetailRowId(scope, managerId) {
+  return 'xl-detail-' + xlNormScope(scope) + '-' + managerId;
+}
+
+function xlDetailBodyId(scope, managerId) {
+  return 'xl-detail-body-' + xlNormScope(scope) + '-' + managerId;
+}
+
+/* Open/closed state is per table too: the same manager can be expanded on
+ * one board and collapsed on the other without the two fighting. */
+function xlExpandKey(scope, managerId) {
+  return xlNormScope(scope) + '|' + managerId;
+}
+
 function xlNum(n, digits) {
   if (n == null || isNaN(n)) return '—';
   return Number(n).toFixed(digits == null ? 0 : digits);
@@ -237,8 +274,19 @@ function xlRenderDraftBoard(corpus) {
       'drafting.</p>';
     return;
   }
+  /* The draft board entry carries only draft aggregates, not the per-league
+   * breakdown, so the panel's opening content comes from this manager's
+   * leaderboard row. Indexed once rather than scanned per row: 1,248 rows
+   * against 1,791 leaderboard entries would be a 2.2M-comparison scan. */
+  var byId = {};
+  var lb = (corpus && corpus.leaderboard) || [];
+  for (var i = 0; i < lb.length; i++) {
+    byId[String(lb[i].manager_id)] = lb[i];
+  }
+
   var rows = board.map(function (r) {
     return '<tr class="xl-row" data-manager="' + xlEsc(r.manager_id) + '"' +
+      ' data-scope="db"' +
       ' tabindex="0" role="button"' +
       ' aria-label="What drives the score for ' + xlEsc(r.display_name) + '">' +
       '<td class="xl-rank">' + xlEsc(r.rank) + '</td>' +
@@ -247,14 +295,22 @@ function xlRenderDraftBoard(corpus) {
       '<td class="xl-n">' + xlEsc(r.n_picks) + '</td>' +
       '<td class="xl-n">' + xlEsc(r.n_leagues) + '</td>' +
       '<td class="xl-n">' + xlNum(r.percentile, 1) + '%</td>' +
-      '</tr>';
+      '</tr>' +
+      /* colspan 6 -- this table's own column count (#, Manager, Draft
+       * score, Picks, Leagues, Percentile), not the leaderboard's 8. */
+      '<tr class="xl-detail" id="' +
+        xlEsc(xlDetailRowId('db', r.manager_id)) + '" ' +
+        'style="display:none"><td colspan="6" ' +
+        'id="' + xlEsc(xlDetailBodyId('db', r.manager_id)) + '">' +
+        xlRenderBreakdown(byId[String(r.manager_id)] || r) + '</td></tr>';
   }).join('');
   box.innerHTML =
     '<table class="xl-table"><thead><tr>' +
     '<th>#</th><th>Manager</th><th>Draft score</th><th>Picks</th>' +
     '<th>Leagues</th><th>Percentile</th>' +
     '</tr></thead><tbody>' + rows + '</tbody></table>' +
-    '<p class="xl-sub">Draft score is the evidence-weighted average of this ' +
+    '<p class="xl-sub">Click a manager to see every indexed league behind ' +
+    'their score. Draft score is the evidence-weighted average of this ' +
     "manager's within-league draft z-score, shrunk toward neutral by total " +
     'pick count. A manager needs ' + xlEsc(gate == null ? 6 : gate) +
     '+ scored picks to appear, so one lucky draft cannot top the board.</p>';
@@ -273,6 +329,7 @@ function xlRenderLeaderboard(corpus) {
   var body = rows.map(function (r) {
     var c = r.components || {};
     return '<tr class="xl-row" data-manager="' + xlEsc(r.manager_id) + '"' +
+      ' data-scope="lb"' +
       ' tabindex="0" role="button"' +
       ' aria-label="What drives the score for ' + xlEsc(r.display_name) + '">' +
       '<td class="xl-rank">' + xlEsc(r.rank) + '</td>' +
@@ -291,9 +348,10 @@ function xlRenderLeaderboard(corpus) {
       '<td class="xl-n">' + xlEsc(r.n_leagues) + '</td>' +
       '<td class="xl-n">' + xlNum(r.percentile, 1) + '%</td>' +
       '</tr>' +
-      '<tr class="xl-detail" id="xl-detail-' + xlEsc(r.manager_id) + '" ' +
+      '<tr class="xl-detail" id="' +
+        xlEsc(xlDetailRowId('lb', r.manager_id)) + '" ' +
         'style="display:none"><td colspan="8" ' +
-        'id="xl-detail-body-' + xlEsc(r.manager_id) + '">' +
+        'id="' + xlEsc(xlDetailBodyId('lb', r.manager_id)) + '">' +
         xlRenderBreakdown(r) + '</td></tr>';
   }).join('');
   box.innerHTML =
@@ -639,14 +697,39 @@ function xlRenderDetailPanel(row, doc, state, err) {
     xlRenderRollup(doc) + leagues + '</div>';
 }
 
-/* Re-render just one manager's open panel. */
-function xlPaintDetail(managerId) {
-  var cell = xlEl('xl-detail-body-' + managerId);
+/* Re-render one manager's panel in one table -- or, with no scope given, in
+ * every table that rendered a panel for them.
+ *
+ * Called with no scope after a fetch resolves, because the fetch is keyed by
+ * manager id and knows nothing about which boards the manager appears on.
+ * Painting a scope whose element is absent is deliberately a harmless no-op:
+ * a manager below the draft-board pick gate has no `db` panel, and that must
+ * not stop their `lb` panel being repainted. */
+function xlPaintDetail(managerId, scope) {
+  if (scope == null) {
+    for (var s = 0; s < XL_SCOPES.length; s++) {
+      xlPaintDetail(managerId, XL_SCOPES[s]);
+    }
+    return;
+  }
+  var cell = xlEl(xlDetailBodyId(scope, managerId));
   if (!cell) return;
   var row = null;
   var all = ((XLX.corpus || {}).leaderboard) || [];
   for (var i = 0; i < all.length; i++) {
     if (String(all[i].manager_id) === String(managerId)) { row = all[i]; break; }
+  }
+  /* Every draft-board manager is on the leaderboard in today's corpus, but
+   * the board is generated independently; falling back to its own entry
+   * keeps the panel populated rather than blank if that ever diverges. */
+  if (!row) {
+    var board = ((XLX.corpus || {}).draft_board) || [];
+    for (var j = 0; j < board.length; j++) {
+      if (String(board[j].manager_id) === String(managerId)) {
+        row = board[j];
+        break;
+      }
+    }
   }
   if (!row) return;
   cell.innerHTML = xlRenderDetailPanel(
@@ -687,16 +770,18 @@ function xlLoadDetail(managerId) {
   });
 }
 
-function xlToggle(managerId) {
-  var row = xlEl('xl-detail-' + managerId);
+function xlToggle(managerId, scope) {
+  var sc = xlNormScope(scope);
+  var row = xlEl(xlDetailRowId(sc, managerId));
   if (!row) return;
-  var open = XLX.expanded[managerId];
-  XLX.expanded[managerId] = !open;
+  var key = xlExpandKey(sc, managerId);
+  var open = XLX.expanded[key];
+  XLX.expanded[key] = !open;
   row.style.display = open ? 'none' : 'table-row';
   /* Fetch on open, never on page load: the corpus index stays small and a
    * visitor who opens nobody downloads no detail at all. */
   if (!open) {
-    xlPaintDetail(managerId);
+    xlPaintDetail(managerId, sc);
     xlLoadDetail(managerId);
   }
 }
@@ -774,7 +859,10 @@ function xlBindRowClicks() {
     if (!tr) return;
     var id = tr.dataset ? tr.dataset.manager : null;
     if (!id) return;
-    xlToggle(id);
+    /* data-scope decides which table's panel opens. Without it both tables
+     * would address the same id and one of them would toggle a row the
+     * visitor cannot see. */
+    xlToggle(id, tr.dataset.scope);
   });
 
   /* Keyboard parity: a row you can click is a row you must be able to
@@ -786,7 +874,7 @@ function xlBindRowClicks() {
     var tr = t.closest('tr.xl-row');
     if (!tr || !tr.dataset || !tr.dataset.manager) return;
     ev.preventDefault();
-    xlToggle(tr.dataset.manager);
+    xlToggle(tr.dataset.manager, tr.dataset.scope);
   });
 }
 
@@ -822,6 +910,11 @@ if (typeof module !== 'undefined' && module.exports) {
     xlRenderLeagues: xlRenderLeagues,
     xlRenderAll: xlRenderAll,
     xlToggle: xlToggle,
+    xlNormScope: xlNormScope,
+    xlDetailRowId: xlDetailRowId,
+    xlDetailBodyId: xlDetailBodyId,
+    xlExpandKey: xlExpandKey,
+    XL_SCOPES: XL_SCOPES,
     xlLoad: xlLoad,
     xlFnv1a32: xlFnv1a32,
     xlShard: xlShard,

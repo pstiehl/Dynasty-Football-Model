@@ -258,14 +258,58 @@ const all = [
 /* --------------------------------------------------------- detail toggle */
 
 X.xlRenderLeaderboard(CORPUS);
-const detail = document.getElementById('xl-detail-u1');
-detail.style.display = 'none';
+X.xlRenderDraftBoard(CORPUS);
+
+/* Detail ids are scoped per table, because u1 here -- like all 1,248
+ * draft-board managers in the live corpus -- appears on both boards, and one
+ * shared `xl-detail-u1` would be emitted twice in one document.
+ *
+ * Note the limit of this file: dom_stub.js auto-creates an element on every
+ * getElementById, so these checks can only assert that xlToggle drives the
+ * id it claims to. Whether that element is actually present in the rendered
+ * markup -- the thing that was broken -- needs a DOM that can return null,
+ * and is asserted in tests/js/crossleague_scope_tests.mjs. */
+const lbDetail = document.getElementById('xl-detail-lb-u1');
+lbDetail.style.display = 'none';
+X.xlToggle('u1', 'lb');
+ok(lbDetail.style.display === 'table-row', 'toggle opens the leaderboard breakdown row');
+X.xlToggle('u1', 'lb');
+ok(lbDetail.style.display === 'none', 'toggle closes the leaderboard breakdown row');
+
+const dbDetail = document.getElementById('xl-detail-db-u1');
+ok(dbDetail !== lbDetail,
+   'one manager on both boards gets two distinct detail elements');
+dbDetail.style.display = 'none';
+X.xlToggle('u1', 'db');
+ok(dbDetail.style.display === 'table-row', 'toggle opens the draft-board breakdown row');
+ok(lbDetail.style.display === 'none',
+   'opening the draft-board panel left the leaderboard panel closed');
+X.xlToggle('u1', 'db');
+ok(dbDetail.style.display === 'none', 'toggle closes the draft-board breakdown row');
+
+/* A scope-less call still means the leaderboard, which is what it meant
+ * before scoping existed. */
+lbDetail.style.display = 'none';
 X.xlToggle('u1');
-ok(detail.style.display === 'table-row', 'toggle opens the breakdown row');
+ok(lbDetail.style.display === 'table-row', 'a scope-less xlToggle still drives the leaderboard');
 X.xlToggle('u1');
-ok(detail.style.display === 'none', 'toggle closes the breakdown row');
+
 X.xlToggle('does-not-exist');
 ok(true, 'toggling an unknown manager does not throw');
+
+/* The markup must actually carry what the delegated handler reads. */
+const dbMarkup = document.getElementById('xl-draft-board').innerHTML;
+ok(dbMarkup.indexOf('data-scope="db"') >= 0, 'draft-board rows carry data-scope="db"');
+ok(dbMarkup.indexOf('id="xl-detail-db-u1"') >= 0, 'draft board emits a scoped detail row');
+ok(dbMarkup.indexOf('colspan="6"') >= 0, 'draft-board detail cell spans its own 6 columns');
+ok(dbMarkup.indexOf('colspan="8"') === -1,
+   'draft-board detail cell does not borrow the leaderboard\'s 8 columns');
+
+const lbMarkup = document.getElementById('xl-leaderboard').innerHTML;
+ok(lbMarkup.indexOf('data-scope="lb"') >= 0, 'leaderboard rows carry data-scope="lb"');
+ok(lbMarkup.indexOf('id="xl-detail-lb-u1"') >= 0, 'leaderboard emits a scoped detail row');
+ok(lbMarkup.indexOf('id="xl-detail-u1"') === -1,
+   'the old unscoped detail id is gone from the leaderboard');
 
 /* ------------------------------------------------------------- report */
 
