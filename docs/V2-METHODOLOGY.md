@@ -1,4 +1,4 @@
-# Kings of Dynasty — v2.0 / v2.1 / v2.2 Methodology
+# Next Level Dynasty Football — v2.0 / v2.1 / v2.2 Methodology
 
 > **TL;DR.** v1.x ranked players by per-stat z-score shape. v2.0 replaced
 > the engine with a fantasy-point-arc methodology that ranks players by

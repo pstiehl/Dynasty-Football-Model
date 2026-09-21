@@ -70,7 +70,7 @@ Sleeper's published terms, verbatim:
 **This project is non-commercial, and this crawl is the single largest
 consumer of that allowance in the repository.**
 
-> ⚠️ **If Kings of Dynasty is ever monetised — ads, subscriptions, a paid
+> ⚠️ **If Next Level Dynasty Football is ever monetised — ads, subscriptions, a paid
 > tier, a sponsored placement, sale of the site or its data — this crawl
 > needs a licensing conversation with Sleeper *before* the money starts.**
 > It is the most licence-exposed thing here: it reads other people's leagues

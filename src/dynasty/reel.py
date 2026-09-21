@@ -1,8 +1,29 @@
-"""reel.html — "watch my whole roster's week", as a link-out queue.
+"""Sleeper roster plumbing, shared by the pages that need a roster.
 
-Takes a Sleeper username (or a raw league id, or a hand-typed roster), joins
-the roster against ``highlights.json``, and renders an ordered, scannable
-queue of clip cards. Every card opens on YouTube in a new tab.
+**This module no longer builds a page.** The Roster Reel tab was removed
+from the nav by the owner, and ``reel.html`` is not written any more. What
+survives is the part nothing else implements: Sleeper username -> leagues ->
+team picker -> roster, localStorage persistence, and the name matcher
+mirrored from ``dynasty.highlights``. ``myteam.py`` (Input Sleeper Team)
+pulls that in via :func:`reel_assets` and drives it through the
+``DFM_ON_ROSTER`` / ``DFM_ON_LEAGUE`` hooks.
+
+The film the reel used to render now comes from
+``dynasty.player_highlights`` instead, in two places: the whole roster's
+week in the Highlights pane of Input Sleeper Team, and a per-player popover
+on every player name on every page of the site. This module's week-bucket
+and formatting helpers are thin delegates to that shared renderer rather
+than second copies of it -- see the "delegates" block below.
+
+Its own queue renderers (``rebuildQueue``, ``renderBuckets``, ``clipCard``)
+are still here and still run, writing to DOM ids that no page provides any
+more. Every one of those writes is guarded, so they are inert. They are
+kept rather than excised to keep this an unmodified plumbing module: the
+queue logic is what ``tests/js/assertions.js`` asserts the Sleeper join
+against, and gutting it would cost that coverage for no gain.
+
+The history below is retained because it is why nothing here embeds a
+player, and that decision still binds the shared renderer.
 
 Why this page no longer embeds anything
 ---------------------------------------
@@ -40,7 +61,6 @@ keep that 2,000-line module from growing another 300 lines of JS.
 """
 from __future__ import annotations
 
-from datetime import datetime
 from typing import Optional
 
 
@@ -86,167 +106,41 @@ function matchKey(s) {
   return t;
 }
 
-function fmtDuration(sec) {
-  if (!sec && sec !== 0) return '';
-  const m = Math.floor(sec / 60), s = sec % 60;
-  return m + ':' + String(s).padStart(2, '0');
-}
+// ---------------------------------------------------------------- delegates
+//
+// Every helper below used to be defined here and re-implemented (or
+// probed for with `typeof x === 'function'`) in myteam.js. They now live
+// once in dynasty.player_highlights (DFMHL), which every page of the site
+// loads, and these are thin wrappers over it.
+//
+// The wrappers exist rather than call sites being rewritten for two
+// reasons. The artifact is passed in explicitly on each call -- `HL` is
+// this module's own variable and the test harness swaps it directly, so
+// reading DFMHL.artifact instead would silently ignore that swap. And the
+// names below are the vocabulary the rest of this file and myteam.js are
+// written in; keeping them keeps the diff to the definitions.
 
+function fmtDuration(sec) { return DFMHL.fmtDuration(sec); }
+function fmtDay(iso) { return DFMHL.fmtDay(iso); }
+function fmtViews(n) { return DFMHL.fmtViews(n); }
+function windowLabel() { return DFMHL.windowLabel(HL); }
+function hasWindow() { return DFMHL.hasWindow(HL); }
+function inWindow(clip) { return DFMHL.inWindow(clip, HL); }
+function weekMeta() { return DFMHL.weekMeta(HL); }
+function leadWeekKey() { return DFMHL.leadWeekKey(HL); }
+function slateRangeLabel(key) { return DFMHL.slateRangeLabel(key, HL); }
+function weekLabelFor(key) { return DFMHL.weekLabelFor(key, HL); }
+function weekNumberFor(key) { return DFMHL.weekNumberFor(key, HL); }
+function weekHeading(key) { return DFMHL.weekHeading(key, HL); }
+function weekIsComplete(key) { return DFMHL.weekIsComplete(key, HL); }
+function clipWeekKey(c) { return DFMHL.clipWeekKey(c); }
+function rankClip(a, b) { return DFMHL.rankClip(a, b); }
+
+// Not shared: only the "watch all" control renders a total duration.
 function fmtTotal(sec) {
   if (sec < 60) return sec + ' sec';
   const m = Math.round(sec / 60);
   return m + (m === 1 ? ' minute' : ' minutes');
-}
-
-const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-// Date parts are read in UTC deliberately. The window is resolved in UTC by
-// the build, so formatting it in the viewer's local zone would render a
-// window labelled "Sep 10-14" in the artifact as "Sep 9-13" west of
-// Greenwich -- the page and the JSON would disagree about which slate this
-// is.
-function fmtDay(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  if (isNaN(d)) return '';
-  return MONTHS[d.getUTCMonth()] + ' ' + d.getUTCDate();
-}
-
-// "Sep 10-14" for the resolved game window, or '' when the index predates
-// windowing / was built without one.
-function windowLabel() {
-  const w = HL && HL.window;
-  if (w && w.label) return w.label;
-  const a = fmtDay(HL && HL.window_start), b = fmtDay(HL && HL.window_end);
-  if (!a || !b) return '';
-  // Same month -> "Sep 10-14"; across a boundary -> "Sep 30-Oct 4".
-  const bShort = a.split(' ')[0] === b.split(' ')[0] ? b.split(' ')[1] : b;
-  return a + '\u2013' + bShort;
-}
-
-function hasWindow() {
-  return !!windowLabel();
-}
-
-// ------------------------------------------------------------ week buckets
-//
-// The build decides which week leads and publishes it on the artifact.
-// Neither page recomputes it. That matters for two reasons: the rule is
-// "the week whose last game has been played", which is a fact about the
-// NFL schedule in UTC and not about the viewer's clock; and reel.js and
-// myteam.js both read these helpers, so a single answer keeps the two
-// pages from labelling the same clips differently.
-
-function weekMeta() {
-  const ws = (HL && HL.weeks) || [];
-  return ws.filter(w => w && w.start_date);
-}
-
-// The bucket the pages open on: the most recent COMPLETE week.
-//
-// Four sources, in descending order of authority. The first two are the
-// build's own answer and are what a current artifact hits. The last two
-// exist because highlights.json is generated by a scheduled job and the
-// pages are served from a CDN: a page can be live against an artifact
-// built before week bucketing existed, and it has to degrade to sensible
-// grouping rather than to an empty reel.
-function leadWeekKey() {
-  // 1. Published outright by the build.
-  if (HL && HL.lead_week_start) return HL.lead_week_start;
-
-  // 2. Flagged on the bucket list.
-  const ws = weekMeta();
-  const lead = ws.find(w => w.lead) || ws.find(w => w.complete) || ws[0];
-  if (lead) return lead.start_date;
-
-  // 3. Pre-bucketing artifact: the resolved window's start is a slate
-  //    Thursday, which is exactly a bucket key.
-  if (HL && HL.window_start) return String(HL.window_start).slice(0, 10);
-
-  // 4. Nothing at all to go on -- group on the newest slate any indexed
-  //    clip belongs to, so the page still shows film.
-  let newest = '';
-  const all = (HL && HL.clips) || {};
-  for (const sid of Object.keys(all)) {
-    (all[sid] || []).forEach(c => {
-      const k = clipWeekKey(c);
-      if (k > newest) newest = k;
-    });
-  }
-  return newest;
-}
-
-// "Sep 10–14" from a bucket key, for artifacts whose weeks[] does not
-// carry a label (or does not exist at all).
-function slateRangeLabel(key) {
-  if (!key) return '';
-  const start = new Date(key + 'T00:00:00Z');
-  if (isNaN(start)) return key;
-  const span = (HL && HL.window && HL.window.window_days) || 5;
-  const end = new Date(start.getTime() + (span - 1) * 86400000);
-  const a = MONTHS[start.getUTCMonth()] + ' ' + start.getUTCDate();
-  const b = start.getUTCMonth() === end.getUTCMonth()
-    ? String(end.getUTCDate())
-    : MONTHS[end.getUTCMonth()] + ' ' + end.getUTCDate();
-  return a + '\u2013' + b;
-}
-
-function weekLabelFor(key) {
-  const w = weekMeta().find(x => x.start_date === key);
-  if (w && w.label) return w.label;
-  return slateRangeLabel(key) || key || 'Undated';
-}
-
-// NFL week number for a bucket, or null.
-function weekNumberFor(key) {
-  const w = weekMeta().find(x => x.start_date === key);
-  if (w && w.week) return w.week;
-  // Pre-bucketing artifact: the resolved window carries the number for
-  // its own slate, and that slate is the fallback lead bucket.
-  const ws = (HL && HL.window_start)
-    ? String(HL.window_start).slice(0, 10) : '';
-  if (key && key === ws) {
-    return (HL.window && HL.window.week) || HL.expected_week || null;
-  }
-  return null;
-}
-
-// "Week 1 · Sep 10–14". Both halves, per the spec: the number is what a
-// fantasy manager thinks in, the dates are what makes it unambiguous.
-function weekHeading(key) {
-  const lbl = weekLabelFor(key);
-  const wk = weekNumberFor(key);
-  return wk ? 'Week ' + wk + ' \u00b7 ' + lbl : lbl;
-}
-
-function weekIsComplete(key) {
-  const w = weekMeta().find(x => x.start_date === key);
-  // Unknown buckets are treated as complete: an artifact with no week
-  // metadata should render as ordinary history, not as "in progress".
-  return w ? !!w.complete : true;
-}
-
-// Bucket key for one clip. Prefers what the build computed; falls back to
-// the publish date so a pre-bucketing artifact still groups into
-// something sensible rather than collapsing into one pile.
-function clipWeekKey(c) {
-  if (c && c.bucket_start) return c.bucket_start;
-  const ts = c && c.published_at ? new Date(c.published_at) : null;
-  if (!ts || isNaN(ts)) return '';
-  // Mirror of highlights.slate_start_for: shift back a day, then take the
-  // Thursday on or before.
-  const d = new Date(ts.getTime() - 24 * 3600 * 1000);
-  const back = (d.getUTCDay() - 4 + 7) % 7;
-  d.setUTCDate(d.getUTCDate() - back);
-  return d.toISOString().slice(0, 10);
-}
-
-// A clip counts as current when the build said so. With no window in the
-// artifact every clip is treated as current, which is the pre-windowing
-// behaviour and keeps an older highlights.json usable.
-function inWindow(clip) {
-  if (!hasWindow()) return true;
-  return clip.in_window === true;
 }
 
 function status(msg, isError) {
@@ -271,19 +165,26 @@ async function getJSON(url) {
 
 async function loadHighlights() {
   try {
-    HL = await getJSON('highlights.json');
+    // Through DFMHL so the whole page shares one fetch and one artifact:
+    // the chips on this page's player names read the same object. It
+    // resolves to an empty index rather than rejecting, so the throw below
+    // is raised here from the recorded load error.
+    HL = await DFMHL.load({ force: true });
+    if (DFMHL.loadError) throw new Error(DFMHL.loadError);
   } catch (e) {
     // The index is generated by a scheduled job that has to run at least
     // once before this file exists. Substitute an empty index rather than
     // leaving HL null: every reader below then takes its normal empty
     // path, so the page explains itself instead of throwing.
-    HL = { clips: {}, players: {}, by_gsis: {} };
+    HL = DFMHL.artifact || { clips: {}, players: {}, by_gsis: {} };
+    DFMHL.artifact = HL;
     status('No highlight index yet — highlights.json has not been generated. ' +
            'Rosters still load; there is just no film to queue.', true);
     const meta = document.getElementById('hl-meta');
     if (meta) meta.textContent = 'Highlight index unavailable';
     return false;
   }
+  DFMHL.artifact = HL;
   const n = Object.keys(HL.clips || {}).length;
   // Label the header with the LEAD WEEK, not the resolved window.
   //
@@ -540,25 +441,6 @@ function buildRoster(sleeperIds) {
 //                My Team page and the "watch all" playlist both want one
 //                ordered list, and because a flat queue is what "watch my
 //                whole roster" means.
-
-// Order one player's clips inside a single week.
-//
-// Confidence first, then view count. That ordering is the whole point of
-// treating views as a *secondary* signal: a 400-view cut-up of the player
-// you rostered outranks a 2-million-view clip the matcher was less sure
-// about, because being the right player's film matters more than being
-// popular film. Views only separate clips we are equally confident in.
-function rankClip(a, b) {
-  const kind = (a.kind === 'player_cutup' ? 0 : 1) - (b.kind === 'player_cutup' ? 0 : 1);
-  if (kind) return kind;
-  const conf = (b.confidence || 0) - (a.confidence || 0);
-  if (Math.abs(conf) > 1e-9) return conf;
-  const trust = (b.trusted ? 1 : 0) - (a.trusted ? 1 : 0);
-  if (trust) return trust;
-  const views = (b.view_count || 0) - (a.view_count || 0);
-  if (views) return views;
-  return String(b.published_at || '').localeCompare(String(a.published_at || ''));
-}
 
 function buildBuckets(includeTeam, allWeeks) {
   const leadKey = leadWeekKey();
@@ -891,88 +773,3 @@ def reel_assets() -> "tuple[str, str]":
     Exposed as a function so the module-private constants stay private.
     """
     return _REEL_JS, _REEL_CSS
-
-
-def build_reel(latest_ts: datetime, league_label: str) -> str:
-    """Render reel.html. Imported lazily by report.generate_site."""
-    from .report import _page, _site_header, _footer  # local: avoids a cycle
-
-    body = """<div class="container">
-
-<h2>Roster <span class="accent">Reel</span></h2>
-<p class="lede reel-intro">Import a Sleeper roster and get every rostered
-player's cut-up from the most recently completed week, in one ordered queue.
-Every clip opens on YouTube — or send the whole week there as a playlist and
-watch it end to end.</p>
-<div class="hl-meta" id="hl-meta">Loading highlight index…</div>
-
-<div class="tabs">
-  <button class="tab-btn on" data-pane="pane-user">Sleeper username</button>
-  <button class="tab-btn" data-pane="pane-league">League ID</button>
-  <button class="tab-btn" data-pane="pane-custom">Custom roster</button>
-</div>
-
-<div class="tab-pane" id="pane-user">
-  <div class="reel-input">
-    <input id="sleeper-user" type="text" placeholder="Sleeper username" autocomplete="off">
-    <button class="btn" id="load-user">Find my leagues</button>
-  </div>
-</div>
-
-<div class="tab-pane" id="pane-league" style="display:none">
-  <div class="reel-input">
-    <input id="league-id" type="text" placeholder="Sleeper league ID" autocomplete="off">
-    <button class="btn" id="load-league">Load league</button>
-  </div>
-</div>
-
-<div class="tab-pane" id="pane-custom" style="display:none">
-  <div class="reel-input">
-    <textarea id="custom-names" placeholder="One player per line&#10;Ja'Marr Chase&#10;Bijan Robinson&#10;Brock Bowers"></textarea>
-  </div>
-  <div style="margin-top:8px"><button class="btn" id="load-custom">Build reel</button></div>
-</div>
-
-<div class="reel-status" id="reel-status" style="display:none"></div>
-<div id="step-league" style="display:none"><div id="league-list"></div></div>
-
-<div id="step-reel" style="display:none">
-  <hr style="border:0;border-top:1px solid var(--border);margin:24px 0">
-  <div id="roster-summary" style="font-size:13px;opacity:.75"></div>
-
-  <div class="reel-opts">
-    <label><input type="checkbox" id="opt-team"> include game recaps when no cut-up exists</label>
-    <label><input type="checkbox" id="opt-all"> show every week, not just the latest complete one</label>
-  </div>
-
-  <a class="btn btn-lg btn-disabled" id="play-all" target="_blank"
-     rel="noopener noreferrer">Watch all on YouTube</a>
-  <div id="play-all-note"></div>
-
-  <div id="queue-list"></div>
-</div>
-
-<p style="font-size:12px;opacity:.55;margin-top:28px">Clips open on YouTube in
-a new tab rather than playing in an embedded player. Embedded playback fails
-for reasons outside this site's control — uploaders disable embedding,
-rights-holders restrict regions, Shorts refuse to play in a playlist — and
-each one surfaced as <em>“An error occurred. Please try again later.”</em>
-Linking out removes that failure entirely, and <em>Watch all on YouTube</em>
-still queues the whole week in order. Weeks are grouped newest
-<em>complete</em> week first: a week becomes eligible only once its final game
-has been played, so on a Monday you get last week's finished film rather than
-a week that is still being played. Clips are matched to players automatically
-from public YouTube uploads; views and ad revenue stay with the original
-uploader. Rosters are read live from Sleeper's public API in your browser —
-nothing is sent to this site.</p>
-
-</div>
-<style>__CSS__</style>
-<script>__JS__</script>
-""".replace("__CSS__", _REEL_CSS).replace("__JS__", _REEL_JS)
-
-    return _page(
-        "Kings of Dynasty — Roster Reel",
-        _site_header("reel", latest_ts, league_label),
-        body,
-    )

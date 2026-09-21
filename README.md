@@ -1,4 +1,4 @@
-# Kings of Dynasty — Fantasy Football
+# Next Level Dynasty Football
 
 A dynasty fantasy football ranking model built on a fantasy-point-arc
 similarity engine (v2.0/v2.1) plus a survival / confidence / late-
@@ -9,10 +9,13 @@ penalties discount bust-prone comp pools, small-sample players, and
 late-breakout QBs into the rank tier their realistic dynasty value
 warrants.
 
-Output is a self-contained static site ("Kings of Dynasty") you can open
-in any browser — a `Similarity Scores` ranking page, a `Dynasty Rankings`
-page with format presets (Superflex PPR and 2QB PPR), a Methodology page,
-and per-player comparable pages.
+Output is a self-contained static site ("Next Level Dynasty Football") you
+can open in any browser — a `Similar NFL Career Paths` ranking page, a
+`Dynasty Rankings` page with format presets (Superflex PPR and 2QB PPR), an
+`Input Sleeper Team` page (your roster, your league, your roster's
+highlights and Manager Score), a `Best Managers` cross-league board, a
+Methodology page, and per-player comparable pages. Every player name on
+every page links out to that player's recent highlights.
 
 See [docs/V2-METHODOLOGY.md](docs/V2-METHODOLOGY.md) for the full
 pipeline,

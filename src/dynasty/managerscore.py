@@ -12,8 +12,9 @@ What this module owns, and what it does not
 This module builds the *value artifact* and the *page*. It does not score
 anything. Scoring happens once, in JavaScript, in
 ``dynasty.managerscore_js.MANAGERSCORE_CORE_JS``, because league data is
-read live from Sleeper in the browser — the same arrangement My Team and
-the Roster Reel use, and for the same reason: this site is a static GitHub
+read live from Sleeper in the browser — the same arrangement the rest of
+the Input Sleeper Team page uses, and for the same reason: this site is a
+static GitHub
 Pages build with no server to proxy an API through. Keeping the maths in
 one place means there is no Python reimplementation to drift; the test
 suite runs that JS in ``node`` instead of re-deriving it.
@@ -76,6 +77,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from . import ktc_history
+from .branding import page_title
 
 VALUES_ARTIFACT = "managerscore_values.json"
 SERIES_ARTIFACT = "managerscore_series.json"
@@ -355,6 +357,7 @@ h4 { font-size: 14px; margin: 18px 0 8px 0; }
 
 
 def _methodology_html() -> str:
+    """Heading levels start at h4: this renders inside the pane's h3."""
     """Plain-language description of the metric, rendered on the page.
 
     Deliberately on the page rather than in the docs: a score nobody can
@@ -362,7 +365,7 @@ def _methodology_html() -> str:
     as much as the formula.
     """
     return """
-<h2>What <span class="accent">Manager Score</span> measures</h2>
+<h4>What <span class="accent">Manager Score</span> measures</h4>
 
 <div class="ms-formula">
 <p style="margin-top:0"><strong>One number per manager, league mean 100, one
@@ -377,7 +380,7 @@ absolute rating &mdash; the average manager in every league scores about 100.</p
 has, so a league that never trades is not scored on a component nobody
 played.</p>
 
-<h4>The unit: value capture</h4>
+<h5>The unit: value capture</h5>
 <p>Everything below is built from one measurement. For any asset that
 changes hands on a date, we take its KeepTradeCut value <strong>on that
 date</strong> and the highest value it reached <strong>afterwards</strong>.
@@ -389,7 +392,7 @@ acquiring a player just before he breaks out scores well, and trading away a
 player who then breaks out scores badly &mdash; which is the thing everyone
 actually argues about in a dynasty league.</p>
 
-<h4>Draft skill &mdash; did the pick beat its slot?</h4>
+<h5>Draft skill &mdash; did the pick beat its slot?</h5>
 <p>Surplus = what the pick captured, minus what a pick at that slot
 typically captured <em>in that same draft</em>. The par curve is fitted from
 the draft's own picks (median per six-slot bin, forced never to rise as
@@ -398,7 +401,7 @@ That is what makes startup drafts, rookie drafts, 10-team and 14-team
 leagues comparable without any hand-tuned constant. A draft with fewer than
 12 evaluable picks is skipped rather than scored badly.</p>
 
-<h4>Trade skill &mdash; did value come in or leak out?</h4>
+<h5>Trade skill &mdash; did value come in or leak out?</h5>
 <p>Net = captured by what you received, minus captured by what you gave,
 counting players and draft picks on both sides. Within any trade these sum
 to exactly zero, so it is a genuine transfer measure. A trade containing an
@@ -406,14 +409,14 @@ asset we cannot price is <strong>reported but not scored</strong> &mdash;
 pricing one side and not the other would invent a steal that never
 happened.</p>
 
-<h4>Waiver skill &mdash; was there value on the wire?</h4>
+<h5>Waiver skill &mdash; was there value on the wire?</h5>
 <p>Captured by each waiver or free-agent add. A replacement-level body that
 never rose captures zero; plucking a player who then becomes a starter
 captures a lot. FAAB spent is shown in the audit but not scored: KTC points
 and FAAB dollars have no exchange rate, and inventing one would be the least
 defensible number on the page.</p>
 
-<h4>Why volume cannot buy a good score</h4>
+<h5>Why volume cannot buy a good score</h5>
 <p>Each component is a <strong>per-transaction mean</strong>, not a total,
 then shrunk toward zero by <code>n / (n + k)</code> (k = 6 picks, 3 trades,
 5 adds). Shrinkage only ever moves a manager <em>toward</em> average &mdash;
@@ -423,7 +426,7 @@ no activity in a component is scored as league-average for it, flagged, and
 not penalised for abstaining.</p>
 </div>
 
-<h2>Where the <span class="accent">values</span> come from</h2>
+<h4>Where the <span class="accent">values</span> come from</h4>
 <div class="ms-formula">
 <p style="margin-top:0">KeepTradeCut publishes a <em>live</em> superflex
 consensus board, not an archive, so historical values are not available from
@@ -460,7 +463,7 @@ week rather than per player, and no more than a handful are ever in flight
 at once. Scoring the same league twice costs zero further requests.</p>
 </div>
 
-<h2>The second lens: <span class="accent">realized production</span></h2>
+<h4>The second lens: <span class="accent">realized production</span></h4>
 <div class="ms-formula">
 <p>Everything above prices a trade against the market. It answers <em>was
 this a good bet at the time</em>. It cannot answer the question you actually
@@ -532,7 +535,7 @@ exactly that signal.</p>
 sides of a trade can genuinely come out ahead.</p>
 </div>
 
-<h2>On <span class="accent">projected</span> points</h2>
+<h4>On <span class="accent">projected</span> points</h4>
 <div class="ms-formula">
 <p>The obvious follow-up is "what was he <em>projected</em> to score at the
 time, and did he beat it?". That was investigated directly against the live
@@ -567,7 +570,7 @@ expected-versus-actual comparison can be made from a projection that
 provably predates the outcome. It cannot be backfilled.</p>
 </div>
 
-<h2>What this <span class="accent">cannot</span> tell you</h2>
+<h4>What this <span class="accent">cannot</span> tell you</h4>
 <div class="ms-formula">
 <ul style="margin:0">
 <li><strong>Hindsight is baked in, by design.</strong> This measures what
@@ -616,15 +619,29 @@ one who never does.</li>
 """
 
 
-def build_manager_score(latest_ts: datetime, league_label: str) -> str:
-    """Render managerscore.html. Imported lazily by report.generate_site."""
-    from .report import _page, _site_header  # local import: avoids a cycle
-    from .managerscore_js import MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+def manager_score_section() -> str:
+    """The Manager Score feature markup, for embedding in another page.
 
-    body = """<div class="container">
+    Owner decision (this PR): Manager Score is not a destination, it is a
+    view of the Sleeper league you already told us about, so it lives inside
+    the Input Sleeper Team page instead of behind its own nav tab. Asking
+    for a username on one tab and the same username again on another was
+    the whole reason for moving it.
 
-<h2>Manager <span class="accent">Score</span></h2>
-<p class="lede">Who actually drafts and trades well in your league? This
+    Returns the section only -- no ``.container``, no ``<style>``, no
+    ``<script>``. The host page places those via :func:`manager_score_assets`,
+    so the CSS and the two scripts are emitted exactly once per page no
+    matter how many sections use them.
+
+    Element ids are unchanged (``ms-username``, ``ms-leagueid``,
+    ``ms-results`` …). ``msInit`` null-checks every one of them and binds on
+    ``DOMContentLoaded``, so the feature works identically embedded as it
+    did standalone, and ``msRun(leagueId, includeHistory)`` stays the entry
+    point for scoring a league the host page has already resolved.
+    """
+    return """
+<h3>Manager <span class="accent">Score</span></h3>
+<p class="mt-sub">Who actually drafts and trades well in your league? This
 prices every draft pick, trade and waiver add in a Sleeper league against
 KeepTradeCut consensus value, and ranks the managers on what they acquired
 versus what it cost them. Leagues are read live from Sleeper's public API in
@@ -632,6 +649,8 @@ your browser — nothing is sent to this site.</p>
 
 <div id="ms-artifact-note" style="display:none"></div>
 <div id="ms-basis" style="display:none"></div>
+
+<div id="ms-from-page" style="display:none"></div>
 
 <div class="ms-input">
   <input id="ms-username" type="text" placeholder="Sleeper username" autocomplete="off">
@@ -658,21 +677,50 @@ your browser — nothing is sent to this site.</p>
 </div>
 
 __METHODOLOGY__
+""".replace("__METHODOLOGY__", _methodology_html())
+
+
+def manager_score_assets() -> "tuple[str, str, str]":
+    """``(css, core_js, ui_js)`` for the Manager Score feature."""
+    from .managerscore_js import MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+
+    return _MANAGERSCORE_CSS, MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS
+
+
+def build_manager_score_pointer(latest_ts: datetime, league_label: str) -> str:
+    """managerscore.html, kept only to say where the feature went.
+
+    The feature moved into myteam.html this PR. Deleting this file would
+    404 every bookmark and shared link made since PR #59, so the URL
+    survives as a signpost. It carries no scoring code -- one home for the
+    feature, not two.
+    """
+    from .report import _page, _site_header  # local import: avoids a cycle
+
+    body = """<div class="container narrow">
+
+<h2>Manager <span class="accent">Score</span> moved</h2>
+<p class="lede">Manager Score is now a section of
+<a href="myteam.html">Input Sleeper Team</a>, under the
+<strong>Manager Score</strong> tab on that page.</p>
+
+<div class="callout"><strong>Why.</strong> Manager Score and Input Sleeper
+Team both start by asking for your Sleeper username, and as separate tabs
+they made you type it twice. It is a view of a league you have already
+identified, so it belongs on the page where you identify it — alongside your
+roster, your league comparison and your roster's highlights.</p>
+
+<p><a class="dfm-hl-playall" href="myteam.html">Go to Input Sleeper Team</a></p>
+
+<p style="font-size:12px;opacity:.6;margin-top:24px">Nothing about the
+scoring changed: same KeepTradeCut value basis, same point-in-time capture,
+same realized-production lens, same audit trail.</p>
 
 </div>
-<style>__MANAGERSCORE_CSS__</style>
-<script>__MANAGERSCORE_CORE_JS__</script>
-<script>__MANAGERSCORE_UI_JS__</script>
 """
-    body = (
-        body.replace("__METHODOLOGY__", _methodology_html())
-        .replace("__MANAGERSCORE_CSS__", _MANAGERSCORE_CSS)
-        .replace("__MANAGERSCORE_CORE_JS__", MANAGERSCORE_CORE_JS)
-        .replace("__MANAGERSCORE_UI_JS__", MANAGERSCORE_UI_JS)
-    )
 
     return _page(
-        "Kings of Dynasty — Manager Score",
+        page_title("Manager Score"),
         _site_header("managerscore", latest_ts, league_label),
         body,
     )

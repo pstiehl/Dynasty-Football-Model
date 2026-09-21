@@ -7,10 +7,21 @@ Pins:
     Shedeur Sanders) all drop materially.
   * v2.0/v2.1 invariants (Allen #1-top-5, Daniels top 5, Mahomes
     top 25, etc.) continue to hold under the new penalty stack.
-  * UI changes: site rebrand to "Kings of Dynasty", tab renames
-    ("Similarity Scores", "Dynasty Rankings"), preset cleanup
-    (only Superflex PPR + 2QB PPR), and click-through in the
-    Dynasty Rankings page mirror the Similarity Scores page.
+  * UI changes: site rebrand, tab renames, preset cleanup (only
+    Superflex PPR + 2QB PPR), and click-through in the Dynasty
+    Rankings page mirror the similarity-score page.
+
+The brand and the tab names have both changed since this file was
+written, twice for the brand. The pins below are asserted against
+``dynasty.branding.SITE_NAME`` and the current nav rather than against
+a hard-coded string, so the next rename does not require editing this
+file -- only the ones that genuinely assert "the OLD name is gone" name
+an old name, which is the point of those tests.
+
+As of v3.13 the site is "Next Level Dynasty Football", the nav is
+Input Sleeper Team / Best Managers / Similar NFL Career Paths /
+Dynasty Rankings, and "Manager Score" and "Roster Reel" are no longer
+nav tabs.
 """
 import json
 import os
@@ -312,43 +323,112 @@ def _read(path: str) -> str:
 
 
 def test_site_title_rebrand(site):
-    html = _read(os.path.join(site, "rankings.html"))
-    assert "Kings of Dynasty" in html
-    assert "<title>Kings of Dynasty" in html
+    """The current brand is in the title and the body, on every page.
+
+    Asserted against ``branding.SITE_NAME`` rather than a literal: the
+    literal is what made the v2.2 rebrand miss two call sites.
+    """
+    from dynasty.branding import SITE_NAME
+
+    for page in ("rankings.html", "league.html", "myteam.html",
+                 "methodology.html", "sources.html", "prospects.html"):
+        html = _read(os.path.join(site, page))
+        assert f"<title>{SITE_NAME}" in html, f"{page} title not rebranded"
+        assert SITE_NAME in html, f"{page} body does not carry the brand"
 
 
-def test_no_old_title_in_h1_or_title(site):
+def test_no_superseded_brand_anywhere(site):
+    """Both retired names are gone, and the dead PR #52 name never landed.
+
+    "Kings of Dynasty" was the brand until v3.13. "Box Score Dynasty" was
+    proposed in PR #52 and abandoned by the owner; it must never appear.
+    """
+    for page in ("rankings.html", "league.html", "myteam.html",
+                 "managerscore.html", "crossleague.html",
+                 "methodology.html", "sources.html", "prospects.html"):
+        html = _read(os.path.join(site, page))
+        for dead in ("Kings of Dynasty", "Box Score Dynasty",
+                     "Dynasty Football Model"):
+            assert dead not in html, f"{page} still carries '{dead}'"
+
+
+def test_brand_in_h1_and_meta(site):
     html = _read(os.path.join(site, "rankings.html"))
-    assert "<title>Dynasty Football Model" not in html
-    # The header h1 must be "Kings of Dynasty" not "Dynasty Football Model".
-    # We allow the literal string "Dynasty Football" to appear elsewhere
-    # (legacy docstring / footer comments) but not inside the <h1>.
-    h1_start = html.find("<h1>")
-    h1_end = html.find("</h1>")
-    h1 = html[h1_start:h1_end]
+    from dynasty.branding import SITE_NAME
+
+    h1 = html[html.find("<h1>"):html.find("</h1>")]
     assert "Dynasty Football Model" not in h1
+    assert "Kings of" not in h1
+    # site_name_html() splits the accent word out, so the h1 holds the
+    # name in fragments -- assert on those rather than the joined string.
+    for word in SITE_NAME.split():
+        assert word in h1, f"h1 missing brand word {word!r}: {h1}"
+    # Shared links must carry the new name too.
+    assert f'property="og:site_name" content="{SITE_NAME}"' in html
+
+
+def _primary_nav(site, page: str = "rankings.html") -> str:
+    html = _read(os.path.join(site, page))
+    return html[html.find("<nav>"):html.find("</nav>")]
 
 
 def test_tab_renames_in_nav(site):
-    html = _read(os.path.join(site, "rankings.html"))
-    nav_start = html.find("<nav>")
-    nav_end = html.find("</nav>")
-    nav = html[nav_start:nav_end]
-    assert "Similarity Scores" in nav
-    assert "Dynasty Rankings" in nav
+    """The four primary tabs, exactly, in the owner's names (v3.13)."""
+    nav = _primary_nav(site)
+    for label in ("Input Sleeper Team", "Best Managers",
+                  "Similar NFL Career Paths", "Dynasty Rankings"):
+        assert f">{label}<" in nav, f"nav missing '{label}': {nav}"
 
 
 def test_no_old_tab_names_in_nav(site):
-    """The legacy nav had 'Rankings' (alone) and 'League Overlay'.
-    Neither should appear as a standalone link text now."""
+    """Every retired nav label is gone as link text.
+
+    'Rankings' alone and 'League Overlay' were retired in v2.2. 'My Team',
+    'Similarity Scores', 'Manager Score' and 'Roster Reel' were retired in
+    v3.13 -- the last two as whole features leaving the nav.
+    """
+    nav = _primary_nav(site)
+    for dead in (">Rankings<", ">League Overlay<", ">My Team<",
+                 ">Similarity Scores<", ">Manager Score<", ">Roster Reel<"):
+        assert dead not in nav, f"retired nav link {dead} still present: {nav}"
+
+
+def test_nav_has_exactly_four_primary_tabs(site):
+    import re
+    nav = _primary_nav(site)
+    assert len(re.findall(r"<a ", nav)) == 4, f"nav is not four tabs: {nav}"
+
+
+def test_secondary_nav_unchanged(site):
+    """Methodology / Sources / Prospects stay in the quiet second row."""
     html = _read(os.path.join(site, "rankings.html"))
-    nav_start = html.find("<nav>")
-    nav_end = html.find("</nav>")
-    nav = html[nav_start:nav_end]
-    # 'Rankings' alone is now replaced; only 'Similarity Scores' / 'Dynasty Rankings'.
-    # Check via the strict link-text pattern.
-    assert ">Rankings<" not in nav, f"unexpected legacy 'Rankings' link in nav: {nav}"
-    assert ">League Overlay<" not in nav, f"unexpected 'League Overlay' link in nav: {nav}"
+    sec = html[html.find('<nav class="secondary">'):]
+    sec = sec[:sec.find("</nav>")]
+    for label in ("Methodology", "Sources", "Prospects"):
+        assert f">{label}<" in sec, f"secondary nav missing '{label}'"
+
+
+def test_roster_reel_page_no_longer_built(site):
+    """Roster Reel was removed entirely (owner, v3.13)."""
+    assert not os.path.exists(os.path.join(site, "reel.html")), (
+        "reel.html should no longer be generated"
+    )
+
+
+def test_manager_score_lives_inside_input_sleeper_team(site):
+    """The feature moved into myteam.html; its old URL is a signpost."""
+    myteam = _read(os.path.join(site, "myteam.html"))
+    # The feature's own controls are present on the page it moved to.
+    for marker in ('id="ms-username"', 'id="ms-leagueid"', 'id="ms-results"',
+                   'data-view="view-managerscore"'):
+        assert marker in myteam, f"myteam.html missing Manager Score {marker}"
+
+    # And the old page points at it rather than 404ing or re-implementing it.
+    pointer = _read(os.path.join(site, "managerscore.html"))
+    assert 'href="myteam.html"' in pointer
+    assert 'id="ms-results"' not in pointer, (
+        "managerscore.html must not carry a second copy of the feature"
+    )
 
 
 def test_dynasty_rankings_superflex_only(site):

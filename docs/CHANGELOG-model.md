@@ -15,6 +15,78 @@ Format for each entry:
 
 ---
 
+## v3.13 — Rebrand, nav restructure, highlights on every player name
+
+**Date:** 2026-09-21
+
+Owner brief, three parts: rename the site, cut the nav down, and make every
+player name anywhere on the site a path to that player's recent highlights.
+
+**No model change.** The composite score, the engine, the penalty stack and
+every artifact schema are untouched by this PR. It is a site-structure
+change only, recorded here because the previous rebrand was recorded here
+and because two page URLs changed behaviour.
+
+What changed
+: **A. Rebrand to "Next Level Dynasty Football."**
+  Replaces "Kings of Dynasty" in the header `<h1>`, every `<title>`, the
+  footer, the README and the methodology docs. New `dynasty.branding`
+  module holds the name once — the v2.2 rebrand was eleven scattered
+  string literals and a later pass still found two it had missed.
+  `<meta>`/Open Graph tags are emitted for the first time, so a shared
+  link carries the new name too.
+
+  PR #52's proposed "Box Score Dynasty" is **dead** and was not used.
+
+: **B. Nav cut from six tabs to four.**
+
+      Input Sleeper Team · Best Managers · Similar NFL Career Paths · Dynasty Rankings
+
+  - "My Team" → **"Input Sleeper Team"**.
+  - "Similarity Scores" → **"Similar NFL Career Paths"**.
+  - **Manager Score** left the nav and became a pane inside Input Sleeper
+    Team. Both features open by asking for the same Sleeper identity, so as
+    separate tabs they made the user supply it twice; when a league is
+    already loaded on the page, its id is handed straight to `msRun`.
+    `managerscore.html` is still built, as a signpost, so links shared
+    since PR #59 do not 404.
+  - **Roster Reel** removed entirely. `reel.html` is no longer built.
+    Its two jobs both moved — see C.
+  - Methodology / Sources / Prospects unchanged in the quiet second row.
+
+: **C. One highlights renderer, reachable from every player name.**
+  New `dynasty.player_highlights` owns the join, the week grouping, the
+  clip card and the empty states. `report._page` injects it into *every*
+  page, so the affordance cannot be forgotten on a page nobody wired up.
+  Player names carry a marker (`player_chip` server-side, `DFMHL.chip`
+  client-side) and a delegated handler opens that player's film.
+
+  This **removed** duplication rather than adding a fourth renderer:
+  `reel.clipCard` and `myteam.mtClipCard` were two hand-synchronised copies
+  of one card, and myteam.js carried its own week bucketing. Both now
+  delegate. `reel.py`'s week helpers are thin wrappers over the shared
+  ones, so the reel queue and a rankings-row popover cannot label the same
+  clips differently.
+
+  The week bucketing from #65 is preserved verbatim, including its
+  four-step fallback for artifacts built before bucketing existed: the
+  build publishes which week leads and no client re-derives it.
+
+Expected output shift
+: None in rankings. Site structure and labels only.
+
+Validation
+: `scripts/check_site_js.py` (now covers the shared renderer, both
+  Manager Score blobs, and the four-script concatenation myteam.html
+  became — which is how a real `const SLEEPER` collision between reel.js
+  and managerscore_js.py was caught before it shipped),
+  `scripts/check_site_behaviour.py` (115 pre-existing checks still pass
+  against the delegated helpers), and `tests/js/player_highlights_tests.js`
+  for the new renderer. Rendering itself is **unverified**: there is no
+  browser in this environment.
+
+---
+
 ## v3.12 — Superflex Positional VORP + Dynasty Rankings UI controls
 
 **Date:** 2026-06-03

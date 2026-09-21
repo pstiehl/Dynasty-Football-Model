@@ -44,6 +44,7 @@ sys.path.insert(0, str(REPO_ROOT / "src"))
 def bundle() -> str:
     from dynasty.reel import reel_assets
     from dynasty.myteam import _MYTEAM_JS
+    from dynasty.player_highlights import PLAYER_HIGHLIGHTS_JS
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     from check_site_js import pos_color_json  # noqa: E402
@@ -56,6 +57,12 @@ def bundle() -> str:
         (JS_DIR / "dom_stub.js").read_text(encoding="utf-8"),
         "// ---- tests/js/fixtures.js ----",
         (JS_DIR / "fixtures.js").read_text(encoding="utf-8"),
+        # Must precede reel.js: reel.py's week-bucket and formatting
+        # helpers are now delegates to DFMHL rather than second copies of
+        # it, so the shared renderer has to be in scope before they run.
+        # This mirrors the page, where report._page emits it on every page.
+        "// ---- player_highlights.py:PLAYER_HIGHLIGHTS_JS (verbatim) ----",
+        PLAYER_HIGHLIGHTS_JS,
         "// ---- reel.py:_REEL_JS (verbatim) ----",
         reel_js,
         "// ---- myteam.py:_MYTEAM_JS (verbatim) ----",

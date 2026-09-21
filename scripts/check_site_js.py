@@ -49,16 +49,32 @@ def blobs() -> "list[tuple[str, str]]":
     """``(label, javascript)`` for every script the site ships."""
     from dynasty.reel import reel_assets
     from dynasty.myteam import _MYTEAM_JS
+    from dynasty.player_highlights import PLAYER_HIGHLIGHTS_JS
+    from dynasty.managerscore_js import (
+        MANAGERSCORE_CORE_JS,
+        MANAGERSCORE_UI_JS,
+    )
 
     reel_js, _ = reel_assets()
     myteam_js = _MYTEAM_JS.replace("__POS_COLOR__", pos_color_json())
+    hl_js = PLAYER_HIGHLIGHTS_JS
     return [
+        # Shipped on EVERY page by report._page, so a parse error here takes
+        # the whole site's highlights affordance down at once.
+        ("player_highlights.py:PLAYER_HIGHLIGHTS_JS", hl_js),
         ("reel.py:_REEL_JS", reel_js),
         ("myteam.py:_MYTEAM_JS", myteam_js),
-        # The pages load both in one document, so also check them
-        # concatenated: a duplicate top-level ``const`` across the two blobs
-        # is legal in isolation and a SyntaxError in the browser.
-        ("myteam.html (reel + myteam combined)", reel_js + "\n" + myteam_js),
+        ("managerscore_js.py:MANAGERSCORE_CORE_JS", MANAGERSCORE_CORE_JS),
+        ("managerscore_js.py:MANAGERSCORE_UI_JS", MANAGERSCORE_UI_JS),
+        # The pages load these in one document, so also check them
+        # concatenated: a duplicate top-level ``const`` across two blobs is
+        # legal in isolation and a SyntaxError in the browser. myteam.html
+        # now carries four scripts, Manager Score having moved into it.
+        (
+            "myteam.html (highlights + reel + myteam + managerscore)",
+            "\n".join([hl_js, reel_js, myteam_js,
+                       MANAGERSCORE_CORE_JS, MANAGERSCORE_UI_JS]),
+        ),
     ]
 
 

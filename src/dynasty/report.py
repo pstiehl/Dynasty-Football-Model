@@ -31,6 +31,8 @@ from .consensus import (
 )
 from .sources.keeptradecut import load_latest as load_latest_ktc
 from .sources import nflverse_career_stats as _career_stats
+from .branding import SITE_NAME, SITE_TAGLINE, page_title, site_name_html
+from . import player_highlights as _hl
 
 
 # ---------------------------------------------------------------------------
@@ -197,7 +199,7 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
 .comp-row.comp-hit-starter td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
 .comp-row.comp-hit-bust td:first-child { box-shadow: inset 3px 0 0 #dc2626; }
 .comp-row.comp-hit-unknown td:first-child { box-shadow: inset 3px 0 0 #9ca3af; }
-"""
+""" + _hl.PLAYER_HIGHLIGHTS_CSS
 
 
 def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) -> str:
@@ -221,19 +223,39 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
         )
     )
 
+    # Four primary tabs, down from six.
+    #
+    # "Manager Score" and "Roster Reel" both left this row, for different
+    # reasons. Manager Score asks for a Sleeper league and so does Input
+    # Sleeper Team, so as separate tabs they made the user type the same
+    # identity twice; it is a view of your league, not a destination, and it
+    # now lives inside that page. Roster Reel was a whole tab for "my
+    # roster's film", which is one section of the same page and is now
+    # exactly that -- while every player name site-wide grew its own
+    # highlights affordance, so film is no longer somewhere you navigate to.
+    #
+    # ``managerscore`` and ``reel`` are still accepted as ``active`` keys:
+    # managerscore.html is kept as a pointer at its new home, and marking
+    # the tab that now owns the feature is more use than marking nothing.
+    primary_active = {"managerscore": "myteam", "reel": "myteam"}.get(
+        active, active
+    )
+
+    def plink(href, label, key):
+        cls = ' class="active"' if key == primary_active else ""
+        return f'<a href="{href}"{cls}>{label}</a>'
+
     return f"""<header class="site">
   <div class="row">
     <div>
-      <h1><a href="rankings.html">Kings of <span class="accent">Dynasty</span></a></h1>
-      <div class="meta">Fantasy Football · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
+      <h1><a href="rankings.html">{site_name_html()}</a></h1>
+      <div class="meta">{_esc(SITE_TAGLINE)} · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
     </div>
     <nav>
-      {link("myteam.html", "My Team", "myteam")}
-      {link("reel.html", "Roster Reel", "reel")}
-      {link("managerscore.html", "Manager Score", "managerscore")}
-      {link("crossleague.html", "Best Managers", "crossleague")}
-      {link("rankings.html", "Similarity Scores", "rankings")}
-      {link("league.html", "Dynasty Rankings", "league")}
+      {plink("myteam.html", "Input Sleeper Team", "myteam")}
+      {plink("crossleague.html", "Best Managers", "crossleague")}
+      {plink("rankings.html", "Similar NFL Career Paths", "rankings")}
+      {plink("league.html", "Dynasty Rankings", "league")}
     </nav>
   </div>
   <div class="row secondary-nav">
@@ -245,7 +267,7 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
 def _footer() -> str:
     return (
         '<footer>'
-        'Kings of Dynasty · Fantasy Football · open source on '
+        f'{_esc(SITE_NAME)} · {_esc(SITE_TAGLINE)} · open source on '
         '<a href="https://github.com/pstiehl/Dynasty-Football-Model">GitHub</a> · '
         'Stats: <a href="https://github.com/nflverse/nflverse-data">nflverse</a> + Pro-Football-Reference'
         '</footer>'
@@ -253,18 +275,49 @@ def _footer() -> str:
 
 
 def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/style.css") -> str:
+    """Wrap a body in the site chrome.
+
+    Two things are injected here rather than per page, both for the same
+    reason -- a page that forgets them is a page where the owner's
+    "highlights everywhere" requirement silently does not hold:
+
+    * ``DFM_BASE``, the prefix from this page to the site root. Pages under
+      ``players/`` are one directory down, so ``highlights.json`` and every
+      artifact fetch needs ``../``. Derived from ``css_href``, which already
+      encodes exactly that depth, so there is one place that knows it.
+    * ``player_highlights`` JS. Injecting it site-wide is what makes a chip
+      work on a page nobody wired up, including pages added later.
+    """
+    base = "../" if css_href.startswith("../") else ""
+    desc = (
+        f"{SITE_NAME} — dynasty fantasy football rankings built on NFL "
+        "fantasy-production career arcs, with recent highlights for every "
+        "player."
+    )
+    hl_js, _ = _hl.assets()
     return f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{_esc(title)}</title>
+<meta name="description" content="{_esc(desc)}">
+<meta name="application-name" content="{_esc(SITE_NAME)}">
+<meta property="og:site_name" content="{_esc(SITE_NAME)}">
+<meta property="og:title" content="{_esc(title)}">
+<meta property="og:description" content="{_esc(desc)}">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="{_esc(title)}">
+<meta name="twitter:description" content="{_esc(desc)}">
 <link rel="stylesheet" href="{css_href}">
+<script>window.DFM_BASE = {json.dumps(base)};</script>
 </head>
 <body>
 {header_html}
 {body_html}
 {_footer()}
+<script>{hl_js}</script>
 </body>
 </html>"""
 
@@ -289,9 +342,17 @@ def _build_rankings(engine: EngineResult, latest_ts: datetime, league_label: str
         slug = _slug(row["name"], row["player_id"])
         comp_class = _comp_tier_class(row["comp_tier"])
         team = team_lookup.get(row["player_id"], "—")
+        # The row still navigates on click, and the name is still the link.
+        # The chip sits beside it and stops propagation, so the row's
+        # click-through survives -- see player_highlights.player_chip.
+        name_cell = _hl.player_chip(
+            row["name"],
+            gsis=row.get("player_id"),
+            position=row.get("position"),
+        )
         rows_html += f"""<tr class="player-row" data-name="{_esc(row['name'].lower())}" data-position="{_esc(row['position'])}" onclick="location='players/{slug}.html'">
 <td class="rank">{row['overall_rank']}</td>
-<td class="name">{_esc(row['name'])}</td>
+<td class="name">{name_cell}</td>
 <td>{_pos_badge(row['position'])}</td>
 <td class="team">{_esc(team)}</td>
 <td class="years">{row['age']}</td>
@@ -303,7 +364,7 @@ def _build_rankings(engine: EngineResult, latest_ts: datetime, league_label: str
 
     body = f"""<div class="container">
 
-<h2>Similarity <span class="accent">Scores</span></h2>
+<h2>Similar NFL <span class="accent">Career</span> Paths</h2>
 <p class="lede">Players ranked by projected lifetime fantasy points,
 comped to historical players with similar <strong>fantasy production curves</strong>
 under modern scoring. Each active player's fp/g arc is matched against the
@@ -369,7 +430,7 @@ q.addEventListener('input', update); pos.addEventListener('change', update); upd
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Similarity Scores",
+        page_title("Similar NFL Career Paths"),
         _site_header("rankings", latest_ts, league_label),
         body,
     )
@@ -495,6 +556,10 @@ def _build_league_consensus(
                     "pos": r.position,
                     "age": r.age,
                     "team": r.team or team_lookup.get(r.gsis_id, "—"),
+                    # Published so each client-rendered name can carry a
+                    # highlights chip: DFMHL joins gsis -> sleeper through
+                    # the crosswalk in highlights.json.
+                    "gsis": r.gsis_id,
                     "model_rank": r.model_rank,
                     "consensus_rank": r.consensus_rank,
                     "delta": r.delta,
@@ -629,9 +694,12 @@ function render() {{
   const rows = sortedRows(currentFmt, currentSort);
   const body = document.getElementById('ov-body');
   body.innerHTML = rows.map(r => {{
-    const slugCell = r.slug
-      ? '<a href="players/'+r.slug+'.html">'+r.name+'</a>'
-      : r.name;
+    // One call, same markup and same behaviour as the Python-rendered
+    // names on every other page. Keeps its link to the player page.
+    const slugCell = DFMHL.chip(r.name, {{
+      gsis: r.gsis, pos: r.pos,
+      href: r.slug ? 'players/' + r.slug + '.html' : ''
+    }});
     const vorpScoreCell = r.vorp_score == null
       ? '—'
       : (r.vorp_score >= 0 ? '+' : '') + r.vorp_score.toFixed(0);
@@ -669,7 +737,7 @@ render();
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Dynasty Rankings",
+        page_title("Dynasty Rankings"),
         _site_header("league", latest_ts, league_label),
         body,
     )
@@ -704,6 +772,8 @@ def _build_league_overlay_legacy(
                     "value": r["league_value"],
                     "delta": r["vs_default_delta"],
                     "slug": _slug(r["name"], r["player_id"]),
+                    # For the highlights chip, as on the consensus view.
+                    "gsis": r["player_id"],
                 }
                 for r in ov.rankings[:300]
             ],
@@ -742,7 +812,7 @@ function setFormat(fmt) {{
   const body = document.getElementById('ov-body');
   body.innerHTML = data.rankings.map((r, i) =>
     '<tr class="player-row" onclick="location=\'players/'+r.slug+'.html\'"><td class="rank">'+(i+1)+'</td>'+
-    '<td class="name">'+r.name+'</td>'+
+    '<td class="name">'+DFMHL.chip(r.name, {{ gsis: r.gsis, pos: r.pos }})+'</td>'+
     '<td>'+posBadge(r.pos)+'</td>'+
     '<td class="team">'+r.team+'</td>'+
     '<td class="years">'+r.age+'</td>'+
@@ -759,7 +829,7 @@ setFormat('sf_ppr');
 </script>
 </div>"""
     return _page(
-        "Kings of Dynasty — Dynasty Rankings",
+        page_title("Dynasty Rankings"),
         _site_header("league", latest_ts, league_label),
         body,
     )
@@ -917,7 +987,7 @@ thing we actually care about directly: <em>fantasy points produced under
 modern scoring</em>.</p>
 
 <h3>8 · Format overlay</h3>
-<p>The base <a href="rankings.html">Similarity Scores</a> page uses
+<p>The base <a href="rankings.html">Similar NFL Career Paths</a> page uses
 Superflex PPR. The <a href="league.html">Dynasty Rankings</a> page reads
 per-format fp totals directly from the pre-computed arc corpus (no
 re-scoring needed) and recomputes positional VORP baselines under the
@@ -1006,7 +1076,7 @@ projections.</div>
 </div>"""
 
     return _page(
-        "Kings of Dynasty — Methodology",
+        page_title("Methodology"),
         _site_header("methodology", latest_ts, league_label),
         body,
     )
@@ -1071,7 +1141,7 @@ production history. See <a href="methodology.html">Methodology</a>.</p>
 
 </div>"""
     return _page(
-        "Kings of Dynasty — Sources",
+        page_title("Sources"),
         _site_header("sources", latest_ts, league_label),
         body,
     )
@@ -1239,7 +1309,7 @@ with per-prospect comp pages.</div>
 
 </div>"""
         return _page(
-            "Kings of Dynasty — Prospects",
+            page_title("Prospects"),
             _site_header("prospects", latest_ts, league_label),
             body,
         )
@@ -1293,7 +1363,14 @@ with per-prospect comp pages.</div>
             f'data-drafted="{1 if drafted else 0}" '
             f'onclick="location=\'players/{slug}-prospect.html\'">'
             f'<td class="rank">{_esc(rank)}{te_flag}</td>'
-            f'<td class="name"><a href="players/{slug}-prospect.html">{_esc(p.get("name",""))}</a>{drafted_html}</td>'
+            f'<td class="name">'
+            + _hl.player_chip(
+                p.get("name", ""),
+                position=pos,
+                href=f"players/{slug}-prospect.html",
+                extra_html=drafted_html,
+            )
+            + f'</td>'
             f'<td>{_pos_badge(pos)}</td>'
             f'<td class="years">{_esc(p.get("draft_class") or "—")}</td>'
             f'<td class="team">{_esc(p.get("school") or "—")}</td>'
@@ -1467,7 +1544,7 @@ update();
 
 </div>"""
     return _page(
-        "Kings of Dynasty — Prospects",
+        page_title("Prospects"),
         _site_header("prospects", latest_ts, league_label),
         body,
     )
@@ -1647,28 +1724,37 @@ def _build_prospect_page(prospect: Dict, label: str, latest_ts: datetime,
                 f' <span class="era-chip" title="Pre-1999 comp — corpus is 2000+ '
                 f'for prospects so this rarely fires.">⏳ {int(snap_year)}</span>'
             )
-        # Cross-link to veteran page when we have a GSIS id AND that
-        # veteran page exists in the build.
-        nfl_link_html = _esc(c.get("nfl_display_name") or c.get("name") or "—")
+        # Cross-link to the veteran page when we have a GSIS id AND that
+        # veteran page exists in the build. The veteran slug format is
+        # ``re.sub-name + last-6 of pid``; we don't have the veteran's
+        # display name here cheaply, so match on the last-6 of the id.
         gsis = c.get("nfl_gsis_id")
+        nfl_href = None
         if gsis:
-            # Try to match against veteran slug. The veteran slug format is
-            # ``re.sub-name + last-6 of pid``. We don't have the veteran's
-            # display name here cheaply, so just check whether any veteran
-            # slug ends with the last-6 of the GSIS id.
             tail = re.sub(r"[^a-z0-9]+", "", gsis.lower())[-6:]
             matches = [s for s in veteran_slugs if s.endswith(tail)]
             if matches:
-                nfl_link_html = f'<a href="{_esc(matches[0])}.html">{nfl_link_html}</a>'
+                nfl_href = f"{matches[0]}.html"
 
+        # Two names per row: the college prospect comp, and the NFL career
+        # that comp went on to have. Both get a chip -- the NFL one is the
+        # name a user is most likely to want film for.
+        comp_name_cell = _hl.player_chip(
+            c.get("name", "—"), extra_html=era_badge,
+        )
+        nfl_cell = _hl.player_chip(
+            c.get("nfl_display_name") or c.get("name") or "—",
+            gsis=gsis,
+            href=nfl_href,
+        )
         comp_rows += (
             f'<tr class="comp-row {hit_cls}">'
-            f'<td class="name">{_esc(c.get("name","—"))}{era_badge}</td>'
+            f'<td class="name">{comp_name_cell}</td>'
             f'<td class="team">{_esc(c.get("school","—"))}</td>'
             f'<td class="years">{_esc(c.get("class_year") or "—")}</td>'
             f'<td class="score" style="text-align:right">{float(sim):.3f}</td>'
             f'<td><span class="hit-chip hit-{_esc(hit)}">{_esc(hit)}</span></td>'
-            f'<td class="name">{nfl_link_html}</td>'
+            f'<td class="name">{nfl_cell}</td>'
             f'<td class="years" style="text-align:right">{_fmt_or_dash(nfl.get("career_fp"), fmt="{:.0f}")}</td>'
             f'<td class="years" style="text-align:right">{_fmt_or_dash(nfl.get("peak3_fp_pg"), fmt="{:.1f}")}</td>'
             f'<td class="years" style="text-align:right">{_esc(nfl.get("seasons_played") or "—")}</td>'
@@ -1719,7 +1805,7 @@ available.</p>
 </div>"""
 
     return _page(
-        f"Kings of Dynasty — {name} (Prospect)",
+        page_title(f"{name} (Prospect)"),
         _site_header("prospects", latest_ts, label),
         body,
         css_href="../assets/style.css",
@@ -1764,7 +1850,7 @@ def _player_header(row: Dict, team: str, league_label: str) -> str:
         )
     peak3 = row.get("peak_3yr_fp_per_game") or 0.0
     return f"""<div class="player-header">
-  <h1>{_esc(row['name'])}</h1>
+  <h1>{_hl.player_chip(row['name'], gsis=row.get('player_id'), position=row.get('position'))}</h1>
   <div class="sub">{_pos_badge(row['position'])} · {_esc(team)} · Rank #{row['overall_rank']} · Tier T{row['tier']}{style_badge}</div>
   <div class="metrics">
     <div class="metric"><div class="num">{row['production_score']:.0f}</div><div class="label">Projected lifetime fp</div></div>
@@ -1774,7 +1860,7 @@ def _player_header(row: Dict, team: str, league_label: str) -> str:
     <div class="metric"><div class="num">{row['n_comps']}</div><div class="label">Long-arc comps</div></div>
   </div>
   {lift_panel}
-  <div style="margin-top:14px"><a href="../rankings.html" style="color:var(--header-text);opacity:0.8;font-size:13px">← back to Similarity Scores</a></div>
+  <div style="margin-top:14px"><a href="../rankings.html" style="color:var(--header-text);opacity:0.8;font-size:13px">← back to Similar NFL Career Paths</a></div>
 </div>"""
 
 
@@ -1833,9 +1919,20 @@ def _build_player_page(row: Dict, comps: List[Dict], team: str,
             f'⏳ {snap_year}</span>'
             if c.get("is_pre1999_snapshot") and snap_year else ""
         )
+        # Comps are historical players, so most will honestly report "no
+        # recent clips indexed" -- the index is built from recent uploads.
+        # The chip is still offered on every one of them: the requirement
+        # is that every player name on the site has a path to film, and an
+        # honest empty state is that path's correct answer for a 1994 comp.
+        comp_name_cell = _hl.player_chip(
+            c["name"],
+            gsis=c.get("player_id"),
+            position=c.get("position"),
+            extra_html=f"{era_badge}{washed_badge}",
+        )
         comp_rows += (
             f"<tr>"
-            f"<td class='name'>{_esc(c['name'])}{era_badge}{washed_badge}</td>"
+            f"<td class='name'>{comp_name_cell}</td>"
             f"<td>{_pos_badge(c['position'])}</td>"
             f"<td class='years'>{c['last_season']}</td>"
             f"<td class='score' style='text-align:right'>{sim:.3f}</td>"
@@ -1950,14 +2047,27 @@ final production score is <strong>{final:,.0f}</strong>.</p>
     missed seasons. <em>{_esc(missed_reason)}</em></td></tr>
 <tr><td class="name"><strong>= Final production score</strong></td>
     <td class="score" style="text-align:right"><strong>{final:,.0f}</strong></td>
-    <td>Drives the player's rank on the <a href="../rankings.html">Similarity
-    Scores</a> page.</td></tr>
+    <td>Drives the player's rank on the <a href="../rankings.html">Similar
+    NFL Career Paths</a> page.</td></tr>
 </tbody>
 </table>
 """
 
+    # This player's own film, expanded on their own page rather than behind
+    # the chip click. Rendered by DFMHL.renderPlayer -- the same function
+    # the chip popover calls -- so the two cannot drift.
+    highlights_section = f"""
+<h2>Recent <span class="accent">Highlights</span></h2>
+<p class="lede">Clips matched to {_esc(row['name'])} from public YouTube
+uploads, grouped by week with the most recent <strong>complete</strong> week
+first. Every card opens on YouTube in a new tab, so views and ad revenue stay
+with the original uploader.</p>
+{_hl.inline_block(row['name'], gsis=row.get('player_id'), position=row.get('position'))}
+"""
+
     body = f"""{_player_header(row, team, league_label)}
 <div class="container">
+{highlights_section}
 {career_stats_html}
 <h2>Fantasy-Point Arc <span class="accent">Comparables</span></h2>
 <p class="lede">The top-10 most similar <em>long-arc</em> NFL players matched by
@@ -1995,7 +2105,7 @@ league's specific scoring + roster rules? Head to
 </div>"""
 
     return _page(
-        f"Kings of Dynasty — {row['name']}",
+        page_title(row["name"]),
         _site_header("rankings", latest_ts, league_label),
         body,
         css_href="../assets/style.css",
@@ -2169,20 +2279,19 @@ def generate_site(
         encoding="utf-8",
     )
 
-    # Roster Reel + My Team. Imported here rather than at module scope
-    # because both modules import _page/_site_header/_footer back out of
-    # this one. Each page degrades to an on-page explanation when
-    # highlights.json hasn't been generated yet, so a missing index never
-    # breaks the build or the page.
-    try:
-        from .reel import build_reel
-        (out_root / "reel.html").write_text(
-            build_reel(latest_ts, label), encoding="utf-8"
-        )
-    except Exception as exc:  # noqa: BLE001
-        import logging
-        logging.getLogger(__name__).warning("reel page build failed: %s", exc)
-
+    # Input Sleeper Team. Imported here rather than at module scope because
+    # the module imports _page/_site_header/_footer back out of this one.
+    # The page degrades to an on-page explanation when highlights.json
+    # hasn't been generated yet, so a missing index never breaks the build
+    # or the page.
+    #
+    # reel.html is deliberately no longer built. Roster Reel left the nav
+    # (owner, this PR) and its two jobs both moved: the whole roster's film
+    # is a section of this page, and single-player film is a chip on every
+    # player name site-wide. ``reel.py`` is still imported -- it owns the
+    # Sleeper plumbing (username -> leagues -> rosters, localStorage, the
+    # name matcher) that this page reuses, so it became an asset module
+    # rather than a page. The KTC value artifact it needs is written below.
     try:
         from .myteam import build_my_team
         (out_root / "myteam.html").write_text(
@@ -2190,19 +2299,25 @@ def generate_site(
         )
     except Exception as exc:  # noqa: BLE001
         import logging
-        logging.getLogger(__name__).warning("my-team page build failed: %s", exc)
+        logging.getLogger(__name__).warning(
+            "input-sleeper-team page build failed: %s", exc
+        )
 
-    # Manager Score. The page reads leagues live from Sleeper in the browser
-    # (same as My Team and the reel), so all the build owes it is the KTC
-    # value artifact plus whatever dated value history has accumulated.
+    # Manager Score's artifacts, which the feature still needs -- it now
+    # renders inside myteam.html rather than on its own page.
     # write_values_artifact never raises on missing inputs: it emits
     # ``available: false`` with notes, and the page explains itself rather
     # than rendering an empty table.
+    #
+    # managerscore.html is still written, as a pointer at the new home.
+    # Removing the file outright would 404 every bookmark and every link
+    # that has been shared since PR #59, and "this moved, here is where"
+    # costs one page.
     try:
-        from .managerscore import build_manager_score, write_values_artifact
+        from .managerscore import build_manager_score_pointer, write_values_artifact
         _values = write_values_artifact(out_root)
         (out_root / "managerscore.html").write_text(
-            build_manager_score(latest_ts, label), encoding="utf-8"
+            build_manager_score_pointer(latest_ts, label), encoding="utf-8"
         )
         if not _values.get("available"):
             import logging
@@ -2213,7 +2328,7 @@ def generate_site(
     except Exception as exc:  # noqa: BLE001
         import logging
         logging.getLogger(__name__).warning(
-            "manager-score page build failed: %s", exc
+            "manager-score artifact/pointer build failed: %s", exc
         )
 
     # Cross-league Manager Score board. Unlike the per-league page, this one
