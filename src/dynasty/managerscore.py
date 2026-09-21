@@ -494,22 +494,33 @@ league-relative it does not inflate in a high-scoring format.</li>
 <li><strong>Points per week held</strong>, a plain rate, for readers who
 want the unadjusted version.</li>
 </ul>
-<p><strong>The basis is started production, not all rostered
-production.</strong> Sleeper reports both, and a choice had to be made.
-The weak argument for starters is the obvious one: a matchup is decided by
-the lineup, so points scored on your bench did not help you win. The
-strong argument is that the alternative is a units error &mdash; PAR
-compares a player against the median score of a <em>started</em> player at
-his position, so scoring a benched player against that baseline would
-charge him a starter's replacement level for a week he was never asked to
-play. Started-only keeps both sides of the subtraction in the same
-population.</p>
-<p>The cost of that choice is real: benching a good player is a lineup
-mistake, not a trade mistake, and this attributes it to the trade. So
-<strong>bench production is carried alongside every figure and shown next
-to it</strong> rather than discarded. When a manager acquires a producer
-and sits him, the page shows a small started figure with the benched
-points beside it, and you can see which kind of failure it was.</p>
+<p><strong>This counts all rostered production, bench included.</strong>
+Sleeper reports both the full roster and the weekly lineup, and the choice
+is deliberate: what is being graded is the <em>acquisition</em>, not the
+manager's weekly lineup card. Trading for a player who goes on to produce
+is one skill; leaving him on the bench while he does it is a different
+one. Charging the trade for a benching would conflate them, and would
+punish acquiring a stash who breaks out while blocked behind somebody
+else on your roster.</p>
+<p><strong>The honest caveat.</strong> Bench points did not directly win
+anybody a game. A manager who acquires a producer and never starts him
+gets full credit here for a benefit he never actually banked. That is a
+real consequence of scoring the acquisition in isolation, and it is not
+offset anywhere: <strong>lineup management is not measured on this page at
+all</strong>. So that the gap stays visible, every trade also reports how
+much of that production was actually in the lineup &mdash; scored on the
+total, shown on both.</p>
+<p><strong>Replacement level follows the same population.</strong> Because
+every rostered week is scored, the bar a player is measured against is the
+median of all <em>rostered</em> players at that position that week, not
+the median of those who were started. Mixing the two would charge a
+benched or bye-week player a starter's replacement level for a week he was
+never asked to play, and would manufacture large negative PAR out of
+nothing. Measured across four real seasons this puts the RB bar at about
+3.5 points a week rather than 10.9, because roughly a third of rostered
+players score zero in any given week. PAR figures are correspondingly
+larger than a starter-based version would give &mdash; a change of scale,
+not of accuracy, since every trade is measured against the same bar.</p>
 <p><strong>The two lenses are never averaged.</strong> They answer different
 questions and will sometimes disagree; where they do, the page says so
 explicitly. A manager who lost value by the market and won by the
@@ -589,11 +600,17 @@ invisible here.</li>
 <li><strong>Sleeper only.</strong> The live reads target Sleeper's public
 API. MFL leagues are pre-baked elsewhere in this project and are not
 covered by this page.</li>
-<li><strong>Lineup skill leaks into the trade figure.</strong> Realized
-value counts started production, so a manager who acquires a producer and
-benches him is scored for the benching as well as the trade. The benched
-points are displayed beside every figure precisely so that case is
-visible rather than silently folded in.</li>
+<li><strong>Credit is given for points that never won a game.</strong>
+Realized value counts all rostered production, so a manager who acquires
+a producer and leaves him on the bench is credited in full. That is
+deliberate &mdash; the acquisition is being graded, not the lineup &mdash;
+but it does mean the number can overstate what a trade actually delivered
+on the field. Every trade shows how much of its production was started,
+so the gap is visible.</li>
+<li><strong>Lineup management is not measured anywhere.</strong> Neither
+lens rewards or punishes starting the right players. A manager who
+consistently benches his best available starter looks identical here to
+one who never does.</li>
 </ul>
 </div>
 """

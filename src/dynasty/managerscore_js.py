@@ -40,6 +40,12 @@ var MS_WEIGHTS = { draft: 0.50, trade: 0.35, waiver: 0.15 };
  * and a handful of waiver hits respectively. */
 var MS_SHRINK_K = { draft: 6, trade: 3, waiver: 5 };
 
+/* Below this, a positional median means "most of this pool did not play"
+ * rather than "this is what a typical alternative gave you". Measured on
+ * four real seasons: QB medians of 0.00-0.90 occur in bye-heavy weeks and
+ * in weeks the league had already stopped playing. */
+var MS_MIN_BASELINE = 1.0;
+
 /* A draft needs at least this many valued picks before we will fit a
  * slot-cost curve to it. Below that the curve is noise and the whole
  * draft is skipped rather than scored badly. */
@@ -570,35 +576,68 @@ function msScoreLeague(input, opts) {
  * padding whoever held the ball longest. It is also league-relative, so a
  * high-scoring format does not inflate it.
  *
- * Started production, not all rostered production, is the headline
- * ------------------------------------------------------------------
+ * ALL ROSTERED production is the basis, by owner decision
+ * -------------------------------------------------------
  * Sleeper gives us both: `players_points` covers the whole roster, and
- * `starters` says who was actually in the lineup. (Verified live that the
- * two agree: summing `players_points` over `starters` reproduces
- * `starters_points` and the roster's `points` exactly.) A choice had to be
- * made, and it is STARTED production, for two reasons.
+ * `starters` says who was in the lineup. (Verified live that the two
+ * agree: summing `players_points` over `starters` reproduces
+ * `starters_points` and the roster's `points` exactly.)
  *
- * The weak reason is the obvious one: a matchup is decided by the lineup,
- * so points scored on a bench did not help anybody win. The owner's
- * question is "did this work out", and a player who scored 200 points in
- * your bench slot did not.
+ * This counts ALL rostered production. The reasoning is that the thing
+ * being graded is the ACQUISITION, not the manager's weekly lineup card.
+ * Trading for a player who goes on to produce is a trade skill; leaving
+ * him on your bench while he does it is a lineup skill, and a different
+ * one. Charging the trade for a benching would conflate the two and
+ * would punish, for instance, acquiring a stash who breaks out while
+ * blocked on your roster.
  *
- * The strong reason is that the alternative is a units error. PAR compares
- * a player against the median score of a STARTED player at his position
- * that week. That baseline is drawn from the population of starters, so
- * scoring a benched player against it would be measuring one thing with
- * another thing's ruler -- a bench player would be charged a starter's
- * replacement level for a week he was never asked to play. Started-only
- * keeps both sides of the subtraction in the same population.
+ * The honest caveat, stated on the page and not only here: bench points
+ * did not directly win anybody a game. A manager who acquires a producer
+ * and never starts him gets full credit from this measure for a benefit
+ * he never actually banked. That is a deliberate consequence of scoring
+ * the acquisition in isolation -- lineup management is simply not
+ * measured anywhere on this page. Started production is therefore carried
+ * alongside every figure and rendered next to it, so the gap between the
+ * two remains visible even though only the total is scored.
  *
- * The cost of this choice is real and is disclosed rather than argued
- * away: benching a good player is a lineup mistake, not a trade mistake,
- * and this attributes it to the trade. The mitigation is that total
- * rostered production is carried alongside every figure and rendered next
- * to it, so the gap between the two IS the lineup story and is visible
- * rather than hidden. When a manager acquires a producer and benches him,
- * the page shows a large total, a small started figure, and the reader can
- * see exactly which kind of failure it was.
+ * The baseline population must match
+ * ----------------------------------
+ * This is the part that cannot be left alone when the basis changes. PAR
+ * subtracts a replacement level, and that level has to be drawn from the
+ * same population being measured, or the subtraction is measuring one
+ * thing with another thing's ruler. Scoring every rostered week against a
+ * STARTED player's median would charge a benched or bye-week player a
+ * starter's replacement level for a week he was never asked to play, and
+ * would manufacture large negative PAR out of nothing.
+ *
+ * So replacement is now the median among ALL ROSTERED players at that
+ * position that week. Measured on a real four-season league, that moves
+ * the RB bar from 10.91 to 3.49 points a week, because roughly a third of
+ * rostered players score zero in any given week (byes, inactives, deep
+ * stashes). PAR values are correspondingly larger than they would be on a
+ * starter basis -- the same Derrick Henry trade reads +177.2 rather than
+ * +103.9. That is a change of scale, not of accuracy: every trade is
+ * measured against the same bar, and the comparison between them is what
+ * the number is for.
+ *
+ * Where that bar stops meaning anything
+ * -------------------------------------
+ * A median over the rostered pool is not stable everywhere, and measuring
+ * it on real data rather than assuming found two places it breaks:
+ *
+ *  - Quarterbacks in bye-heavy weeks. Most rostered QBs are backups who
+ *    never play, so in some weeks more than half the pool scores zero and
+ *    the median goes to 0.00. PAR would then equal raw points and the
+ *    positional normalisation would silently switch itself off in exactly
+ *    the weeks a star QB looks most impressive.
+ *  - Weeks the league did not actually play (see msLeagueLastWeek).
+ *
+ * Rather than let PAR quietly become raw points, a week whose positional
+ * median falls below MS_MIN_BASELINE is treated as having NO meaningful
+ * replacement level: production still counts toward the totals, but that
+ * week contributes nothing to PAR and is excluded from its week count.
+ * `parWeeks` versus `weeksHeld` is therefore the honest coverage figure,
+ * and the page reports it when they differ.
  */
 
 function msWeekId(season, week) {
@@ -693,10 +732,14 @@ function msWeekIndex(ledger, season, week) {
   return -1;
 }
 
-/* Replacement level per week per position: the median score among players
- * actually STARTED at that position in that league that week. Median rather
- * than mean because a single 45-point week should move the bar for what a
- * typical starter gave you hardly at all. */
+/* Replacement level per week per position: the median score among ALL
+ * ROSTERED players at that position in that league that week.
+ *
+ * Rostered rather than started, because production is scored over every
+ * rostered week and the two sides of the subtraction have to come from
+ * the same population -- see the header note. Median rather than mean
+ * because a single 45-point week should barely move the bar for what a
+ * typical asset at that position was giving you. */
 function msBaselines(ledger, posOf) {
   var out = {};
   var order = (ledger && ledger.order) || [];
@@ -705,8 +748,7 @@ function msBaselines(ledger, posOf) {
     var w = weeks[id];
     if (!w) return;
     var buckets = {};
-    for (var pid in w.start) {
-      if (!w.start[pid]) continue;
+    for (var pid in w.pts) {
       var pos = posOf(pid);
       if (!pos) continue;
       var v = w.pts[pid];
@@ -714,10 +756,41 @@ function msBaselines(ledger, posOf) {
       (buckets[pos] = buckets[pos] || []).push(v);
     }
     var per = {};
-    for (var p in buckets) per[p] = msMedian(buckets[p]);
+    for (var p in buckets) {
+      var med = msMedian(buckets[p]);
+      /* Degenerate pool: no meaningful replacement level this week. Left
+       * undefined so msRealizedAsset skips it rather than crediting the
+       * player with his entire score. */
+      if (med >= MS_MIN_BASELINE) per[p] = med;
+    }
     out[id] = per;
   });
   return out;
+}
+
+/* The last week this league actually played.
+ *
+ * Sleeper answers `matchups/18` for a league whose season ended at week
+ * 17, and it answers with real NFL scoring attached to a stale carried-
+ * over lineup. Verified across three seasons of a real league: week 18
+ * returned 281-318 rostered entries and exactly 108 flagged starters every
+ * time -- the same 12 x 9 lineup as the previous week, untouched, because
+ * nobody was setting lineups any more. Counting it credits trades with
+ * production that decided nothing.
+ *
+ * The league states where its own season ends: `playoff_week_start` plus
+ * one round per doubling of the playoff field. Absent settings fall back
+ * to 18, which is the old behaviour and no worse than it was.
+ */
+function msLeagueLastWeek(league) {
+  var s = (league && league.settings) || {};
+  var start = Number(s.playoff_week_start || 0);
+  if (!start || start < 1) return 18;
+  var teams = Number(s.playoff_teams || 0);
+  var rounds = 1;
+  if (teams > 1) rounds = Math.ceil(Math.log(teams) / Math.LN2);
+  if (!isFinite(rounds) || rounds < 1) rounds = 1;
+  return Math.min(18, start + rounds - 1);
 }
 
 /* Tenure + production for one acquired player, from `startIdx` forward.
@@ -741,8 +814,8 @@ function msRealizedAsset(ledger, baselines, posOf, startIdx, playerId, userId, o
   var out = {
     playerId: pid, pos: pos, weekIds: [],
     weeksHeld: 0, starts: 0,
-    /* ptsStarted is the headline; ptsTotal is disclosed beside it so a
-     * benched producer is visible rather than silently discounted. */
+    /* ptsTotal is the scored basis; ptsStarted is disclosed beside it so
+     * the lineup story stays visible even though it is not scored. */
     ptsTotal: 0, ptsStarted: 0, benchPts: 0,
     par: 0, parWeeks: 0, parAvailable: false,
     firstWeek: null, lastWeek: null, departedWeek: null,
@@ -769,14 +842,15 @@ function msRealizedAsset(ledger, baselines, posOf, startIdx, playerId, userId, o
     var v = w.pts[pid];
     if (typeof v === 'number' && isFinite(v)) {
       out.ptsTotal += v;
-      if (w.start[pid]) {
-        out.ptsStarted += v;
-        out.starts++;
-        var base = pos ? ((baselines || {})[id] || {})[pos] : null;
-        if (typeof base === 'number' && isFinite(base)) {
-          out.par += (v - base);
-          out.parWeeks++;
-        }
+      if (w.start[pid]) { out.ptsStarted += v; out.starts++; }
+      /* PAR accrues over EVERY rostered week, started or not, because the
+       * acquisition is what is being graded. The baseline is the rostered
+       * population's median, so a benched week is compared against other
+       * rostered players rather than against starters. */
+      var base = pos ? ((baselines || {})[id] || {})[pos] : null;
+      if (typeof base === 'number' && isFinite(base)) {
+        out.par += (v - base);
+        out.parWeeks++;
       }
     }
   }
@@ -789,9 +863,9 @@ function msRealizedAsset(ledger, baselines, posOf, startIdx, playerId, userId, o
   }
   out.parAvailable = out.parWeeks > 0;
   out.benchPts = out.ptsTotal - out.ptsStarted;
-  /* Rates follow the headline basis, so ppw and PAR/week are comparable. */
-  out.ppw = out.weeksHeld ? out.ptsStarted / out.weeksHeld : 0;
-  out.ppwTotal = out.weeksHeld ? out.ptsTotal / out.weeksHeld : 0;
+  /* Rates follow the scored basis, so ppw and PAR/week are comparable. */
+  out.ppw = out.weeksHeld ? out.ptsTotal / out.weeksHeld : 0;
+  out.ppwStarted = out.weeksHeld ? out.ptsStarted / out.weeksHeld : 0;
   out.parPerWeek = out.weeksHeld ? out.par / out.weeksHeld : 0;
   return out;
 }
@@ -873,7 +947,7 @@ function msRealizedTrade(trade, ledger, baselines, posOf, opts) {
       benchPts: tot.ptsTotal - tot.ptsStarted, par: tot.par,
       starts: tot.starts, weeksHeld: tot.weeksHeld,
       parPerWeek: tot.weeksHeld ? tot.par / tot.weeksHeld : 0,
-      ppw: tot.weeksHeld ? tot.ptsStarted / tot.weeksHeld : 0,
+      ppw: tot.weeksHeld ? tot.ptsTotal / tot.weeksHeld : 0,
       parAvailable: anyPar, ongoing: ongoing
     };
   });
@@ -897,10 +971,10 @@ function msRealizedTrade(trade, ledger, baselines, posOf, opts) {
       oppTotal += o.ptsTotal; oppPpw += o.parPerWeek;
     });
     s.netPar = s.par - oppPar;
-    /* Started basis, matching the headline. The all-rostered net is kept
-     * for disclosure so the two can be compared directly. */
+    /* All-rostered basis, matching what is scored. The started-only net is
+     * kept for disclosure so the two can be compared directly. */
+    s.netPts = s.ptsTotal - oppTotal;
     s.netStarted = s.ptsStarted - oppStarted;
-    s.netPtsTotal = s.ptsTotal - oppTotal;
     s.netParPerWeek = s.parPerWeek - oppPpw;
   });
 
@@ -940,17 +1014,17 @@ function msAttachRealized(result, input, ledger, posOf, opts) {
     if (!t.realized || !t.realized.measurable) return;
     t.realized.sides.forEach(function (s) {
       var m = perMgr[s.managerId] ||
-        (perMgr[s.managerId] = { n: 0, par: 0, pts: 0, ptsTotal: 0, netPar: 0 });
-      m.n++; m.par += s.par; m.pts += s.ptsStarted;
-      m.ptsTotal += s.ptsTotal; m.netPar += s.netPar;
+        (perMgr[s.managerId] = { n: 0, par: 0, pts: 0, ptsStarted: 0, netPar: 0 });
+      m.n++; m.par += s.par; m.pts += s.ptsTotal;
+      m.ptsStarted += s.ptsStarted; m.netPar += s.netPar;
     });
   });
   (result.managers || []).forEach(function (m) {
     var p = perMgr[m.id];
     m.realized = p
-      ? { n: p.n, par: p.par, pts: p.pts, ptsTotal: p.ptsTotal,
+      ? { n: p.n, par: p.par, pts: p.pts, ptsStarted: p.ptsStarted,
           netPar: p.netPar, netParPerTrade: p.n ? p.netPar / p.n : 0 }
-      : { n: 0, par: 0, pts: 0, ptsTotal: 0, netPar: 0, netParPerTrade: 0 };
+      : { n: 0, par: 0, pts: 0, ptsStarted: 0, netPar: 0, netParPerTrade: 0 };
   });
   result.meta = result.meta || {};
   result.meta.nTradesRealized = measurable;
@@ -967,7 +1041,9 @@ if (typeof module !== 'undefined' && module.exports) {
     msSeriesValueAt: msSeriesValueAt, msSeriesPeakAfter: msSeriesPeakAfter,
     msCapture: msCapture,
     msResolvePickValue: msResolvePickValue, msScoreLeague: msScoreLeague,
+    MS_MIN_BASELINE: MS_MIN_BASELINE,
     msWeekId: msWeekId, msPosLookup: msPosLookup,
+    msLeagueLastWeek: msLeagueLastWeek,
     msBuildLedger: msBuildLedger, msWeekIndex: msWeekIndex,
     msBaselines: msBaselines, msRealizedAsset: msRealizedAsset,
     msPosRankInSpan: msPosRankInSpan, msRealizedTrade: msRealizedTrade,
@@ -1277,7 +1353,7 @@ function msFetchLeagueData(leagueId, includeHistory) {
         msGetCached(SLEEPER + '/league/' + id + '/rosters', [], {}),
         msGetCached(SLEEPER + '/league/' + id + '/drafts', [], {}),
         msFetchTransactions(id, lg.season, state),
-        msFetchMatchups(id, lg.season, state)
+        msFetchMatchups(id, lg.season, state, lg)
       ]).then(function (parts) {
         return { league: lg, users: parts[0] || [], rosters: parts[1] || [],
                  drafts: parts[2] || [], transactions: parts[3] || [],
@@ -1306,7 +1382,7 @@ function msFetchLeagueData(leagueId, includeHistory) {
  * which is why an in-season league needs no current-week lookup: we file
  * what Sleeper actually has.
  */
-function msFetchMatchups(leagueId, season, state) {
+function msFetchMatchups(leagueId, season, state, league) {
   /* Only ask the live season for weeks that have started. A completed
    * season is asked for all 18 and can be cached forever, because a
    * finished box score does not change.
@@ -1320,10 +1396,12 @@ function msFetchMatchups(leagueId, season, state) {
    * which would pin an in-progress season in the cache permanently. */
   var knownCurrent = !!(state && String(state.season) === String(season));
   var knownPast = !!(state && String(state.season) !== String(season));
-  var lastWeek = 18;
+  /* Never past the week this league's own season ends -- Sleeper answers
+   * beyond it with a stale lineup and live NFL scoring. */
+  var lastWeek = msLeagueLastWeek(league);
   if (knownCurrent) {
     var live = Number(state.week || state.display_week || 0);
-    if (live > 0) lastWeek = Math.min(18, live);
+    if (live > 0) lastWeek = Math.min(lastWeek, live);
   }
   var weeks = [];
   for (var w = 1; w <= lastWeek; w++) weeks.push(w);
@@ -1790,7 +1868,7 @@ function msRenderLensCompare(mgr, trades) {
     ' scored trade' + (mgr.trade.n === 1 ? '' : 's') + ' · ' +
     '<span class="ms-lens ms-lens-real">realized</span>' +
     'net ' + msSigned(rz.netPar, 1) + ' PAR (' + msFmt(rz.pts, 1) +
-    ' pts started) over ' + rz.n + ' measurable trade' +
+    ' pts acquired) over ' + rz.n + ' measurable trade' +
     (rz.n === 1 ? '' : 's') + '.</p>';
 
   var disagree = (market > 0 && rz.netPar < 0) || (market < 0 && rz.netPar > 0);
@@ -1817,14 +1895,14 @@ function msRenderLensCompare(mgr, trades) {
  * weeks" is an argument. */
 function msRealizedAssetLine(r) {
   var bits = [];
-  /* Started points lead, because that is the declared basis. */
-  bits.push('<strong>' + msFmt(r.ptsStarted, 1) + ' pts started</strong>');
-  bits.push('over ' + r.weeksHeld + ' wk' + (r.weeksHeld === 1 ? '' : 's') +
-            ' (' + r.starts + ' start' + (r.starts === 1 ? '' : 's') + ')');
-  /* The lineup story: only shown when there is one to tell. */
+  /* Total rostered points lead, because that is the scored basis. */
+  bits.push('<strong>' + msFmt(r.ptsTotal, 1) + ' pts</strong>');
+  bits.push('over ' + r.weeksHeld + ' wk' + (r.weeksHeld === 1 ? '' : 's'));
+  /* The lineup story: disclosed, never scored, and only when there is
+   * one to tell. */
   if (r.benchPts > 0.05) {
-    bits.push('<span class="ms-bench">+' + msFmt(r.benchPts, 1) +
-              ' on your bench</span>');
+    bits.push('<span class="ms-bench">' + msFmt(r.ptsStarted, 1) +
+              ' of it started</span>');
   }
   if (r.parAvailable) {
     bits.push('PAR <span class="' + msDeltaClass(r.par) + '">' +
@@ -1864,27 +1942,29 @@ function msRenderRealizedTrade(t, managerId) {
   if (!mine) return '';
 
   var html = '<div class="ms-realized"><div class="ms-realized-head">' +
-    'Realized production <span class="ms-basis">— points actually scored ' +
-    'in the lineup, in this league\'s own scoring</span></div>';
+    'Realized production <span class="ms-basis">— points scored for the ' +
+    'acquiring roster, in this league\'s own scoring</span></div>';
 
-  html += '<div class="ms-realized-net">You started <strong>' +
-    msFmt(mine.ptsStarted, 1) + '</strong> pts of what you got';
+  html += '<div class="ms-realized-net">You received <strong>' +
+    msFmt(mine.ptsTotal, 1) + '</strong> pts of production';
   if (mine.parAvailable) {
     html += ' (PAR <span class="' + msDeltaClass(mine.par) + '">' +
       msSigned(mine.par, 1) + '</span>, ' +
       msSigned(mine.parPerWeek, 2) + '/wk)';
   }
-  var oppStarted = 0;
-  theirs.forEach(function (s) { oppStarted += s.ptsStarted; });
-  html += ' · they started <strong>' + msFmt(oppStarted, 1) + '</strong> pts';
+  var oppPts = 0;
+  theirs.forEach(function (s) { oppPts += s.ptsTotal; });
+  html += ' · they received <strong>' + msFmt(oppPts, 1) + '</strong> pts';
   html += ' · realized net <span class="' + msDeltaClass(mine.netPar) + '">' +
     msSigned(mine.netPar, 1) + ' PAR</span>';
   if (rz.ongoing) html += ' <span class="ms-basis">(ongoing)</span>';
   html += '</div>';
   if (mine.benchPts > 0.05) {
-    html += '<p class="ms-sub" style="margin:.3rem 0 0">A further ' +
-      msFmt(mine.benchPts, 1) + ' pts were produced on your bench and are ' +
-      'not counted above — that gap is a lineup outcome, not a trade one.</p>';
+    html += '<p class="ms-sub" style="margin:.3rem 0 0">' +
+      msFmt(mine.ptsStarted, 1) + ' of those points were actually in your ' +
+      'lineup; ' + msFmt(mine.benchPts, 1) + ' were produced on your bench. ' +
+      'Both are credited — this measures the acquisition, not the lineup ' +
+      'card — but only the started points won you anything.</p>';
   }
 
   if (mine.assets.length) {

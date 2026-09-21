@@ -401,8 +401,11 @@ M.msRun('L2', true).then(function (result) {
 
   ok(/Realized production/.test(audit.innerHTML),
      'the audit panel renders a realized production block');
-  ok(/points actually scored/.test(audit.innerHTML),
+  ok(/points scored for the acquiring roster/.test(audit.innerHTML),
      'the realized block states what it is measuring');
+  ok(/this league's own scoring/.test(audit.innerHTML) ||
+     /this league&#39;s own scoring/.test(audit.innerHTML),
+     'and that it uses the league\'s own scoring settings');
   ok(/Riser Back/.test(audit.innerHTML), 'the acquired player is named');
   ok(/RB1 of 4 in that span/.test(audit.innerHTML),
      'the positional rank is rendered, which is what makes a total legible');

@@ -530,8 +530,9 @@ ok(LED.weeks['2024:3'].owner.P1 === 'A',
 ok(LED.weeks['2024:2'].owner.P1 === 'B', 'pre-trade ownership is the old manager');
 
 const BASE = C.msBaselines(LED, POS);
-/* Week 1 2024 started RBs: P2=10, P1=30, P3=5 -> median 10 */
-near(BASE['2024:1'].RB, 10, 'replacement level is the median STARTED score at the position');
+/* Week 1 2024 rostered RBs: P2=10, P1=30, P3=5 -> median 10 */
+near(BASE['2024:1'].RB, 10,
+     'replacement level is the median score among ROSTERED players at the position');
 ok(BASE['2024:1'].QB === 20, 'baselines are computed per position');
 
 /* ---- unplayed weeks must not exist in the ledger ---- */
@@ -559,6 +560,45 @@ const fut = C.msRealizedAsset(LED_FUTURE, C.msBaselines(LED_FUTURE, POSF), POSF,
 ok(fut.weeksHeld === 2,
    'weeks held counts played weeks only', String(fut.weeksHeld));
 near(fut.ppw, 15, 'per-week rates are not diluted by weeks that have not happened');
+
+/* ---- a degenerate pool has no replacement level ----
+ *
+ * Measured on four real seasons: in bye-heavy weeks most rostered QBs are
+ * backups who never play, so the median goes to 0.00 and PAR would
+ * silently become raw points -- switching the positional normalisation
+ * off in exactly the weeks a star looks most impressive. 8 of 56 weeks
+ * were affected, carrying 13% of all production. */
+const LED_DEGEN = C.msBuildLedger([
+  wk('2024', 1, [rs(1, { STAR: 26, BK1: 0 }, ['STAR']),
+                 rs(2, { BK2: 0, BK3: 0 }, ['BK2'])])
+], R2U);
+const POSQ = C.msPosLookup({ STAR: [0, 'Star QB', 'QB'], BK1: [0, 'B1', 'QB'],
+                            BK2: [0, 'B2', 'QB'], BK3: [0, 'B3', 'QB'] });
+const BDEG = C.msBaselines(LED_DEGEN, POSQ);
+ok(BDEG['2024:1'].QB === undefined,
+   'a positional median below the floor yields NO baseline, not a zero one');
+const starQb = C.msRealizedAsset(LED_DEGEN, BDEG, POSQ, 0, 'STAR', 'A', {});
+near(starQb.ptsTotal, 26, 'production in a degenerate week still counts in full');
+near(starQb.par, 0, 'but it contributes nothing to PAR');
+ok(!starQb.parAvailable,
+   'PAR is reported unavailable rather than silently equal to raw points');
+ok(starQb.weeksHeld === 1 && starQb.parWeeks === 0,
+   'weeks held and PAR-covered weeks are tracked separately for disclosure',
+   starQb.weeksHeld + '/' + starQb.parWeeks);
+
+/* ---- the league says where its own season ends ---- */
+
+ok(C.msLeagueLastWeek({ settings: { playoff_week_start: 15, playoff_teams: 6 } }) === 17,
+   'a 6-team playoff starting week 15 ends at week 17',
+   String(C.msLeagueLastWeek({ settings: { playoff_week_start: 15, playoff_teams: 6 } })));
+ok(C.msLeagueLastWeek({ settings: { playoff_week_start: 15, playoff_teams: 4 } }) === 16,
+   'a 4-team playoff ends a week earlier');
+ok(C.msLeagueLastWeek({ settings: { playoff_week_start: 14, playoff_teams: 8 } }) === 16,
+   'an 8-team playoff is three rounds');
+ok(C.msLeagueLastWeek({}) === 18, 'absent settings fall back to the full season');
+ok(C.msLeagueLastWeek(null) === 18, 'so does a missing league object');
+ok(C.msLeagueLastWeek({ settings: { playoff_week_start: 17, playoff_teams: 12 } }) === 18,
+   'and the result is never past week 18');
 
 /* ---- tenure: only weeks actually rostered by the acquirer count ---- */
 
@@ -605,17 +645,46 @@ const never = C.msRealizedAsset(LED3, C.msBaselines(LED3, POS3), POS3, 0, 'NOPE'
 ok(!never.arrived && never.ptsTotal === 0,
    'a player who never appears on the acquiring roster earns no credit');
 
-/* ---- bench points count in the raw total but never in PAR ---- */
+/* ---- bench production is SCORED, and separately disclosed ----
+ *
+ * Owner decision: the acquisition is being graded, not the lineup card.
+ * Trading for a producer is one skill; benching him is a different one,
+ * and it is not measured on this page at all. So bench points count in
+ * full, and the started figure is carried alongside so the gap stays
+ * visible. */
 
 const LED4 = C.msBuildLedger([
   wk('2024', 1, [rs(1, { B1: 30, S1: 10 }, ['S1']), rs(2, { S2: 10 }, ['S2'])])
 ], R2U);
 const POS4 = C.msPosLookup({ B1: [0, 'Benched', 'RB'], S1: [0, 'S1', 'RB'], S2: [0, 'S2', 'RB'] });
 const benched = C.msRealizedAsset(LED4, C.msBaselines(LED4, POS4), POS4, 0, 'B1', 'A', {});
-near(benched.ptsTotal, 30, 'bench production is counted in the raw total');
-near(benched.ptsStarted, 0, 'bench production is not counted as started');
-near(benched.par, 0, 'PAR ignores weeks the player was benched');
-ok(!benched.parAvailable, 'PAR is reported unavailable rather than as a real zero');
+near(benched.ptsTotal, 30, 'bench production is counted in full');
+near(benched.ptsStarted, 0, 'and is still reported separately as not started');
+near(benched.benchPts, 30, 'the bench/started gap is exposed for disclosure');
+/* rostered RBs that week: 30, 10, 10 -> median 10 */
+near(benched.par, 20, 'PAR credits a benched week against the ROSTERED median');
+ok(benched.parAvailable, 'PAR is available for a player who never started');
+
+/* The baseline population must match the scored population. A started-only
+ * baseline would charge a benched player a starter's replacement level for
+ * a week he was never asked to play. */
+const LED4b = C.msBuildLedger([
+  wk('2024', 1, [rs(1, { HI: 30, MID: 12, BEN: 0 }, ['HI', 'MID']),
+                 rs(2, { OK: 8, BEN2: 0 }, ['OK'])])
+], R2U);
+const POS4b = C.msPosLookup({ HI: [0, 'Hi', 'RB'], MID: [0, 'Mid', 'RB'],
+                             OK: [0, 'Ok', 'RB'], BEN: [0, 'Ben', 'RB'],
+                             BEN2: [0, 'Ben2', 'RB'] });
+const B4b = C.msBaselines(LED4b, POS4b);
+/* rostered RBs: 30, 12, 8, 0, 0 -> median 8.
+ * started-only would have been median(30, 12, 8) = 12. */
+near(B4b['2024:1'].RB, 8,
+     'non-playing rostered players drag replacement level below the starter bar');
+const zeroWeek = C.msRealizedAsset(LED4b, B4b, POS4b, 0, 'BEN', 'A', {});
+near(zeroWeek.par, -8,
+     'a rostered player who produced nothing is charged the rostered bar, not a starter bar');
+const heldHi = C.msRealizedAsset(LED4b, B4b, POS4b, 0, 'HI', 'A', {});
+near(heldHi.par, 22, 'and a producer is credited against that same bar');
 
 /* ---- the normalisation contract ---- */
 
