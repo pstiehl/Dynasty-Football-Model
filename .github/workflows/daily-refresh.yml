@@ -5,6 +5,10 @@ on:
   # Every day at 11:00 UTC (6 AM Central / 4 AM Pacific)
   schedule:
     - cron: '0 11 * * *'
+    # Second in-season pass: Tuesday 16:00 UTC (11 AM Central), after Monday
+    # night football has settled and the cut-up channels have posted. The
+    # reel is only as good as how fast it sees last night's game.
+    - cron: '0 16 * * 2'
   # Also run when you push changes to main
   push:
     branches: [main]
@@ -44,6 +48,22 @@ jobs:
       - name: Run the model end-to-end
         run: |
           python -m dynasty.launcher_headless
+
+      # Must run AFTER the model build: it reads dynasty_site/engine_rankings.json
+      # for model ranks and writes dynasty_site/highlights.json alongside it.
+      # continue-on-error because a YouTube quota blip must never block the
+      # rankings deploy — myteam.html and reel.html degrade to an on-page
+      # message when the index is absent.
+      - name: Refresh YouTube highlight index
+        continue-on-error: true
+        env:
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
+        run: |
+          if [ -z "$YOUTUBE_API_KEY" ]; then
+            echo "YOUTUBE_API_KEY not set - skipping highlights refresh."
+            exit 0
+          fi
+          python scripts/refresh_highlights.py
 
       - name: Upload site as a GitHub Pages artifact
         uses: actions/upload-pages-artifact@v3
