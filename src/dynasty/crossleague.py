@@ -243,11 +243,16 @@ def aggregate(
                 if n > 0:
                     a["components"][c]["n"] += n
                     a["components"][c]["weighted_z"] += n * z
-                per_league_components[c] = {
-                    "n": n, "z": round(z, 6),
-                    "mean": round(float(comp.get("mean") or 0.0), 2),
-                    "shrunk": round(float(comp.get("shrunk") or 0.0), 2),
-                }
+                # n and z only. The per-league breakdown on the page renders
+                # exactly these two (see xlRenderBreakdown: it prints z and
+                # n per component and nothing else), and aggregation above
+                # reads exactly these two. `mean` and `shrunk` are the raw
+                # per-transaction scale and the within-league shrink of a
+                # single league -- interesting on the Manager Score page,
+                # which rebuilds them live, and dead weight here. Carrying
+                # them cost ~0.5 MB across 1,223 managers for data nothing
+                # reads.
+                per_league_components[c] = {"n": n, "z": round(z, 6)}
 
             a["leagues"].append({
                 "league_id": league_id,
@@ -281,11 +286,18 @@ def aggregate(
             n = a["components"][c]["n"]
             zbar = (a["components"][c]["weighted_z"] / n) if n else 0.0
             z_shrunk = shrink(zbar, n, shrink_k[c])
+            # `available` is dropped: it is exactly `n > 0`, so it is a
+            # boolean restating the integer beside it, and at 1,283 managers
+            # x 3 components it costs real bytes in a file rewritten daily.
+            #
+            # `zbar` STAYS. It looks like a pure intermediate and it is not:
+            # the draft board publishes `draft_zbar` (the pre-shrink,
+            # evidence-weighted mean) alongside the shrunk `z`, so dropping
+            # it breaks aggregation outright. Verified the hard way.
             comps_out[c] = {
                 "n": n,
                 "zbar": round(zbar, 6),
                 "z": round(z_shrunk, 6),
-                "available": n > 0,
                 "weight": round(effective[c], 6),
             }
             composite += effective[c] * z_shrunk
@@ -542,11 +554,13 @@ def compact_result(entry: Dict) -> Dict:
         }
         for c in COMPONENTS:
             comp = row.get(c) or {}
+            # Same reasoning as the per-league block in aggregate(): the only
+            # fields re-aggregation consumes are n and z. Retaining the
+            # others would preserve a number no consumer reads, in a file
+            # rewritten on every daily run.
             slim[c] = {
                 "n": comp.get("n") or 0,
                 "z": round(float(comp.get("z") or 0.0), 6),
-                "mean": round(float(comp.get("mean") or 0.0), 2),
-                "shrunk": round(float(comp.get("shrunk") or 0.0), 2),
             }
         managers.append(slim)
 
@@ -602,11 +616,28 @@ def merge_corpus(previous: Optional[Dict], league_results: Sequence[Dict]) -> Li
 
 
 def write_corpus_artifact(out_root: Path, corpus: Dict) -> Path:
-    """Publish the corpus into the site build."""
+    """Publish the corpus into the site build.
+
+    The ``retained`` block is dropped here. It is the crawler's working
+    state -- the compacted per-league results that the NEXT run re-aggregates
+    so leagues outside today's budget keep their scores -- and the page never
+    reads it. Shipping it made every visitor download ~450 KB (26% of the
+    artifact) of data that exists only so a CI job can resume.
+
+    It stays in the committed ``data/cross_league/corpus.json``, which is
+    where resumption actually reads it from.
+    """
     out_root = Path(out_root)
     out_root.mkdir(parents=True, exist_ok=True)
     path = out_root / CORPUS_ARTIFACT
-    path.write_text(json.dumps(corpus, separators=(",", ":")), encoding="utf-8")
+    published = {k: v for k, v in corpus.items() if k != "retained"}
+    published["retained_omitted"] = {
+        "n_leagues": len(corpus.get("retained") or []),
+        "why": ("crawler resumption state; kept in the repository artifact, "
+                "not needed to render this page"),
+    }
+    path.write_text(json.dumps(published, separators=(",", ":")),
+                    encoding="utf-8")
     return path
 
 

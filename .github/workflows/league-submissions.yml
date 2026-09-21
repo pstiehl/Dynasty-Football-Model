@@ -1,0 +1,92 @@
+name: Ingest league submissions
+
+# Turn issue submissions into seed-registry entries.
+#
+# The site is a static GitHub Pages build with no backend, so a visitor who
+# types their league id into the page has nowhere to put it. A labelled
+# GitHub issue is the only inbox a static site can point an anonymous visitor
+# at, and this repository's own git history is the only writable store. This
+# workflow is the bridge between the two.
+#
+# SECURITY. Issue bodies are untrusted text from strangers. The full threat
+# model is in the header of scripts/ingest_league_submissions.py; the parts
+# that are properties of THIS FILE rather than of the script:
+#
+#   * Trigger is `issues`, never `pull_request_target`. Issue events run the
+#     workflow from the default branch and do not check out attacker-supplied
+#     code. `pull_request_target` is the trigger that hands write-scoped
+#     credentials to a fork's code; it is not used here and must not be.
+#   * Permissions are the minimum that can do the job: write to contents (to
+#     append to the seed registry) and to issues (to reply and close).
+#     Everything else is explicitly read-only, including `pull-requests`.
+#   * No issue text is ever interpolated into a `run:` block. The script is
+#     invoked with fixed arguments and reads the GitHub API itself, so no
+#     shell ever sees a submitter's string. Putting `${{ github.event.issue.body }}`
+#     into a run step is the classic script-injection sink in exactly this
+#     kind of workflow, and its absence here is deliberate.
+#   * No secrets beyond the automatic GITHUB_TOKEN.
+#
+# The commit is made by github-actions[bot] and touches one file, so
+# `git log data/cross_league/seeds.json` is a complete audit trail of every
+# accepted submission and a one-line revert for any that should not have been.
+
+on:
+  issues:
+    types: [opened, reopened, edited, labeled]
+  # Backstop: an issue opened while Actions were paused, or one whose event
+  # was missed, is still picked up within a day.
+  schedule:
+    - cron: '0 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+# Serialise: two runs appending to the same registry would conflict on push.
+concurrency:
+  group: league-submissions
+  cancel-in-progress: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    # On an `issues` event, do nothing unless it actually carries our label.
+    # Scheduled and manual runs always sweep.
+    if: >-
+      github.event_name != 'issues' ||
+      contains(github.event.issue.labels.*.name, 'league-submission')
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Stdlib only: urllib for both GitHub and Sleeper. No dependency
+      # install, so there is no third-party code in a job that holds a
+      # write-scoped token.
+      - name: Ingest submissions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python scripts/ingest_league_submissions.py --max-issues 25
+
+      - name: Commit accepted league ids
+        run: |
+          set -uo pipefail
+          if [ -z "$(git status --porcelain data/cross_league/seeds.json 2>/dev/null)" ]; then
+            echo "No accepted submissions to commit."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/cross_league/seeds.json
+          # [skip ci] so this does not trigger the full daily build; the next
+          # scheduled crawl will pick the new seeds up from the registry.
+          git commit -m "chore(crossleague): accept league submission(s) [skip ci]"
+          git pull --rebase --autostash origin main || exit 0
+          git push origin HEAD:main
