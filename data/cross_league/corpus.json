@@ -1,8 +1,8 @@
 {
  "schema": "crossleague.corpus.v1",
- "generated_at": "2026-09-21T17:16:56.472441+00:00",
+ "generated_at": "2026-09-21T17:35:10.989817+00:00",
  "first_indexed_at": "2026-09-21T17:07:30.457657+00:00",
- "n_runs": 2,
+ "n_runs": 3,
  "persisted": true,
  "coverage": {
   "n_leagues": 5,
@@ -77,7 +77,7 @@
   "calls_used_total": 600,
   "calls_used_discovery": 16,
   "calls_used_scoring": 584,
-  "calls_refused_over_budget": 45,
+  "calls_refused_over_budget": 199,
   "network_errors": 0
  },
  "discovery": {
@@ -85,12 +85,17 @@
   "n_seeds": 1,
   "n_leagues_examined": 23,
   "n_users_examined": 14,
-  "n_discarded_unscorable": 7,
+  "n_discarded_unscorable": 8,
   "discarded": [
+   {
+    "league_id": "1312836062019620864",
+    "name": "The Shadynasty League ",
+    "reason": "incomplete read (199 call(s) refused or failed) \u2014 discarded rather than scored on partial data"
+   },
    {
     "league_id": "1316482958428733440",
     "name": "Wannabe Experts",
-    "reason": "incomplete read (45 call(s) refused or failed) \u2014 discarded rather than scored on partial data"
+    "reason": "api call budget exhausted before this league was read"
    },
    {
     "league_id": "1312122655880515584",
@@ -3961,7 +3966,7 @@
    "lineage_root": "970003719653826560",
    "discovered_via": "seed",
    "hop": 0,
-   "retained_from": "2026-09-21T17:16:56.472441+00:00",
+   "retained_from": "2026-09-21T17:35:10.989817+00:00",
    "result": {
     "managers": [
      {
@@ -4342,7 +4347,7 @@
    "lineage_root": "939984431383752704",
    "discovered_via": "J1MB0SL1CE",
    "hop": 1,
-   "retained_from": "2026-09-21T17:16:56.472441+00:00",
+   "retained_from": "2026-09-21T17:35:10.989817+00:00",
    "result": {
     "managers": [
      {
@@ -4772,7 +4777,7 @@
    "lineage_root": "1126621778744287232",
    "discovered_via": "zdubyah",
    "hop": 1,
-   "retained_from": "2026-09-21T17:16:56.472441+00:00",
+   "retained_from": "2026-09-21T17:35:10.989817+00:00",
    "result": {
     "managers": [
      {
@@ -5051,7 +5056,7 @@
    "lineage_root": "1265188752372793344",
    "discovered_via": "wstebbins",
    "hop": 1,
-   "retained_from": "2026-09-21T17:16:56.472441+00:00",
+   "retained_from": "2026-09-21T17:35:10.989817+00:00",
    "result": {
     "managers": [
      {
