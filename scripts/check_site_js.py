@@ -55,6 +55,7 @@ def blobs() -> "list[tuple[str, str]]":
         MANAGERSCORE_UI_JS,
     )
     from dynasty.corpus_submit_js import corpus_submit_js
+    from dynasty.crossleague_js import CROSSLEAGUE_JS
 
     # Checked with a URL spliced in: the unconfigured build is a strict
     # substring of it, so this is the strictly harder parse.
@@ -87,6 +88,19 @@ def blobs() -> "list[tuple[str, str]]":
             "myteam.html (reel + myteam + managerscore + corpus + highlights)",
             "\n".join([reel_js, myteam_js, MANAGERSCORE_CORE_JS,
                        MANAGERSCORE_UI_JS, corpus_js, hl_js]),
+        ),
+        # The Best Managers board. It was absent from this check entirely,
+        # so a stray brace in the cross-league renderer would have shipped.
+        ("crossleague_js.py:CROSSLEAGUE_JS", CROSSLEAGUE_JS),
+        # Concatenated in the order report._page emits them: the shared
+        # highlight renderer FIRST, then the page script. That order is not
+        # cosmetic -- the drill-down calls DFMHL.chip while rendering, which
+        # is exactly the failure PR #71 fixed. Parsing cannot prove the
+        # order runs; tests/js/crossleague_script_order_tests.mjs executes
+        # the real generated page to prove that.
+        (
+            "crossleague.html (highlights + crossleague)",
+            "\n".join([hl_js, CROSSLEAGUE_JS]),
         ),
     ]
 

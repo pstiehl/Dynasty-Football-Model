@@ -360,9 +360,14 @@ function msScoreLeague(input, opts) {
       var surplus = p.capture - expected;
       r.draft.n += 1;
       r.draft.total += surplus;
+      /* playerId and round are carried through so a drill-down can join a
+       * pick to the highlight index by id rather than by name, and can name
+       * the round without re-deriving it from slot and league size. Both
+       * are already on the input pick; only the audit was dropping them. */
       audit.picks.push({
         managerId: p.managerId, draftId: d.id, season: d.season,
-        draftLabel: d.label, slot: p.slot, name: p.name, pos: p.pos,
+        draftLabel: d.label, slot: p.slot, round: p.round || null,
+        playerId: p.playerId || null, name: p.name, pos: p.pos,
         vAt: p.vAt, vAtDate: p.vAtDate, peak: p.peak, peakDate: p.peakDate,
         capture: p.capture, expected: expected, surplus: surplus,
         basis: p.basis || 'point-in-time', date: p.date || null
@@ -441,7 +446,8 @@ function msScoreLeague(input, opts) {
     r.waiver.n += 1;
     r.waiver.total += surplus;
     audit.waivers.push({
-      managerId: w.managerId, date: w.date || null, name: w.name, pos: w.pos,
+      managerId: w.managerId, date: w.date || null,
+      playerId: w.playerId || null, name: w.name, pos: w.pos,
       vAt: w.vAt, vAtDate: w.vAtDate, peak: w.peak, peakDate: w.peakDate,
       capture: w.capture, surplus: surplus,
       faab: w.faab == null ? null : w.faab,

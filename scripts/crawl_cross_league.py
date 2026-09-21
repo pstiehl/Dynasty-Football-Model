@@ -664,6 +664,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     from dynasty import crossleague
     from dynasty import crawl_state as cs
     from dynasty import managerscore
+    from dynasty import manager_detail
 
     registry = json.loads(Path(args.seeds).read_text(encoding="utf-8"))
     season = args.season or int(registry.get("season") or _now().year)
@@ -841,14 +842,40 @@ def main(argv: Optional[List[str]] = None) -> int:
     # needs each manager's per-component n and z, so that is all we keep. The
     # audit trail stays reproducible on the per-league page, which rebuilds it
     # live from Sleeper.
+    #
+    # The full audit is still in hand HERE and nowhere after this loop, so
+    # this is where the per-manager drill-down evidence is captured. It goes
+    # to a gitignored, CI-cached store (data/cross_league/detail/), never
+    # into the committed corpus -- see dynasty.manager_detail for why that
+    # is not a re-inlining of the audit PR #72 deliberately removed.
+    #
+    # Only leagues scored THIS run carry an audit; entries retained from an
+    # earlier run are already compacted, and league_detail_from_result()
+    # returns None for those. Their previously written detail file is left
+    # in place rather than overwritten with an empty one.
+    detail_dir = manager_detail.detail_dir(args.corpus.parent)
+    n_detail_written = 0
     retained = []
     for L in merged:
         if not L.get("result"):
             continue
+        detail = manager_detail.league_detail_from_result(L)
+        if detail is not None and manager_detail.write_league_detail(
+                detail_dir, detail):
+            n_detail_written += 1
         entry = dict(L)
         entry["retained_from"] = L.get("retained_from") or corpus["generated_at"]
         retained.append(crossleague.compact_result(entry))
     corpus["retained"] = retained
+
+    # Lineage dedup retires superseded league ids, so without a prune the
+    # detail store would be append-only and grow without bound.
+    n_detail_pruned = manager_detail.prune_league_details(
+        detail_dir, [L.get("league_id") for L in merged if L.get("league_id")]
+    )
+    if n_detail_written or n_detail_pruned:
+        print(f"  drill-down detail: {n_detail_written} league(s) written, "
+              f"{n_detail_pruned} pruned -> {detail_dir}")
     corpus["values"] = scored.get("values") or {}
 
     cov = corpus["coverage"]
@@ -893,6 +920,19 @@ def main(argv: Optional[List[str]] = None) -> int:
         print(f"  seed registry: +{added} league(s) → {args.seeds}")
 
     if args.site_out:
+        # Publish the per-manager shards BEFORE the corpus artifact: the
+        # corpus carries the resulting stats block, so the page can state how
+        # much evidence exists without probing 1,400 URLs to find out.
+        details = manager_detail.read_league_details(detail_dir)
+        stats = manager_detail.publish_manager_details(
+            args.site_out, corpus, details)
+        corpus["manager_detail"] = stats
+        kib = stats["bytes"] / 1024.0
+        print(f"  published {stats['n_files']} manager detail file(s), "
+              f"{kib:.0f} KiB, from {stats['n_leagues_with_detail']} league "
+              f"audit(s) ({stats['n_managers_complete']} complete, "
+              f"{stats['n_managers_partial']} partial, "
+              f"{stats['n_managers_without_evidence']} without evidence)")
         path = crossleague.write_corpus_artifact(args.site_out, corpus)
         print(f"  published {path}")
 

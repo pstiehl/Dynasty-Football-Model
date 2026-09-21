@@ -121,3 +121,22 @@ data/pfr_cache/draft_class/
 # Restored in CI by actions/cache, exactly like data/pfr_cache above. The
 # daily schedule keeps it inside the 7-day eviction window.
 data/cross_league/cache/
+
+# Per-league transaction audits behind the Best Managers drill-down, one
+# gzipped file per league.
+#
+# Same reasoning as the cache above, and the same reason PR #72 removed the
+# audit from corpus.json in the first place: this is bulk, derived, and
+# rewritten whenever a league is re-scored. corpus.json is committed on
+# every daily run, so an inline audit (2.3 MB for five leagues, ~56 MB at
+# the corpus's current 122) would be paid again in git history every single
+# day, forever.
+#
+# Losing this costs explanation, never correctness. The SCORES live in the
+# committed corpus; an evicted store means the drill-down says "the
+# pick-level record for this league is not in this build" until the crawl
+# next scores that league. The page is built to say exactly that rather
+# than render an empty panel that would read as no activity.
+#
+# Restored in CI by the same actions/cache entry as the Sleeper cache.
+data/cross_league/detail/

@@ -713,6 +713,128 @@ removal is a revert. This is a limitation, not a solved problem.
 
 ---
 
+## 9.6 The per-manager drill-down
+
+The owner's ask: *"be able to click into every manager and see what is
+driving their draft score."*
+
+The board can say a manager made 19 scored picks worth z = 2.34. It cannot
+say **which** picks, because §5's compaction deliberately strips the
+per-transaction audit out of `corpus.json`. That compaction is correct and
+stays: the corpus is committed on **every daily run**, and the audit is
+2.3 MB for five leagues — roughly 56 MB at the corpus's current 122. A
+multi-megabyte file rewritten daily is paid again in git history forever.
+
+So the evidence is restored **without** putting it back in git.
+
+### Two stores, neither committed
+
+| Store | What | Committed? |
+|---|---|---|
+| `data/cross_league/detail/<league_id>.json.gz` | durable per-league audit | **No** — gitignored, carried by `actions/cache` |
+| `dynasty_site/managers/<shard>/<id>.json` | published per-manager shards | **No** — `dynasty_site/` is the CI deploy artifact |
+
+`dynasty_site/` is gitignored and rebuilt by CI on every run, so publishing
+there costs **zero repository bytes**. The thing PR #72 fixed is not
+reintroduced; only the *location* of the audit changed.
+
+### Why per-league durable, per-manager published
+
+Scoring produces an audit **per league**; a manager's evidence spans every
+league they appear in. The crawl scores a bounded number of leagues per run
+(`--max-leagues 40`), so a manager's three leagues may be scored on three
+different days. Keying the durable store by league is the only shape that
+accumulates correctly — each run refreshes what it scored and leaves the
+rest alone, exactly as the corpus does. The per-manager view is assembled at
+publish time. A league detail is then invalidated by exactly one event: that
+league being re-scored.
+
+### Why sharded, and why FNV rather than an id prefix
+
+Manager ids are mostly 17–19 digit Sleeper snowflakes, which are
+time-ordered, so their leading digits cluster. Measured on the live
+1,407-manager corpus:
+
+| shard key | buckets used | max per bucket |
+|---|---|---|
+| first 2 chars of id | 85 | 81 |
+| last 2 chars of id | 41 | 73 |
+| **FNV-1a low byte (used)** | **254** | **13** |
+
+256 buckets gives ~5.5 files per directory today and degrades gracefully as
+the corpus grows. FNV-1a is used rather than a real digest because the
+**browser** must compute the same shard to build its fetch URL: it is a
+synchronous integer loop in JS, where SHA-1 via `crypto.subtle` is async.
+It is a bucketing function, not a security boundary.
+
+### Why ids are encoded
+
+66 of the 1,407 manager ids are not Sleeper user ids. When a roster has no
+associated user, scoring synthesises `roster:<league>:<slot>` so the seat is
+still counted. Colons are legal on Linux, not on Windows checkouts, and need
+escaping in URLs. Every id is `~XX`-hex-encoded down to `[A-Za-z0-9._-]`
+(`~` itself is encoded, which makes the mapping injective **by
+construction**). The publisher additionally asserts injectivity and refuses
+to overwrite, so a future id shape that broke the property fails the build
+rather than silently serving one manager's evidence under another's name.
+
+### What a draft score is made of
+
+Per scored pick the artifact carries: the round and overall slot, the player
+(with their Sleeper id, so the name renders as a highlight chip), the
+valuation and **its basis** — point-in-time from the dated KTC history, or
+`current` where no dated value existed (§PR #63) — the peak reached
+afterwards, the value captured, the slot baseline that pick was measured
+against, and the resulting surplus.
+
+Those reconcile all the way up:
+
+```
+Σ surplus          -> total
+total / n          -> mean
+mean · n/(n+k)     -> shrunk          (k = 6 picks)
+(shrunk − μ) / σ   -> z               within-league, vs that league's own pool
+Σ n·z / Σ n        -> z̄               evidence-weighted across leagues
+z̄ · N/(N+k)        -> Z               cross-league shrink
+Σ weight · Z       -> composite
+100 + 15·composite -> cross_index
+```
+
+The league pool's μ and σ are recovered from the full result at emit time
+(the scorer computes them and discards them), which is what lets the page
+show the final step rather than asking the reader to take `z` on faith.
+
+**The effective weights are a property of the corpus, not the manager.**
+`aggregate()` renormalises over the components at least two managers
+*anywhere* in the corpus have, then applies that same vector to everyone —
+so a manager who has never traded is scored as corpus-average on trade
+(Z = 0 at full weight) and flagged, **not** given a redistributed draft
+weight. Reconciling against a per-manager renormalisation is wrong, and the
+reconciliation test caught exactly that during development.
+
+### Degrading honestly
+
+The crawl re-scores a bounded slice per run, so evidence coverage is
+partial by design and an `actions/cache` eviction can remove it entirely.
+Every such case is stated, never rendered as an empty panel:
+
+* a league with no retained audit is marked *"this league's pick-level audit
+  is not in the build cache… its score above still counts"*;
+* a manager with no artifact at all (HTTP 404) gets *"No pick-level detail
+  published for this manager"*, not a blank box;
+* a failed fetch is reported as a **failure to load evidence**, explicitly
+  distinguished from an absence of activity;
+* a trade that could not be priced is shown and excluded from the total,
+  rather than silently counted as zero.
+
+This is deliberate. The all-100 bug below shipped precisely because an
+empty corpus is shape-identical to a corpus of very inactive leagues, and
+`league_detail_from_result()` therefore **fails closed**: handed an
+already-compacted entry (no audit), it returns `None` rather than emitting a
+document that claims complete evidence over an empty pick list.
+
+---
+
 ## 10. Verification status
 
 **Verified:**
@@ -791,7 +913,59 @@ component.
 * Constant parity between the per-league scorer and the aggregator, including
   a tampered-fixture test proving the guard can actually fail.
 
+**Verified for the drill-down (§9.6):**
+
+* **The drill-down explains the published score, rather than telling a
+  different story.** `tests/test_manager_detail.py` re-derives the entire
+  chain — Σ surplus → total → mean → shrunk → z → z̄ → Z → composite →
+  `cross_index` — for **every manager**, and requires every step to match
+  what `aggregate()` published. **0 discrepancies across 13 managers × 5
+  seeds (65 manager-reconciliations).** The fixture is scored by the **real**
+  `msScoreLeague` under node, not a Python lookalike, so the test is not
+  agreeing with itself.
+* **The reconciliation can actually fail.** Control tests perturb a pick's
+  surplus, drop a pick, and tamper a `z`; each is detected. A reconciliation
+  that cannot fail proves nothing.
+* **The browser and Python agree on where a file lives.** `xlShard` /
+  `xlSafeName` are asserted byte-identical to `manager_detail.shard_of` /
+  `safe_name` across snowflake ids, synthetic `roster:` ids, tildes and
+  non-ASCII. A disagreement would be a 404 on a file that exists.
+* **Script ordering, by EXECUTION not inspection.**
+  `tests/js/crossleague_script_order_tests.mjs` parses the real generated
+  `crossleague.html`, evaluates every inline script in document order in one
+  vm context, drives `xlLoad()` → `xlToggle()` → `xlLoadDetail()` against the
+  real emitted artifacts, and asserts chip markup is present. 28 checks.
+  It includes a **negative control**: the page script evaluated without the
+  highlight renderer must throw the PR #71 `TypeError`. Without that control
+  the ordering assertions would pass in both orders and prove nothing.
+* **No detail is fetched before a manager is clicked** — asserted on the
+  fetch log, which is the whole justification for the on-demand layout.
+* **Honest degradation**, asserted as strings: missing league audit, absent
+  artifact (404), failed fetch, and unscorable trades each produce an
+  explanation rather than an empty panel.
+* **Fails closed on compacted input.** Handed an already-compacted entry,
+  `league_detail_from_result()` returns `None` rather than publishing
+  "evidence: complete" over an empty pick list — the all-100 failure class.
+* **The index stays small.** The published `crossleague_corpus.json` is
+  asserted to contain no `picks`, no `waivers` and no `value_at_date`.
+* **Privacy.** Every published shard is asserted to contain no `email`,
+  `avatar`, `real_name`, `phone` or `username` key.
+
 **Not verified:**
+
+* **The drill-down against the REAL 122-league corpus.** No Sleeper disk
+  cache for those leagues exists in this environment and the crawl needs
+  network access, so the reconciliation was proven against a synthetic
+  league scored by the real scorer — not against live corpus data. The
+  first daily run is the first exercise on real leagues.
+* **Actual published byte totals at corpus scale.** The per-file sizes and
+  totals quoted in the PR are measured on the fixture and projected from the
+  corpus's own event counts (26,509 draft / 11,682 trade / 21,352 waiver
+  events). The real number is whatever the first run prints.
+* **Whether `actions/cache` retains the detail store in practice** — same
+  unverified GitHub behaviour as the Sleeper cache (§2.6.1). If it does not
+  hold, coverage degrades to the leagues scored that run and the page says
+  so; no score is affected.
 
 * **Rendering.** There is no browser in the build environment. The page's
   *logic* is asserted against a stub DOM; how it **looks** is unconfirmed by
