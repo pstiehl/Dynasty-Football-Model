@@ -222,8 +222,10 @@ const detailUrl = vm.runInContext('xlDetailUrl(__mid)', ctx);
 ok(log.indexOf(detailUrl) >= 0,
    'opening a manager fetches exactly their shard', detailUrl);
 
-const panel = ctx.ELEMENTS['xl-detail-body-' + target.manager_id]
-  ? ctx.ELEMENTS['xl-detail-body-' + target.manager_id].innerHTML : '';
+/* Detail ids are scoped per table; an unscoped xlToggle drives the
+ * leaderboard, so this is the leaderboard's panel body. */
+const panelId = 'xl-detail-body-lb-' + target.manager_id;
+const panel = ctx.ELEMENTS[panelId] ? ctx.ELEMENTS[panelId].innerHTML : '';
 
 ok(panel.length > 0, 'the drill-down panel rendered');
 ok(panel.indexOf('Cannot read properties') < 0,

@@ -629,6 +629,38 @@ class TestPageJs(unittest.TestCase):
                 proc.returncode, 0,
                 f"renderer assertions failed:\n{proc.stdout}\n{proc.stderr}")
 
+    def test_detail_panels_open_in_the_table_that_was_clicked(self):
+        """The drill-down, asserted against a DOM that can return null.
+
+        tests/js/dom_stub.js auto-creates an element for every
+        getElementById, so it cannot fail either half of the bug the owner
+        reported three times: a draft board that emitted no detail row at
+        all (xlToggle's ``if (!row) return;`` silently did nothing), and one
+        unscoped ``xl-detail-<id>`` emitted by both tables for the same
+        manager (getElementById returns the first, so a click in one table
+        toggled a hidden row in the other).
+
+        This runs the shipped JS against tests/js/mini_dom.mjs, which parses
+        the rendered markup and resolves ids for real. It uses the suite's
+        built-in fixture corpus, so it needs no network; the same suite takes
+        a real crossleague_corpus.json as argv[2] for manual runs.
+        """
+        if not NODE:
+            self.skipTest("node not available — drill-down assertions skipped")
+        from dynasty.crossleague_js import CROSSLEAGUE_JS
+
+        with tempfile.TemporaryDirectory() as td:
+            js = Path(td) / "xl.js"
+            js.write_text(CROSSLEAGUE_JS, encoding="utf-8")
+
+            suite = REPO_ROOT / "tests" / "js" / "crossleague_scope_tests.mjs"
+            proc = subprocess.run([NODE, str(suite), str(js)],
+                                  capture_output=True, text=True)
+            self.assertEqual(
+                proc.returncode, 0,
+                "drill-down panel assertions failed:\n"
+                f"{proc.stdout}\n{proc.stderr}")
+
     def test_harness_is_valid_js(self):
         """The scoring harness runs the shipped page code; if it will not
         parse, the whole corpus build is dead."""
