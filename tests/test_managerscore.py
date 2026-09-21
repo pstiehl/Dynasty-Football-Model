@@ -555,20 +555,26 @@ class PageRenderTests(unittest.TestCase):
             "Manager Score = 100",
             "0.50", "0.35", "0.15",
             "slot", "surplus",
-            "value received", "value given",
+            "captured by what you received",
+            "captured by what you gave",
             "per-transaction mean",
+            "peak value after the transaction",
         ):
             self.assertIn(phrase, self.prose, phrase)
 
     def test_states_the_limitations_on_the_page_not_just_in_comments(self):
         for phrase in (
             "cannot tell you",
-            "Outcome, not process",
-            "community consensus",
-            "board floor",
+            "Hindsight is baked in",
+            "crowd, not an oracle",
             "Future picks are priced at",
             "Roster management is not measured",
             "Sleeper only",
+            # the archive's own limits must be stated, not buried
+            "real but sparse",
+            "never after",
+            "highest value we",
+            "not scored at",
         ):
             self.assertIn(phrase, self.prose, phrase)
 
@@ -579,17 +585,203 @@ class PageRenderTests(unittest.TestCase):
     def test_says_league_reads_stay_in_the_browser(self):
         self.assertIn("in your browser", self.prose)
 
-    def test_names_the_current_value_basis_in_the_banner_logic(self):
-        """The banner text is produced by the JS at runtime, so the page must
-        at least ship the wording that discloses the basis."""
-        self.assertIn("Current-value basis", self.html)
-        self.assertIn("Point-in-time basis", self.html)
-        self.assertIn("Mixed basis", self.html)
+    def test_ships_the_basis_wording_the_banner_will_render(self):
+        """The banner is produced by the JS at runtime, so the page must at
+        least ship the wording that discloses the basis and its limits."""
+        self.assertIn("Point-in-time value capture", self.html)
+        self.assertIn("No dated value history available", self.html)
+        self.assertIn("too recent to judge", self.html)
+
+    def test_explains_why_not_the_two_rejected_bases(self):
+        """The owner asked for the rejected alternatives to be justified where
+        a reader can see them, not only in a pull request."""
+        self.assertIn("decays as he ages", self.html)
+        self.assertIn("already peaked", self.html)
+
+    def test_states_that_nothing_is_invented(self):
+        self.assertIn("interpolated, modelled or", self.prose)
 
     def test_no_api_key_or_secret_is_embedded(self):
         lowered = self.html.lower()
         for forbidden in ("api_key", "apikey", "secret", "authorization", "bearer "):
             self.assertNotIn(forbidden, lowered, forbidden)
+
+
+class SeriesTests(unittest.TestCase):
+    """The aligned series is what makes point-in-time pricing possible."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.hist = self.tmp / "history"
+
+    def tearDown(self):
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _point(self, day, sf, picks=None):
+        ktc_history.save_history_point(
+            _snapshot(
+                [_player(int(k), "P" + k, "WR", v) for k, v in sf.items()]
+                + [
+                    {"ktc_id": 900, "name": n, "position": "RDP", "team": None,
+                     "age": None, "birthday": None, "rookie": True, "mfl_id": None,
+                     "superflex": {"value": v}, "one_qb": {"value": v}}
+                    for n, v in (picks or {}).items()
+                ],
+                day + "T10:00:00+00:00",
+            ),
+            history_dir=self.hist,
+        )
+
+    def test_aligns_values_to_a_shared_date_axis(self):
+        self._point("2025-01-01", {"1": 1000, "2": 9000})
+        self._point("2026-01-01", {"1": 5000, "2": 7000})
+        s = ktc_history.build_series(self.hist)
+        self.assertEqual(s["dates"], ["2025-01-01", "2026-01-01"])
+        self.assertEqual(s["sf"]["1"], [1000, 5000])
+        self.assertEqual(s["sf"]["2"], [9000, 7000])
+
+    def test_missing_days_are_null_not_zero(self):
+        """A player off the board is unknown, not worthless. Zero would be a
+        fabricated price."""
+        self._point("2025-01-01", {"1": 1000})
+        self._point("2026-01-01", {"1": 5000, "2": 4000})
+        s = ktc_history.build_series(self.hist)
+        self.assertEqual(s["sf"]["2"], [None, 4000])
+        self.assertNotIn(0, s["sf"]["2"])
+
+    def test_rows_are_padded_to_full_length(self):
+        self._point("2024-01-01", {"1": 10})
+        self._point("2025-01-01", {"1": 20})
+        self._point("2026-01-01", {"1": 30, "9": 99})
+        s = ktc_history.build_series(self.hist)
+        for row in s["sf"].values():
+            self.assertEqual(len(row), len(s["dates"]))
+
+    def test_picks_get_their_own_table(self):
+        self._point("2025-01-01", {"1": 10}, picks={"2027 Mid 1st": 5000})
+        s = ktc_history.build_series(self.hist)
+        self.assertIn("2027 Mid 1st", s["picks"])
+        self.assertNotIn("2027 Mid 1st", s["sf"])
+
+    def test_empty_history_yields_empty_series(self):
+        s = ktc_history.build_series(self.hist)
+        self.assertEqual(s["dates"], [])
+        self.assertEqual(s["sf"], {})
+
+
+class RealArchiveTests(unittest.TestCase):
+    """Assertions about the committed archive itself.
+
+    These are what stop the archive silently regressing to nothing, which
+    is exactly what happened to the dated snapshots the daily job used to
+    write and throw away.
+    """
+
+    HISTORY = REPO_ROOT / "data" / "consensus" / "history"
+
+    def setUp(self):
+        if not self.HISTORY.is_dir():
+            self.skipTest("no committed history directory")
+
+    def test_archive_has_real_depth(self):
+        dates = ktc_history.available_history_dates(self.HISTORY)
+        self.assertGreaterEqual(
+            len(dates), 20,
+            "the recovered KTC archive should hold a couple of dozen dated boards",
+        )
+
+    def test_archive_spans_multiple_years(self):
+        dates = ktc_history.available_history_dates(self.HISTORY)
+        years = {d[:4] for d in dates}
+        self.assertGreaterEqual(len(years), 4, sorted(years))
+
+    def test_every_record_is_dated_and_populated(self):
+        for day in ktc_history.available_history_dates(self.HISTORY):
+            point = ktc_history.load_history_point(day, self.HISTORY)
+            self.assertIsNotNone(point, day)
+            self.assertEqual(point["date"], day)
+            self.assertTrue(point["sf"], f"{day} has no player values")
+
+    def test_floors_are_positive(self):
+        """A zero floor would mean a real asset priced at nothing."""
+        for day in ktc_history.available_history_dates(self.HISTORY):
+            point = ktc_history.load_history_point(day, self.HISTORY)
+            if point.get("floor") is not None:
+                self.assertGreater(point["floor"], 0, day)
+
+    def test_records_carry_their_provenance(self):
+        """Backfilled days must say where they came from, so nobody has to
+        guess whether a number was published or invented."""
+        sourced = 0
+        for day in ktc_history.available_history_dates(self.HISTORY):
+            point = ktc_history.load_history_point(day, self.HISTORY)
+            if point.get("source"):
+                self.assertIn("web.archive.org", point["source"], day)
+                sourced += 1
+        self.assertGreater(sourced, 0, "expected backfilled records to be sourced")
+
+    def test_series_builds_from_the_real_archive(self):
+        s = ktc_history.build_series(self.HISTORY)
+        self.assertGreater(len(s["dates"]), 20)
+        self.assertGreater(len(s["sf"]), 400)
+        # Josh Allen (ktc_id 365) should be present and always highly valued.
+        row = [v for v in (s["sf"].get("365") or []) if v is not None]
+        self.assertTrue(row, "ktc_id 365 missing from the archive")
+        self.assertGreater(min(row), 5000, "id 365 should be an elite value throughout")
+
+
+class BackfillScriptTests(unittest.TestCase):
+    """The archive tool must stay reproducible and stay out of CI."""
+
+    SRC = REPO_ROOT / "scripts" / "backfill_ktc_history.py"
+
+    def setUp(self):
+        if not self.SRC.exists():
+            self.skipTest("backfill script missing")
+        self.source = self.SRC.read_text(encoding="utf-8")
+
+    def test_documents_the_measured_yield(self):
+        self.assertIn("26", self.source)
+        self.assertIn("66", self.source)
+
+    def test_states_it_is_not_for_ci(self):
+        self.assertIn("NOT part of CI", self.source)
+
+    def test_is_not_referenced_by_the_workflow(self):
+        wf = (REPO_ROOT / ".github" / "workflows" / "daily-refresh.yml").read_text()
+        self.assertNotIn("backfill_ktc_history", wf)
+
+    def test_parses_a_capture_into_a_record(self):
+        """Pure-function check on the archive parser, no network."""
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        import backfill_ktc_history as bf
+
+        html = (
+            "<html><script>var playersArray = ["
+            '{"playerID":365,"playerName":"Josh Allen","position":"QB",'
+            '"superflexValues":{"value":9000}},'
+            '{"playerID":900,"playerName":"2027 Mid 1st","position":"RDP",'
+            '"superflexValues":{"value":5000}},'
+            '{"playerID":401,"playerName":"Zero Guy","position":"WR",'
+            '"superflexValues":{"value":0}}'
+            "];</script></html>"
+        )
+        rec = bf.capture_to_record(html, "20250714192711")
+        self.assertEqual(rec["date"], "2025-07-14")
+        self.assertEqual(rec["sf"]["365"], 9000)
+        self.assertEqual(rec["picks"]["2027 Mid 1st"], 5000)
+        self.assertNotIn("900", rec["sf"], "picks must not land in the player table")
+        self.assertEqual(rec["floor"], 9000,
+                         "zero-valued rows must not become the floor")
+        self.assertIn("web.archive.org", rec["source"])
+
+    def test_returns_none_when_there_is_no_payload(self):
+        sys.path.insert(0, str(REPO_ROOT / "scripts"))
+        import backfill_ktc_history as bf
+
+        self.assertIsNone(bf.capture_to_record("<html>nothing</html>", "20250714192711"))
+        self.assertIsNone(bf.capture_to_record(
+            "<script>var playersArray = [not json];</script>", "20250714192711"))
 
 
 class ReportWiringTests(unittest.TestCase):

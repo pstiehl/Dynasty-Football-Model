@@ -78,6 +78,7 @@ from typing import Dict, List, Optional, Tuple
 from . import ktc_history
 
 VALUES_ARTIFACT = "managerscore_values.json"
+SERIES_ARTIFACT = "managerscore_series.json"
 HISTORY_SUBDIR = "ktc_history"
 VALUES_SCHEMA = "managerscore.values.v1"
 
@@ -280,6 +281,15 @@ def write_values_artifact(
 
     src_history = Path(history_dir) if history_dir is not None \
         else Path(consensus_dir) / "history"
+
+    # The page needs the whole series per asset (value on the transaction
+    # date AND the peak over every later date), so ship one combined file
+    # rather than making the browser fetch every dated board.
+    series = ktc_history.build_series(src_history)
+    (out_root / SERIES_ARTIFACT).write_text(
+        json.dumps(series, separators=(",", ":")), encoding="utf-8"
+    )
+
     if payload["history"]["available"] and src_history.is_dir():
         dest = out_root / HISTORY_SUBDIR
         dest.mkdir(parents=True, exist_ok=True)
@@ -341,67 +351,104 @@ def _methodology_html() -> str:
 <p style="margin-top:0"><strong>One number per manager, league mean 100, one
 standard deviation 15.</strong> 115 means "one standard deviation better than
 the rest of this league". It is a ranking <em>within</em> your league, not an
-absolute rating — the average manager in every league scores about 100.</p>
+absolute rating &mdash; the average manager in every league scores about 100.</p>
 
-<p><code>Manager Score = 100 + 15 × (0.50·z<sub>draft</sub> +
-0.35·z<sub>trade</sub> + 0.15·z<sub>waiver</sub>)</code></p>
+<p><code>Manager Score = 100 + 15 &times; (0.50&middot;z<sub>draft</sub> +
+0.35&middot;z<sub>trade</sub> + 0.15&middot;z<sub>waiver</sub>)</code></p>
 
 <p>Weights are renormalised over whichever components your league actually
 has, so a league that never trades is not scored on a component nobody
 played.</p>
 
-<h4>Draft skill — did the pick beat its slot?</h4>
-<p>For every pick, surplus = <em>value of the player taken</em> −
-<em>value a pick at that slot usually returns</em>. The second number is
-fitted from that draft's own picks (median value in bins of six slots,
-forced never to rise as slots get later), so the average pick in a room
-scores zero by construction. That is what makes startup drafts, rookie
-drafts, 10-team and 14-team leagues comparable without any hand-tuned
-constant. A draft with fewer than 12 priced picks is skipped rather than
-scored badly.</p>
+<h4>The unit: value capture</h4>
+<p>Everything below is built from one measurement. For any asset that
+changes hands on a date, we take its KeepTradeCut value <strong>on that
+date</strong> and the highest value it reached <strong>afterwards</strong>.
+The difference is what was <em>captured</em>:</p>
+<p><code>captured = peak value after the transaction &minus; value on the
+day of the transaction</code></p>
+<p>Acquiring an asset captures that gap; giving one up forfeits it. So
+acquiring a player just before he breaks out scores well, and trading away a
+player who then breaks out scores badly &mdash; which is the thing everyone
+actually argues about in a dynasty league.</p>
 
-<h4>Trade skill — did value come in or leak out?</h4>
-<p>For each trade, net = <em>value received</em> − <em>value given</em>,
-counting players and draft picks on both sides. Within any trade the nets
-sum to exactly zero, so the component is a genuine transfer measure and not
-a popularity contest. A trade containing an asset we cannot price is
-<strong>reported but not scored</strong> — pricing one side and not the
-other would invent a steal that never happened.</p>
+<h4>Draft skill &mdash; did the pick beat its slot?</h4>
+<p>Surplus = what the pick captured, minus what a pick at that slot
+typically captured <em>in that same draft</em>. The par curve is fitted from
+the draft's own picks (median per six-slot bin, forced never to rise as
+slots get later), so the average pick in a room scores zero by construction.
+That is what makes startup drafts, rookie drafts, 10-team and 14-team
+leagues comparable without any hand-tuned constant. A draft with fewer than
+12 evaluable picks is skipped rather than scored badly.</p>
 
-<h4>Waiver skill — was there value on the wire?</h4>
-<p>For each waiver or free-agent add, surplus = <em>value of the player</em>
-− <em>the board floor</em>. Claiming a replacement-level body scores zero;
-finding a starter scores well. FAAB spent is shown in the audit but not
-scored: KTC points and FAAB dollars have no exchange rate, and inventing
-one would be the least defensible number on the page.</p>
+<h4>Trade skill &mdash; did value come in or leak out?</h4>
+<p>Net = captured by what you received, minus captured by what you gave,
+counting players and draft picks on both sides. Within any trade these sum
+to exactly zero, so it is a genuine transfer measure. A trade containing an
+asset we cannot price is <strong>reported but not scored</strong> &mdash;
+pricing one side and not the other would invent a steal that never
+happened.</p>
+
+<h4>Waiver skill &mdash; was there value on the wire?</h4>
+<p>Captured by each waiver or free-agent add. A replacement-level body that
+never rose captures zero; plucking a player who then becomes a starter
+captures a lot. FAAB spent is shown in the audit but not scored: KTC points
+and FAAB dollars have no exchange rate, and inventing one would be the least
+defensible number on the page.</p>
 
 <h4>Why volume cannot buy a good score</h4>
 <p>Each component is a <strong>per-transaction mean</strong>, not a total,
 then shrunk toward zero by <code>n / (n + k)</code> (k = 6 picks, 3 trades,
-5 adds). Shrinkage only ever moves a manager <em>toward</em> average — it
-never flips a sign and never overshoots — so one lucky pick cannot top the
-table, and making 40 mediocre trades cannot either. A manager with no
-activity in a component is scored as league-average for it, flagged, and
+5 adds). Shrinkage only ever moves a manager <em>toward</em> average &mdash;
+it never flips a sign and never overshoots &mdash; so one lucky pick cannot
+top the table, and making 40 mediocre trades cannot either. A manager with
+no activity in a component is scored as league-average for it, flagged, and
 not penalised for abstaining.</p>
+</div>
+
+<h2>Where the <span class="accent">values</span> come from</h2>
+<div class="ms-formula">
+<p style="margin-top:0">KeepTradeCut publishes a <em>live</em> superflex
+consensus board, not an archive, so historical values are not available from
+KTC directly. The dated boards behind this page were recovered from public
+web-archive captures of that page and are stored in this repository, one
+small file per date. <strong>Nothing here is interpolated, modelled or
+invented</strong> &mdash; every number was published by KTC on the date it
+is filed under.</p>
+<p>The archive is <strong>real but sparse</strong>: a few dozen dated boards
+rather than a daily series, with gaps of weeks to months. Consequences,
+stated rather than hidden:</p>
+<ul>
+<li>A transaction is priced at the nearest board <strong>on or before</strong>
+its date &mdash; never after, because a price that did not exist yet is not a
+point-in-time price. The date actually used is shown on every row.</li>
+<li>A "peak" is the highest value we <strong>observed</strong>. The true peak
+may fall in a gap, so captures are best read as a floor on what was really
+available.</li>
+<li>Transactions with no recorded board after them are <strong>not scored at
+all</strong> and are counted separately. You cannot grade foresight on a
+trade made last week.</li>
+</ul>
+<p>Going forward the daily job files a new dated board on every run, so the
+series densifies from here even though the past cannot be filled in.</p>
 </div>
 
 <h2>What this <span class="accent">cannot</span> tell you</h2>
 <div class="ms-formula">
 <ul style="margin:0">
-<li><strong>Outcome, not process.</strong> While transactions are priced at
-current value (see the banner above), a manager who traded for a player
-before he broke out and one who traded for him after receive identical
-credit. Point-in-time pricing is what separates foresight from luck, and it
-only becomes available as dated value history accumulates.</li>
-<li><strong>KeepTradeCut is a crowd, not an oracle.</strong> It is a
-community consensus board. Where the crowd is wrong, this page is wrong the
-same way.</li>
-<li><strong>Only the top 500 are priced.</strong> Assets outside KTC's
-published board are valued at the board floor, not zero. Deep-bench and
-IDP-heavy leagues will see more assets pinned to the floor.</li>
-<li><strong>Future picks are priced at "Mid".</strong> A traded 2027 1st
-could land anywhere; KTC prices Early/Mid/Late separately and we take Mid,
-because the final slot depends on standings that have not happened.</li>
+<li><strong>Hindsight is baked in, by design.</strong> This measures what
+the assets went on to do. A defensible process that ran into an injury
+scores badly here, and a reckless punt that hit scores well. It is a
+measure of results, not of reasoning.</li>
+<li><strong>KeepTradeCut is a crowd, not an oracle.</strong> Where the
+consensus was wrong, this page is wrong the same way.</li>
+<li><strong>Only players on the board are priced.</strong> KTC publishes a
+top 500; assets that never appear cannot be scored and are counted as
+unpriceable rather than guessed at.</li>
+<li><strong>Future picks are priced at the "Mid" tier.</strong> A traded
+2027 1st could land anywhere; KTC prices Early/Mid/Late separately and we
+take Mid, because the final slot depends on standings that have not
+happened.</li>
 <li><strong>Roster management is not measured.</strong> Lineup decisions,
 injury stashes, taxi squads and contending-vs-rebuilding timing are all
 invisible here.</li>
