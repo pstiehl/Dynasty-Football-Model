@@ -15,6 +15,20 @@
   ],
   "channels": [
     {
+      "name": "STACKED Fantasy | Film Breakdowns",
+      "handle": "@stackedfantasyfilm",
+      "channel_id": "UCgaRVS9c1T-4rK0bZMs1WUQ",
+      "enabled": true,
+      "notes": "The channel the owner named after we missed 'CeeDee Lamb: Every Touch of 2026 Week 1 | Full Film Compilation'. RSS verified 2026-09-21: the feed title is exactly 'STACKED Fantasy | Film Breakdowns' and ALL 15 recent uploads are single-player cut-ups published 2026-09-21, e.g. 'Derrick Henry: Every Touch of 2026 Week 2 | Full Film Compilation', 'Lamar Jackson: Every Dropback of 2026 Week 2 | Full Film Compilation', 'Chris Olave: Every Touch of 2026 Week 2 | Full Film Compilation'. Every title leads with the player and carries an explicit cut-up phrase, which is the best possible shape for our matcher. NOTE: the 15-entry RSS window only reaches back to week 2, so the owner's specific week-1 Lamb video could NOT be confirmed from RSS - but the title template matches his quote exactly. Coverage for QBs is why 'every dropback' was added to _CUTUP_STRONG_MARKERS."
+    },
+    {
+      "name": "STACKED Fantasy",
+      "handle": "@STACKEDFantasy",
+      "channel_id": "UCeL9-Xj5e7VnCRFxp8Pn8kg",
+      "enabled": false,
+      "notes": "DISABLED on evidence, and this one is worth reading before anyone re-enables it. It is the sister channel of the film account above and resolves fine, but RSS on 2026-09-21 shows it posts ADP/draft-capital talk, not film: 'Bryce Young is going around pick 172, QB27, and the three year table only moves one way', 'T.J. Hockenson is going at pick 159, the 27th tight end off the board', 'Where are the points in Week 2? Vegas implied totals for all 32 offenses'. That shape is ACTIVELY DANGEROUS to the index rather than merely useless: each title names a tracked player, contains no recap/meme/podcast phrasing, and would therefore have been classified as that player's cut-up and shown in his reel. Enabling it would have injected ADP commentary into the film feed. The matcher was hardened against the shape too ('going around pick', 'going at pick', 'off the board', 'implied totals' are now _NON_GAME_MARKERS), so this is defended in two places. It is also near-dormant: 14 of 15 recent uploads predate 2026-09-04."
+    },
+    {
       "name": "Curtain Call Replays",
       "handle": "@CurtainCallReplays",
       "channel_id": "UC_hzY5r_WT4C5gi0Tl2u0yg",

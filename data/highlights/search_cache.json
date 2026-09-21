@@ -1,0 +1,22 @@
+{
+  "_comment": [
+    "Permanent record of gap-fill search.list queries.",
+    "",
+    "Each key is 'season:week:sleeper_id'. An entry with an empty",
+    "video_ids list is a MISS that already cost one search.list",
+    "call to discover - it must never be re-searched. A project",
+    "gets only 100 search.list calls per DAY, so re-asking",
+    "unanswerable questions is the fastest way to waste the lot.",
+    "",
+    "A player's week-N film does not change once week N is over,",
+    "so every entry here is permanently valid and this file only",
+    "ever grows. Entries are written only for COMPLETED weeks.",
+    "",
+    "Delete an entry only if you want to spend one of the day's",
+    "100 searches asking the same question again."
+  ],
+  "version": 1,
+  "updated_at": "2026-09-21T17:45:00+00:00",
+  "entry_count": 0,
+  "entries": {}
+}

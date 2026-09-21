@@ -3,10 +3,17 @@
 Why this exists
 ---------------
 The roster reel ("watch my whole team's week in 9 minutes") needs, for every
-rostered player, an ordered list of embeddable YouTube video IDs from their
-most recent game. Doing that with ``search.list`` is impossible: it costs 100
-quota units per query against a 10,000/day default, so a single 15-player
-roster view would burn 1,500 units. One user, ten page loads, quota gone.
+rostered player, an ordered list of YouTube video IDs from their most recent
+game. Doing that live with ``search.list`` is impossible: a project gets only
+100 search.list calls per day (see the quota model note in the gap-fill
+section below), so a single 15-player roster view would consume 15% of the
+entire day's search allowance. One user, seven page loads, allowance gone.
+
+NOTE: an earlier version of this docstring said search.list costs "100 quota
+units against a 10,000/day default". That was true before the 2026-06-01
+granular-quota change and is no longer how billing works - search now has its
+own 100-calls/day bucket at 1 unit each. The *conclusion* is unchanged and in
+fact stronger: do not build the read path on search.list.
 
 So we invert it. A scheduled job walks the *uploads playlist* of a curated set
 of highlight channels (``playlistItems.list``, 1 unit per 50 videos), then
@@ -41,6 +48,7 @@ game.
 """
 from __future__ import annotations
 
+import json
 import re
 import unicodedata
 from dataclasses import dataclass, asdict
@@ -69,6 +77,9 @@ _CUTUP_MARKERS = (
     "highlights", "every touch", "every target", "every catch", "every carry",
     "every throw", "every play", "all touches", "all targets", "film room",
     "route running", "full game", "game highlights",
+    # Observed on the STACKED film channel, and named by the owner as the
+    # phrasing to prefer when searching.
+    "every dropback", "full film", "compilation",
 )
 
 # Micro-clips.
@@ -151,11 +162,22 @@ _RECAP_MARKERS = (
 # Phrases that can only describe one player's cut-up. Presence vetoes the
 # recap heuristics entirely - "Every Target and Catch" is never a recap,
 # however long it runs or however many teams the title names.
+#
+# "every dropback" and the "full film compilation" shapes were added from
+# evidence, not guesswork: the STACKED Fantasy | Film Breakdowns feed
+# (verified 2026-09-21, see data/highlights/channels.json) titles every
+# upload as "<Player>: Every Touch of 2026 Week 2 | Full Film Compilation"
+# and uses "Every Dropback" for quarterbacks. Without "every dropback"
+# the strongest per-QB cut-up source in the index got no strong-marker
+# veto at all, so a long Lamar Jackson cut-up naming both teams could be
+# refiled as a game recap.
 _CUTUP_STRONG_MARKERS = (
     "every touch", "every target", "every catch", "every carry",
     "every throw", "every play", "every reception", "every rush",
     "all touches", "all targets", "all catches", "all carries",
-    "route running", "film room", "every snap",
+    "route running", "film room", "every snap", "every dropback",
+    "every drop back", "every completion", "full film",
+    "film compilation",
 )
 
 # Phrases that mean this is talk, not football. Strong negative signal -
@@ -165,6 +187,16 @@ _NON_GAME_MARKERS = (
     "trade rumors", "fantasy advice", "start or sit", "start/sit", "waiver",
     "reaction", "breakdown show", "top 10", "top ten", "career highlights",
     "college highlights", "madden", "rankings", "preview", "predictions",
+    # Draft-capital / ADP talk. Added from evidence: the sister channel
+    # "STACKED Fantasy" (UCeL9-Xj5e7VnCRFxp8Pn8kg) posts titles shaped
+    # like "Bryce Young is going around pick 172, QB27, and the three year
+    # table only moves one way". Those name a tracked player, contain no
+    # recap or meme phrasing, and would otherwise have been filed as that
+    # player's cut-up. The channel itself is disabled, but the shape is
+    # generic enough that any ADP channel would have walked in the same
+    # way, so the defence belongs here as well as in the config.
+    "going around pick", "going at pick", "off the board",
+    "implied totals", "draft capital", "adp ",
 )
 
 _WEEK_RE = re.compile(r"\bweek\s*[#]?\s*(\d{1,2})\b", re.IGNORECASE)
@@ -1427,6 +1459,518 @@ def build_week_buckets(
         slate.clip_count = counts.get(key, 0)
         slate.lead = key == lead_key
     return out
+
+
+# --------------------------------------------------------------------------
+# Gap-fill search layer
+# --------------------------------------------------------------------------
+#
+# Why this exists, and why it is shaped like a budget rather than a loop
+# ----------------------------------------------------------------------
+# The curated-channel walk above is cheap and good, but its coverage is
+# exactly the union of what a handful of channels chose to cut up. The
+# owner's example is the shape of the miss: a channel called "STACKED
+# Fantasy | Film Breakdowns" published "CeeDee Lamb: Every Touch of 2026
+# Week 1 | Full Film Compilation" and the index never saw it, because that
+# channel was not in the config. Adding it fixes that one case. It does
+# not fix the general case, because "accounts like this exist all over
+# YouTube" and we cannot enumerate them in advance.
+#
+# ``search.list`` fixes the general case, and it is hard-capped at 100
+# calls per project per day. The naive reading is "per-player search is
+# impossible": ~700 tracked players against 100 searches/day means seven
+# full days of nothing but searching, every week, forever.
+#
+# The unlock is that the naive reading assumes we must re-search. We must
+# not. **A player's week-N clips do not change once week N is over.**
+# Week 1 film is finished film. So the real cost is not per-player-per-day,
+# it is per-player-per-week, paid exactly once and cached permanently:
+#
+#     700 players, searched ONCE each per week
+#     100 searches/day x 7 days     = 700 searches/week available
+#     at the default 40/run budget  = ~300 searches/week actually spent
+#
+# and in practice far fewer than 700 players need it, because the base
+# layer already covers the players the cut-up channels care about - which
+# is heavily correlated with the players users roster. The priority order
+# puts rostered and highly-ranked players first precisely so that the
+# players nobody asked about are the ones that fall off the end.
+#
+# Hence: a hard budget, a permanent cache, and a priority order. The
+# budget is enforced by :class:`SearchBudget`, which is the only thing
+# that can authorise a search and which cannot be talked past. The cache
+# is :class:`SearchCache`, which records **misses as well as hits** - a
+# (player, week) that returned nothing is a question we already paid to
+# ask, and asking it again next run would be the single easiest way to
+# burn the entire budget on nothing.
+
+# Quota model, VERIFIED against Google's published cost table on
+# 2026-09-21 (developers.google.com/youtube/v3/determine_quota_cost,
+# page last updated 2026-09-15). This is NOT the model the rest of this
+# repo was written against, and the difference matters enough to spell
+# out rather than quietly correct.
+#
+# OLD model, still described in a lot of third-party writing:
+#     search.list      100 units, drawn from a shared 10,000/day pool
+#
+# CURRENT model, since the 2026-06-01 granular-quota change:
+#     search.list      1 unit, against its OWN bucket of 100 calls/day
+#     videos.insert    1 unit, against its own bucket of 100 calls/day
+#     everything else  10,000 units/day, shared
+#
+# Two consequences, pulling in opposite directions:
+#
+#   GOOD: gap-fill can no longer starve the base layer. The two draw on
+#   separate buckets, so exhausting search cannot blank the reel. Under
+#   the old model, 100 searches consumed the entire daily pool and took
+#   the cheap channel walk down with it.
+#
+#   BAD: the ceiling is now hard and cannot be bought around by being
+#   frugal elsewhere. 100 searches per project per day, full stop.
+#   Saving units on playlistItems buys exactly zero extra searches.
+#
+# The budget below is therefore expressed in CALLS, not units, because
+# calls are what is actually scarce.
+
+#: Unit costs against the shared 10,000-unit pool.
+PLAYLIST_ITEMS_UNIT_COST = 1
+VIDEOS_LIST_UNIT_COST = 1
+CHANNELS_LIST_UNIT_COST = 1
+
+#: search.list costs one unit -- against its own bucket, not the pool.
+#: Named rather than inlined because the old value (100) is widely quoted
+#: and someone will eventually try to "correct" this back.
+SEARCH_LIST_UNIT_COST = 1
+
+#: The real constraint: search.list calls per project per day.
+SEARCH_LIST_DAILY_CALL_LIMIT = 100
+
+#: Default daily pool for everything that is not search.list or
+#: videos.insert. Per *project*, not per key: two API keys in one Cloud
+#: project share one 10,000-unit budget.
+DEFAULT_DAILY_QUOTA_UNITS = 10_000
+
+#: Default cap on ``search.list`` calls in a single run.
+#:
+#: Why 40 rather than 100. The limit is per project per *day*, but this
+#: script runs more than once on some days: the workflow has a daily
+#: 11:00 UTC schedule plus a second in-season pass at 16:00 UTC on
+#: Tuesdays. Two runs at 60 would be 120 calls against a 100-call day,
+#: and the second run would start failing partway through - precisely
+#: the failure a budget exists to prevent.
+#:
+#: 40 x 2 = 80 on the heaviest day, leaving 20 calls of headroom for a
+#: manual re-run or a retry. On a single-run day it spends 40 of 100.
+#:
+#: Conservatism costs little here because the cache compounds: ~40
+#: players per run is ~300 newly-covered players a week, and not one of
+#: them is ever paid for twice.
+DEFAULT_SEARCH_BUDGET_CALLS = 40
+
+
+class SearchBudget:
+    """Hard cap on ``search.list`` calls for one run.
+
+    The single gate through which every search must pass. It is a class
+    rather than a counter in the caller because the invariant that matters
+    - *never exceed the cap* - has to hold no matter how the caller loops,
+    retries or handles errors, and a bare integer in a ``for`` body has
+    historically not survived contact with an exception handler.
+
+    :meth:`take` is the only way to get permission, and it decrements
+    before the call is made rather than after it returns. A search that
+    raises still counts: the quota was spent the moment YouTube received
+    the request, so refunding it on failure would let a run of failing
+    searches spend unbounded quota while believing it had spent none.
+    """
+
+    def __init__(
+        self,
+        max_calls: int = DEFAULT_SEARCH_BUDGET_CALLS,
+        *,
+        unit_cost: int = SEARCH_LIST_UNIT_COST,
+        daily_quota: int = DEFAULT_DAILY_QUOTA_UNITS,
+        daily_call_limit: int = SEARCH_LIST_DAILY_CALL_LIMIT,
+    ) -> None:
+        self.daily_call_limit = max(0, int(daily_call_limit))
+        requested = max(0, int(max_calls))
+        # Clamp to the API's own daily ceiling. A caller asking for 500
+        # searches has misunderstood the quota model, and honouring it
+        # would mean 400 guaranteed failures. Clamping fails safe, and
+        # the run log reports that it happened.
+        self.requested_calls = requested
+        self.max_calls = min(requested, self.daily_call_limit)
+        self.clamped = self.max_calls < requested
+        self.unit_cost = int(unit_cost)
+        self.daily_quota = int(daily_quota)
+        self.used = 0
+        #: Searches skipped because the budget was already exhausted.
+        #: Reported so a run can say "I ran out" rather than silently
+        #: covering fewer players than asked.
+        self.denied = 0
+
+    @property
+    def remaining(self) -> int:
+        return max(0, self.max_calls - self.used)
+
+    @property
+    def units_spent(self) -> int:
+        return self.used * self.unit_cost
+
+    @property
+    def units_budgeted(self) -> int:
+        return self.max_calls * self.unit_cost
+
+    def take(self) -> bool:
+        """Authorise one ``search.list`` call, or refuse.
+
+        Returns ``True`` at most :attr:`max_calls` times, ever. Callers
+        must not issue a search without a ``True`` from this method.
+        """
+        if self.used >= self.max_calls:
+            self.denied += 1
+            return False
+        self.used += 1
+        return True
+
+    def to_json(self) -> dict:
+        return {
+            "max_calls": self.max_calls,
+            "requested_calls": self.requested_calls,
+            "clamped_to_daily_limit": self.clamped,
+            "calls_used": self.used,
+            "calls_remaining": self.remaining,
+            "calls_denied": self.denied,
+            "unit_cost": self.unit_cost,
+            "units_spent": self.units_spent,
+            "units_budgeted": self.units_budgeted,
+            "search_daily_call_limit": self.daily_call_limit,
+            "shared_pool_daily_quota": self.daily_quota,
+        }
+
+
+def _cache_key(sleeper_id: str, season: Optional[int], week: int) -> str:
+    """``"2026:1:4034"`` — season, week, player.
+
+    Season is part of the key because week 1 recurs every year and the
+    film does not. Omitting it would make the 2027 season read 2026's
+    cached misses and never search again.
+    """
+    return f"{season if season is not None else '?'}:{int(week)}:{sleeper_id}"
+
+
+class SearchCache:
+    """Permanent record of which (player, season, week) triples we searched.
+
+    This is the artifact that turns an unaffordable feature into an
+    affordable one, so it is worth being precise about what it stores and
+    why.
+
+    It stores the **question**, not just the answer: every entry records
+    ``searched_at`` and the resulting ``video_ids``, and an entry with an
+    empty ``video_ids`` list is a first-class result meaning "we paid 100
+    units to ask and YouTube had nothing". :meth:`seen` is true for both.
+    Treating a miss as "not yet searched" would re-ask the same unanswered
+    question every single run, and because misses are exactly the queries
+    that return nothing to cache, they would accumulate until they
+    consumed the entire budget - the feature would converge on spending
+    6,000 units a day to learn nothing.
+
+    Permanence is only sound for a **completed** week. While week N is
+    still being played, its film is still being uploaded, so a cached miss
+    would be frozen prematurely and that player would never be searched
+    again for that week. :func:`gap_fill_targets` enforces the completed-
+    week restriction; this class refuses to record an entry for a week it
+    was told is incomplete, so the invariant holds even if a future caller
+    forgets.
+    """
+
+    VERSION = 1
+
+    def __init__(self, entries: Optional[Dict[str, dict]] = None) -> None:
+        self.entries: Dict[str, dict] = dict(entries or {})
+        #: Counters for this process's run, for the build log.
+        self.hits = 0
+        self.misses = 0
+        self.recorded = 0
+
+    # -- persistence -------------------------------------------------
+    @classmethod
+    def load(cls, path) -> "SearchCache":
+        """Read the cache, tolerating absence and corruption.
+
+        A missing or unreadable cache must degrade to "we have searched
+        nothing", never to a crash: the base layer is the important half
+        of the refresh and it must still publish.
+        """
+        from pathlib import Path as _Path
+        p = _Path(path)
+        if not p.exists():
+            return cls()
+        try:
+            data = json.loads(p.read_text())
+        except Exception:  # noqa: BLE001
+            return cls()
+        if not isinstance(data, dict):
+            return cls()
+        entries = data.get("entries")
+        return cls(entries if isinstance(entries, dict) else {})
+
+    def save(self, path, *, as_of: Optional[datetime] = None) -> None:
+        from pathlib import Path as _Path
+        p = _Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        payload = {
+            "_comment": [
+                "Permanent record of gap-fill search.list queries.",
+                "",
+                "Each key is 'season:week:sleeper_id'. An entry with an empty",
+                "video_ids list is a MISS that already cost one search.list",
+                "call to discover - it must never be re-searched. A project",
+                "gets only 100 search.list calls per DAY, so re-asking",
+                "unanswerable questions is the fastest way to waste the lot.",
+                "",
+                "A player's week-N film does not change once week N is over,",
+                "so every entry here is permanently valid and this file only",
+                "ever grows. Entries are written only for COMPLETED weeks.",
+                "",
+                "Delete an entry only if you want to spend one of the day's",
+                "100 searches asking the same question again.",
+            ],
+            "version": self.VERSION,
+            "updated_at": (as_of or datetime.now(timezone.utc)).isoformat(),
+            "entry_count": len(self.entries),
+            "entries": dict(sorted(self.entries.items())),
+        }
+        p.write_text(json.dumps(payload, indent=2, sort_keys=False) + "\n",
+                     encoding="utf-8")
+
+    # -- queries -----------------------------------------------------
+    def seen(self, sleeper_id: str, season: Optional[int], week: int) -> bool:
+        """True if this triple was ever searched — hit **or** miss."""
+        return _cache_key(sleeper_id, season, week) in self.entries
+
+    def video_ids(
+        self, sleeper_id: str, season: Optional[int], week: int
+    ) -> List[str]:
+        entry = self.entries.get(_cache_key(sleeper_id, season, week)) or {}
+        ids = entry.get("video_ids")
+        return [str(v) for v in ids] if isinstance(ids, list) else []
+
+    def record(
+        self,
+        sleeper_id: str,
+        season: Optional[int],
+        week: int,
+        video_ids: Sequence[str],
+        *,
+        query: Optional[str] = None,
+        week_complete: bool = True,
+        as_of: Optional[datetime] = None,
+    ) -> bool:
+        """Persist the outcome of one search. Returns whether it stored.
+
+        Refuses to store anything for an incomplete week — see the class
+        docstring. Refusing rather than storing means the player simply
+        gets searched again once the week has finished, which is correct
+        and costs one search; storing would have silenced that player for
+        that week permanently on the strength of a partial slate.
+        """
+        if not week_complete:
+            return False
+        ids = [str(v) for v in video_ids if v]
+        self.entries[_cache_key(sleeper_id, season, week)] = {
+            "searched_at": (as_of or datetime.now(timezone.utc)).isoformat(),
+            "video_ids": ids,
+            **({"query": query} if query else {}),
+        }
+        self.recorded += 1
+        if ids:
+            self.hits += 1
+        else:
+            self.misses += 1
+        return True
+
+    def to_json(self) -> dict:
+        n_hit = sum(1 for e in self.entries.values() if e.get("video_ids"))
+        return {
+            "entries": len(self.entries),
+            "entries_with_results": n_hit,
+            "entries_empty": len(self.entries) - n_hit,
+            "recorded_this_run": self.recorded,
+            "new_hits": self.hits,
+            "new_misses": self.misses,
+        }
+
+
+def search_query_for(
+    player: PlayerRef,
+    week: int,
+    season: Optional[int] = None,
+) -> str:
+    """The query string for one (player, week).
+
+    Deliberately the owner's stated phrasing — "take this player, search
+    'week 1 2026 highlights'" — rather than something cleverer. Search
+    relevance is YouTube's job; ours is to spend the call wisely and then
+    judge the results hard, which happens in :func:`accept_search_video`.
+
+    Adding the position or team to the query was considered and rejected:
+    it narrows recall on a call we only ever make once per player-week,
+    and the filtering afterwards is strict enough that extra recall costs
+    us nothing but gives the n-gram matcher more to work with.
+    """
+    bits = [player.name.strip(), f"week {int(week)}"]
+    if season:
+        bits.append(str(season))
+    bits.append("highlights")
+    return " ".join(b for b in bits if b)
+
+
+def gap_fill_targets(
+    index: dict,
+    players: Sequence[PlayerRef],
+    *,
+    week: Optional[int],
+    week_complete: bool,
+    season: Optional[int] = None,
+    cache: Optional[SearchCache] = None,
+    rostered_ids: Optional[Iterable[str]] = None,
+    limit: Optional[int] = None,
+) -> List[PlayerRef]:
+    """Players who need a search for ``week``, in priority order.
+
+    A player is a target when the base layer produced **no player cut-up
+    in that week's bucket** for them. A game recap does not count: the
+    whole point of the feature is per-player film, and a player whose only
+    coverage is the team recap is precisely who the owner is complaining
+    about.
+
+    Returns empty when the week is not complete. That is the cache
+    permanence rule enforced at its source — see :class:`SearchCache`.
+    Searching an in-progress week would cache a result that is still
+    changing, and the miss it cached would be permanent.
+
+    Priority, in order:
+
+    1. **Rostered players first.** Scarce quota goes to players somebody
+       actually has on a team, because those are the reels that get
+       looked at.
+    2. **Then model rank, ascending.** A ranked player is more likely to
+       be searched for and more likely to have film that exists.
+    3. Unranked players last, alphabetically for a stable, diff-able
+       order across runs.
+
+    Stability matters more than it looks: with a 60-call budget and
+    hundreds of candidates, an unstable order would re-shuffle the queue
+    every run and spread coverage thinly across everyone instead of
+    completing the players who matter first.
+    """
+    if week is None or not week_complete:
+        return []
+
+    rostered = {str(r) for r in (rostered_ids or ()) if r}
+    clips = index.get("clips") or {}
+
+    def has_cutup(sid: str) -> bool:
+        for c in clips.get(sid, ()):
+            if c.get("kind") != KIND_PLAYER:
+                continue
+            # Bucket week is derived from the upload timestamp, which is
+            # the same attribution the week buckets use. Falling back to
+            # the title's week would let a mislabelled title mask a real
+            # gap.
+            if c.get("bucket_week") == week:
+                return True
+        return False
+
+    targets = [
+        p for p in players
+        if not has_cutup(p.sleeper_id)
+        and not (cache and cache.seen(p.sleeper_id, season, week))
+    ]
+
+    def sort_key(p: PlayerRef):
+        return (
+            0 if p.sleeper_id in rostered else 1,
+            p.rank if p.rank is not None else 10**6,
+            p.name.lower(),
+        )
+
+    targets.sort(key=sort_key)
+    return targets[:limit] if limit else targets
+
+
+def accept_search_video(
+    video: Video,
+    player: PlayerRef,
+    name_index: Dict[str, List[PlayerRef]],
+    *,
+    week: Optional[int] = None,
+    min_clip_seconds: int = MIN_CLIP_SECONDS,
+) -> bool:
+    """Is this search result really this player's cut-up?
+
+    Search results are far dirtier than curated-channel uploads, so this
+    is strict, and it is strict by **reusing the existing matcher rather
+    than adding a looser one**. The rules, in order:
+
+    1. The title must name the player, through the same n-gram +
+       ``names.normalize`` path the base layer uses. Not "contains the
+       surname" - that is how you end up showing Josh Allen the
+       linebacker to a Josh Allen quarterback manager.
+    2. It must classify as a player cut-up. A recap, a meme, a podcast or
+       an ADP take is rejected exactly as it would be from a channel.
+    3. It must clear the same duration floor.
+    4. If the title states a week, it must be the week we asked for. A
+       title with no week is allowed through - plenty of real cut-ups
+       omit it, and the bucket attribution is by publish time anyway.
+
+    Nothing here loosens the base layer's standards for the sake of
+    filling a gap. An empty slot is a better outcome than the wrong
+    player's film.
+    """
+    if is_short(video, min_seconds=min_clip_seconds):
+        return False
+
+    matched = match_players(video, name_index)
+    if not any(p.sleeper_id == player.sleeper_id for p in matched):
+        return False
+
+    if classify(video, matched) != KIND_PLAYER:
+        return False
+
+    title_week = parse_week(video.title)
+    if week is not None and title_week is not None and title_week != week:
+        return False
+
+    return True
+
+
+def rank_search_videos(videos: Sequence[Video]) -> List[Video]:
+    """Order accepted search results best-first.
+
+    The owner asked for "well reviewed" clips. YouTube exposes no rating
+    we can read, so ``statistics.viewCount`` is the available proxy - and
+    it is free, because ``videos.list`` already returns it in the same
+    call that supplies duration.
+
+    It is a **secondary** key, under explicit cut-up phrasing. A 50,000-
+    view clip titled "Week 1 Highlights" loses to a 900-view "Every Touch
+    of Week 1", because the second one is definitely the thing we want
+    and the first one merely might be. Popularity breaks ties; it does
+    not decide them.
+    """
+    def key(v: Video):
+        folded = _fold(v.title)
+        return (
+            0 if _has_any(folded, _CUTUP_STRONG_MARKERS) else 1,
+            -(v.view_count or 0),
+            -(parse_ts(v.published_at).timestamp()
+              if parse_ts(v.published_at) else 0.0),
+        )
+
+    return sorted(videos, key=key)
 
 
 def load_players_from_db(rank_by_gsis: Optional[Dict[str, int]] = None) -> List[PlayerRef]:
