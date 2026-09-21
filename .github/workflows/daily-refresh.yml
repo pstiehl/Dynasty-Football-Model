@@ -73,9 +73,26 @@ jobs:
       # now prefers live PFR and trips a circuit breaker on the archive, but
       # skipping it outright in CI avoids paying even the breaker's warm-up.
       # Unset this to let the archive be tried again (e.g. running locally).
+      # Pro Football Reference returns HTTP 403 to GitHub-hosted runners.
+      # Our User-Agent is honest and self-identifying, so this is an
+      # IP-level block on datacenter ranges, not something to work around -
+      # Sports Reference's terms do not permit scraping, and we are not
+      # going to spoof a browser to evade a deliberate access control.
+      #
+      # Run 35597107333 (with the direct-first fix) proved it: 26 x 403
+      # from PFR and Errno 111 from the archive, on exactly the marquee
+      # players the site most needs - Mahomes, Josh Allen, Lamar, Hurts,
+      # Herbert, Lawrence, Bijan, Gibbs, Amon-Ra St. Brown.
+      #
+      # The per-player Career Stats panel is the only consumer. It is
+      # skipped here until it is rebuilt on nflverse data, which we already
+      # download in this same job and which is published for exactly this
+      # use. The builder already degrades gracefully, so player pages lose
+      # one panel and nothing else.
       - name: Run the model end-to-end
         env:
           PFR_DISABLE_WAYBACK: '1'
+          DFM_SKIP_CAREER_STATS: '1'
         run: |
           python -m dynasty.launcher_headless
 
