@@ -238,7 +238,9 @@ function xlRenderDraftBoard(corpus) {
     return;
   }
   var rows = board.map(function (r) {
-    return '<tr class="xl-row" data-manager="' + xlEsc(r.manager_id) + '">' +
+    return '<tr class="xl-row" data-manager="' + xlEsc(r.manager_id) + '"' +
+      ' tabindex="0" role="button"' +
+      ' aria-label="What drives the score for ' + xlEsc(r.display_name) + '">' +
       '<td class="xl-rank">' + xlEsc(r.rank) + '</td>' +
       '<td><span class="xl-name">' + xlEsc(r.display_name) + '</span></td>' +
       '<td class="' + xlCls(r.draft_z) + '">' + xlSigned(r.draft_z, 3) + '</td>' +
@@ -270,7 +272,9 @@ function xlRenderLeaderboard(corpus) {
   }
   var body = rows.map(function (r) {
     var c = r.components || {};
-    return '<tr class="xl-row" data-manager="' + xlEsc(r.manager_id) + '">' +
+    return '<tr class="xl-row" data-manager="' + xlEsc(r.manager_id) + '"' +
+      ' tabindex="0" role="button"' +
+      ' aria-label="What drives the score for ' + xlEsc(r.display_name) + '">' +
       '<td class="xl-rank">' + xlEsc(r.rank) + '</td>' +
       '<td><span class="xl-name">' + xlEsc(r.display_name) + '</span>' +
         (r.flags && r.flags.length
@@ -737,17 +741,53 @@ function xlRenderAll(corpus) {
   var results = xlEl('xl-results');
   if (results) results.style.display = corpus ? 'block' : 'none';
 
-  var tbl = xlEl('xl-leaderboard');
-  if (tbl && tbl.querySelectorAll) {
-    var rows = tbl.querySelectorAll('tr.xl-row');
-    for (var i = 0; i < rows.length; i++) {
-      (function (tr) {
-        tr.addEventListener('click', function () {
-          xlToggle(tr.dataset ? tr.dataset.manager : null);
-        });
-      })(rows[i]);
-    }
-  }
+  xlBindRowClicks();
+}
+
+/* One delegated listener for the whole document, installed once.
+ *
+ * This used to bind a handler to each row of #xl-leaderboard only, which
+ * had three faults. The Best drafters table (#xl-draft-board) is rendered
+ * separately by xlRenderDraftBoard, so its rows carried data-manager but
+ * never received a handler at all -- clicking a name there did nothing,
+ * which is exactly what the owner reported. Binding per row also re-bound
+ * on every xlRenderAll, stacking duplicate handlers, and missed any row
+ * added after the pass had run.
+ *
+ * The highlight-chip code on this same page already uses delegation for
+ * these reasons; this now matches it. Chip clicks call stopPropagation,
+ * so pressing a player's film chip inside a row does not also toggle the
+ * row's detail panel.
+ */
+var xlRowClicksBound = false;
+
+function xlBindRowClicks() {
+  if (xlRowClicksBound) return;
+  var doc = (typeof document !== 'undefined') ? document : null;
+  if (!doc || !doc.addEventListener) return;
+  xlRowClicksBound = true;
+
+  doc.addEventListener('click', function (ev) {
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var tr = t.closest('tr.xl-row');
+    if (!tr) return;
+    var id = tr.dataset ? tr.dataset.manager : null;
+    if (!id) return;
+    xlToggle(id);
+  });
+
+  /* Keyboard parity: a row you can click is a row you must be able to
+   * reach without a mouse. Rows are given tabindex/role at render time. */
+  doc.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    var t = ev.target;
+    if (!t || !t.closest) return;
+    var tr = t.closest('tr.xl-row');
+    if (!tr || !tr.dataset || !tr.dataset.manager) return;
+    ev.preventDefault();
+    xlToggle(tr.dataset.manager);
+  });
 }
 
 function xlLoad() {
