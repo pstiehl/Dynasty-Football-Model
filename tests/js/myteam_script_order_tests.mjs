@@ -397,10 +397,31 @@ const FIXTURE = `
   ok(corpusCalls.length === 0,
      'unconfigured: scoring a league makes NO corpus network call',
      corpusCalls.join(','));
-  ok(box.style.display === 'none',
-     'unconfigured: the corpus box stays hidden — the UI says nothing about an index that does not exist',
-     `display=${box.style.display} html=${String(box.innerHTML).slice(0, 80)}`);
-  ok(box.innerHTML === '', 'unconfigured: the corpus box paints no copy');
+  /* The box is SHOWN and says the score was not recorded.
+   *
+   * This assertion used to be the exact opposite: the box stayed hidden,
+   * on the reasoning that the page should say nothing about an index that
+   * does not exist. Saying nothing turned out not to be neutral. The
+   * section still scores the league and still draws a full table, so a
+   * visitor who clicks "Score this league" sees something obviously happen
+   * and reasonably concludes their league is now indexed. The owner hit
+   * exactly that: submitted a league, clicked the button, and nothing was
+   * recorded anywhere with nothing on the page to say so.
+   *
+   * Silence about a missing backend is indistinguishable from success, so
+   * the unconfigured build now states the outcome plainly. */
+  ok(box.style.display === 'block',
+     'unconfigured: the corpus box is SHOWN, so the page states the outcome',
+     `display=${box.style.display}`);
+  ok(/not recorded/i.test(box.innerHTML),
+     'unconfigured: the copy says the score was not recorded',
+     String(box.innerHTML).slice(0, 120));
+  ok(!/callout-warn/.test(box.className),
+     'unconfigured: it is not styled as an error — nothing failed',
+     box.className);
+  ok(/league-submission\.yml/.test(box.innerHTML),
+     'unconfigured: the copy points at the issue path that actually works',
+     String(box.innerHTML).slice(0, 200));
 
   // The opt-in must not exist at all when there is nowhere to submit.
   ok(!/id="ms-corpus-optin"/.test(html),

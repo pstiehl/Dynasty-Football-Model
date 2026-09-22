@@ -303,6 +303,49 @@ class ClientSubmitTests(unittest.TestCase):
     def test_template_has_no_leftover_tokens(self):
         self.assertIn("__CORPUS_URL__", CORPUS_SUBMIT_JS)
         self.assertNotIn("__CORPUS_URL__", corpus_submit_js("https://x.example"))
+        self.assertNotIn("__SUBMIT_ISSUE_URL__",
+                         corpus_submit_js("", "https://x.example/issues/new"))
+
+    def test_unconfigured_build_states_the_score_was_not_recorded(self):
+        """Silence about a missing backend reads as success.
+
+        The unconfigured page still scores the league and still draws a
+        full table, so rendering nothing after "Score this league" leaves a
+        visitor believing it was submitted. The owner hit exactly that.
+        """
+        js = corpus_submit_js("")
+        self.assertIn("state === 'off'", js)
+        self.assertIn("This score was not recorded.", js)
+
+    def test_unconfigured_build_names_the_fallback_that_works(self):
+        js = corpus_submit_js("", "https://github.com/o/r/issues/new"
+                                  "?template=league-submission.yml")
+        self.assertIn("var CS_SUBMIT_ISSUE_URL = "
+                      "'https://github.com/o/r/issues/new"
+                      "?template=league-submission.yml';", js)
+
+    def test_issue_url_is_sanitised_like_the_corpus_url(self):
+        for hostile in ("javascript:alert(1)", "'; alert(1); var x='",
+                        "data:text/html,<script>"):
+            js = corpus_submit_js("", hostile)
+            self.assertIn("var CS_SUBMIT_ISSUE_URL = '';", js,
+                          f"{hostile!r} was not neutralised")
+
+    def test_default_issue_url_points_at_the_repo_template(self):
+        """The wiring, not just the splice: the emitted script must carry it."""
+        import os
+
+        from dynasty.managerscore import manager_score_corpus_js
+
+        old = os.environ.get("DFM_CORPUS_URL")
+        os.environ.pop("DFM_CORPUS_URL", None)
+        try:
+            js = manager_score_corpus_js()
+        finally:
+            if old is not None:
+                os.environ["DFM_CORPUS_URL"] = old
+        self.assertIn("template=league-submission.yml", js)
+        self.assertIn("/issues/new?", js)
 
     @unittest.skipUnless(NODE, "node not installed")
     def test_client_script_parses(self):

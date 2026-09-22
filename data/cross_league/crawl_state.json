@@ -1,8 +1,8 @@
 {
  "schema": "crossleague-crawl-state/2",
- "updated_at": "2026-09-22T17:07:24+00:00",
+ "updated_at": "2026-09-22T19:09:42+00:00",
  "season": 2026,
- "n_runs": 18,
+ "n_runs": 20,
  "frontier": [
   {
    "league_id": "1365183586830938112",
@@ -9062,603 +9062,603 @@
   },
   {
    "league_id": "1359994043668398080",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312214205352394752",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316260553911459840",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1357476627134554112",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312103297233981440",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316261601224970240",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316261861758341120",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316261925763448832",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1320219628999315456",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1322252569938006016",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314742320272248832",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312608268400492544",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316262623037124608",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1335143231486169088",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316262934770384896",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316263287708467200",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1394749747683684352",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1345603285804933120",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312127314141655040",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312146611329077248",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312207895336611840",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1327719619875577856",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1329600423593508864",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1327721117795745792",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1326962673362939904",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1325542781514444800",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312172535013462016",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1335467890194780160",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312205569309831168",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314755796365475840",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312337636882382848",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313229701224873984",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312208677352013824",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314761703673597952",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1328881136092323840",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1338549209170735104",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1326350065320624128",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1319067739398107136",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314090067655954432",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1315940170989580288",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1315391119084769280",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1342999289428742144",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314839573800431616",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313235876221816832",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313039396257165312",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313039241621557248",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312690263822450688",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312450010272522240",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312287528669163520",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312242812497977344",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312192050455642112",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312188191402381312",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312188077409591296",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312170178456342528",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312132800442273792",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312118696193327104",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312109668151066624",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312085298758291456",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1318277228768813056",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1318277320175271936",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1318276961524535296",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1322759178573332480",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313379074743205888",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312840006527651840",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1347103316974239744",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1336830770584522752",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1335689928545153024",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1317231280202457088",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313612976527282176",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312133821960835072",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313619752832241664",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314147098882506752",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1319483787939151872",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312919917963538432",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1324095330781773824",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1328076356096909312",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314011642203222016",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312305958487064576",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1321920840861765632",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316632439677792256",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1331311777358557184",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313225732343750656",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1315748360505794560",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1330977938979438592",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313239074496081920",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1329091663271837696",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1372100644097261568",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1363275548427567104",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1315982658131492864",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1315403909098897408",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313265894721339392",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312092028712030208",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1375281038216957952",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1356085450262982656",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312194346698682368",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312618085261283328",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312603545601589248",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314050470846689280",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316636814722736128",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316637273709617152",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1318842908266209280",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1316639341698617344",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1319377998557765632",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1319568202929274880",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312507993526382592",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1331535680899137536",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313642284566208512",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1401383301188440064",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1400897892272631808",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1397304088298860544",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1396310609196228608",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1395606917832769536",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1395223184176861184",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1391195250151690240",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1389344745678962688",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1388965002752311297",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1387519980953665536",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1385811869616316416",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1385084668801482752",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1384004850395656192",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1382565772110352384",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1382090611514949632",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1379538909217710080",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1376628781468381184",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1367140773509734400",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1341154936771080192",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1337632465098907648",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1336480553439891456",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1328425647122415616",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1314002165685059584",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1313010202424918016",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312996029745889280",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312995319692140544",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312993161789833216",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312655134785810432",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312525473988739072",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1312163134819020800",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1374857933875056640",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1374470090203856896",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1372831477112250368",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1336872119341965312",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1373869930239246337",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1371596951342047232",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1371306324037492736",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1370513326261420032",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1369879188814729216",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1369118818705608704",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1368684814311383040",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1368667300315557888",
-   "hop": 1
+   "hop": 0
   },
   {
    "league_id": "1367698663123488768",
-   "hop": 1
+   "hop": 0
   }
  ],
  "seen_leagues": [
@@ -35280,184 +35280,224 @@
    "n_seasons": 2
   },
   "1312163562143121408": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 4
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 152,
+   "n_attempts": 5,
+   "n_seasons": 4,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1311969832136114176": {
-   "last_attempt_at": "2026-09-21T19:41:05+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 1
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 28,
+   "n_attempts": 5,
+   "n_seasons": 1,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312001028794613760": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312003033395105792": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 4
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 150,
+   "n_attempts": 5,
+   "n_seasons": 4,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312046601522388992": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312062940299407360": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312063270529540096": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312063570850107392": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 3
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 109,
+   "n_attempts": 5,
+   "n_seasons": 3,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312092628396822528": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312092679957393408": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 4
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 150,
+   "n_attempts": 5,
+   "n_seasons": 4,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312094909792026624": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "incomplete read (117 call(s) refused or failed) \u2014 discarded rather than scored on partial data",
-   "calls": 152,
-   "n_attempts": 4,
-   "n_seasons": 7
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 272,
+   "n_attempts": 5,
+   "n_seasons": 7,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312102279297372160": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 6
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 234,
+   "n_attempts": 5,
+   "n_seasons": 6,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312103752135610368": {
-   "last_attempt_at": "2026-09-21T19:41:05+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312112728122335232": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 1
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 29,
+   "n_attempts": 5,
+   "n_seasons": 1,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312122655880515584": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 7
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 272,
+   "n_attempts": 5,
+   "n_seasons": 7,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312125379187576832": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 9
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 352,
+   "n_attempts": 5,
+   "n_seasons": 9,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312135783930421248": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 68,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312150074268082176": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 3
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 109,
+   "n_attempts": 5,
+   "n_seasons": 3,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312156287483531264": {
-   "last_attempt_at": "2026-09-21T19:41:05+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 3
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 109,
+   "n_attempts": 5,
+   "n_seasons": 3,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312171897911275520": {
-   "last_attempt_at": "2026-09-21T19:41:05+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 5
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 191,
+   "n_attempts": 5,
+   "n_seasons": 5,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312179293152907264": {
    "last_attempt_at": "2026-09-21T20:25:46+00:00",
@@ -35469,49 +35509,59 @@
    "n_seasons": 5
   },
   "1312214107109195776": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 4
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 150,
+   "n_attempts": 5,
+   "n_seasons": 4,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312221168287125504": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 2
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 69,
+   "n_attempts": 5,
+   "n_seasons": 2,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312233722187116544": {
-   "last_attempt_at": "2026-09-21T19:55:57+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 7
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 273,
+   "n_attempts": 5,
+   "n_seasons": 7,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312455906813841408": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 7
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 272,
+   "n_attempts": 5,
+   "n_seasons": 7,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312493679578988544": {
-   "last_attempt_at": "2026-09-21T19:41:05+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "api call budget exhausted before this league was read",
-   "calls": 0,
-   "n_attempts": 4,
-   "n_seasons": 3
+   "last_attempt_at": "2026-09-22T19:09:42+00:00",
+   "last_ok_at": "2026-09-22T19:09:42+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 109,
+   "n_attempts": 5,
+   "n_seasons": 3,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1312510655986688000": {
    "last_attempt_at": "2026-09-21T20:43:17+00:00",
@@ -35928,13 +35978,15 @@
    "n_seasons": 5
   },
   "1316222126914539520": {
-   "last_attempt_at": "2026-09-21T19:02:00+00:00",
-   "last_ok_at": "2026-09-21T18:43:11+00:00",
-   "ok": false,
-   "reason": "incomplete read (56 call(s) refused or failed) \u2014 discarded rather than scored on partial data",
-   "calls": 92,
-   "n_attempts": 3,
-   "n_seasons": 4
+   "last_attempt_at": "2026-09-22T19:01:43+00:00",
+   "last_ok_at": "2026-09-22T19:01:43+00:00",
+   "ok": true,
+   "reason": null,
+   "calls": 28,
+   "n_attempts": 4,
+   "n_seasons": 4,
+   "n_deferrals": null,
+   "last_deferred_at": null
   },
   "1316249983279710208": {
    "last_attempt_at": "2026-09-21T19:02:00+00:00",

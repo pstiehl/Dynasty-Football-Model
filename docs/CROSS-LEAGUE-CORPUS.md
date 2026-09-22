@@ -153,6 +153,78 @@ Failures are recorded as attempts, not skipped. A permanently unreadable
 league would otherwise sit at the front of the "never scored" queue and be
 retried first on every single run — which is how a crawl gets stuck.
 
+A league that was **never read** is not a failure, though, and conflating
+the two produced a bug big enough to have its own section below.
+
+### 2.5.1 The backfill tier: draining the withheld population
+
+A manager is published only when *every* league counted in their score has
+its pick-level audit retained (`dynasty.manager_detail.apply_evidence_gate`).
+So an indexed league with no retained audit does not just lack a drill-down
+— it withholds all of its managers from the board.
+
+Measured on the committed artifacts, 2026-09-22: **114 indexed leagues held
+a score with no retained audit, withholding 1,456 of 3,024 managers.**
+
+Those 114 could not drain on their own, for a reason that was nothing to do
+with the leagues. The scoring harness emits `ok: false` for two different
+things, and the ledger recorded them identically:
+
+* *"I read this league and it did not work"* — a real failure;
+* *"the run's call budget was gone before I reached this league"* — a fact
+  about the run, reported with `calls: 0`.
+
+`plan_scoring` sorts failed leagues after successful ones of the same age.
+So a league at the tail of the queue was skipped for budget, recorded as
+failed, demoted below every healthy league, and therefore sat at the tail
+again on the next run. **108 of the 114 carried the reason "api call budget
+exhausted before this league was read", and none of them had ever actually
+been re-read.** Dallas Kings (`1316222126914539520`) was one of them; it
+scores fine in 151 calls when simply given a turn.
+
+Two changes, both in `dynasty.crawl_state`:
+
+1. `record_scoring` honours a `skipped: true` flag from the harness. A
+   skipped league keeps its previous `ok` and `last_ok_at`, does not count
+   an attempt, and stamps `last_deferred_at` / `n_deferrals` so the
+   starvation is visible rather than silent.
+2. `plan_scoring` gained a **backfill tier**, queued ahead of new
+   discovery: indexed leagues (`last_ok_at` set) whose id is absent from
+   `data/cross_league/detail/`. `--backfill-share` (0.5 in CI) partitions
+   the existing `--max-leagues` slots — it does **not** raise any cap, so
+   crawl volume and the rate floor are unchanged.
+
+`last_ok_at` rather than `ok` is the predicate deliberately: `ok` describes
+the last attempt, and a league scored Monday and skipped Tuesday is still
+fully present in the corpus. Keying off `ok` would miss the entire starved
+population.
+
+Backfill is ordered ahead of discovery because only a backfill can convert a
+withheld manager into a published one — a newly discovered league adds
+managers who are themselves withheld until their own audit lands. The share
+is capped at 0.5 so draining the backlog cannot stop the corpus growing, and
+the tier empties itself: with no league missing an audit the slots fall back
+to new and refresh automatically.
+
+The gate itself was **not** weakened. It still requires a complete audit and
+at least one scored transaction. What improved is the evidence.
+
+Measured over one targeted re-score plus one 25-league backfill run
+(`n_scored` unchanged at 3,024):
+
+| | league audits | shown | withheld |
+|---|---|---|---|
+| before | 162 | 1,568 | 1,456 |
+| after  | 188 | 1,797 | 1,227 |
+
+There is also an operator handle for a single league that should not wait
+its turn:
+
+```bash
+python scripts/crawl_cross_league.py --only-league 1316222126914539520 \
+  --write-corpus
+```
+
 **Losing this file is survivable, and that is by design.** Every league ever
 confirmed dynasty is *also* written to the seed registry (§9.2), so a cold
 start re-reaches all of them at one call each. What is lost is the frontier:

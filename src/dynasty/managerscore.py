@@ -739,12 +739,23 @@ def manager_score_corpus_js() -> str:
     in any way that would let it run first -- it does not depend on the core
     script at evaluation time either, but keeping it last matches the
     dependency direction and is what the tests execute.
+
+    The issue-template URL is resolved here rather than hard-coded in the JS
+    so a fork points its visitors at its OWN tracker, matching how
+    ``crawl_cross_league`` builds ``corpus['submission']['repo']``. It is the
+    fallback the script names when no corpus backend is configured, and it is
+    a real working path -- ``.github/workflows/league-submissions.yml``
+    ingests it -- so naming it is a promise the project can keep.
     """
     import os
 
     from .corpus_submit_js import corpus_submit_js
 
-    return corpus_submit_js(os.environ.get("DFM_CORPUS_URL", ""))
+    repo = (os.environ.get("GITHUB_REPOSITORY")
+            or "pstiehl/Dynasty-Football-Model")
+    issue_url = ("https://github.com/" + repo
+                 + "/issues/new?template=league-submission.yml")
+    return corpus_submit_js(os.environ.get("DFM_CORPUS_URL", ""), issue_url)
 
 
 def build_manager_score_pointer(latest_ts: datetime, league_label: str) -> str:

@@ -52,7 +52,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from typing import Dict, Iterable, List, Optional, Sequence
 
 STATE_SCHEMA = "crossleague-crawl-state/2"
 
@@ -196,6 +196,29 @@ def record_scoring(state: Dict, results: Sequence[Dict]) -> Dict:
     at the front of the "never scored" queue and be retried first on every
     single run, which is how a crawl gets stuck. Recording the attempt lets
     it age into the normal staleness ordering instead.
+
+    A SKIPPED league is not a failed league
+    ---------------------------------------
+    The harness emits ``ok: false`` for two very different things. One is
+    "I read this league and it did not work". The other is "the run's call
+    or wall-clock budget was gone before I reached this league", which it
+    reports with ``skipped: true`` and ``calls: 0``. The second says
+    nothing whatsoever about the league -- it is a fact about the run.
+
+    Recording it as a failure was actively harmful, because
+    :func:`plan_scoring` sorts failed leagues after successful ones of the
+    same age. A league at the tail of the queue was therefore skipped for
+    budget, marked failed, demoted below every healthy league, and so sat
+    at the tail again on the next run. Measured on the committed state on
+    2026-09-22: 108 of the 114 leagues that hold a score but no retained
+    audit carry the reason "api call budget exhausted before this league
+    was read", and none of them had ever actually been re-read. Dallas
+    Kings (1316222126914539520) was one of them, and scores fine in 151
+    calls when it is simply given a turn.
+
+    So a skipped result leaves the prior record intact -- same ``ok``, same
+    ``last_ok_at``, same attempt count -- and only stamps ``last_deferred_at``
+    so the starvation is visible rather than silent.
     """
     scored = dict(state.get("scored") or {})
     for r in results:
@@ -203,6 +226,14 @@ def record_scoring(state: Dict, results: Sequence[Dict]) -> Dict:
         if not lid:
             continue
         prev = scored.get(lid) or {}
+        if r.get("skipped"):
+            # Never read. Not an attempt, not a failure -- just deferred.
+            rec = dict(prev)
+            rec["last_deferred_at"] = _now_iso()
+            rec["last_deferred_reason"] = (r.get("reason") or "")[:200]
+            rec["n_deferrals"] = int(prev.get("n_deferrals") or 0) + 1
+            scored[lid] = rec
+            continue
         ok = bool(r.get("ok"))
         scored[lid] = {
             "last_attempt_at": _now_iso(),
@@ -212,10 +243,34 @@ def record_scoring(state: Dict, results: Sequence[Dict]) -> Dict:
             "calls": r.get("calls"),
             "n_attempts": int(prev.get("n_attempts") or 0) + 1,
             "n_seasons": r.get("n_seasons") or prev.get("n_seasons"),
+            "n_deferrals": prev.get("n_deferrals"),
+            "last_deferred_at": prev.get("last_deferred_at"),
         }
     state["scored"] = scored
     state["n_runs"] = int(state.get("n_runs") or 0) + 1
     return state
+
+
+def leagues_missing_audit(state: Dict,
+                          have_detail: Optional[Iterable[str]]) -> List[str]:
+    """Indexed leagues whose pick-level audit is not retained.
+
+    A league belongs here when it has been scored successfully at some
+    point -- so ``crossleague.merge_corpus`` still carries its managers and
+    they still hold ranks -- but ``data/cross_league/detail/`` has no audit
+    for it. Those are exactly the managers the evidence gate withholds:
+    the score is real and the explanation is missing.
+
+    ``last_ok_at`` rather than ``ok`` is the predicate on purpose. ``ok``
+    describes the LAST attempt; a league scored on Monday and skipped for
+    budget on Tuesday has ``ok=False`` yet is still fully present in the
+    corpus. Keying off ``ok`` would miss precisely the starved population
+    this exists to drain -- on the committed state, all 114 of them.
+    """
+    have = {str(x) for x in (have_detail or ())}
+    scored = state.get("scored") or {}
+    return [lid for lid, rec in scored.items()
+            if (rec or {}).get("last_ok_at") and str(lid) not in have]
 
 
 def merge_seed_frontier(state: Dict, seed_ids: Sequence[str]) -> Dict:
@@ -250,14 +305,21 @@ def plan_scoring(
     new_league_share: float = 0.6,
     scoring_budget: int = 0,
     est_calls_new: int = 160,
+    have_detail: Optional[Iterable[str]] = None,
+    backfill_share: float = 0.5,
 ) -> Dict:
     """Choose which leagues this run scores, and in what order.
 
-    Returns ``{"new": [...], "refresh": [...], "reserved_for_new": int}``.
+    Returns ``{"backfill": [...], "new": [...], "refresh": [...], ...}``.
 
     The ordering encodes the growth policy:
 
-    * Never-scored leagues first, capped by the reserved share of the budget
+    * **Backfill first**: indexed leagues whose pick-level audit is not
+      retained. Their managers hold real ranks that the evidence gate must
+      withhold, so re-scoring one converts a withheld row into a published
+      one. Nothing else in the queue can do that -- a new league adds rows
+      that are themselves withheld until their audit lands.
+    * Never-scored leagues next, capped by the reserved share of the budget
       and by ``max_leagues``. These are the only leagues that can make the
       corpus bigger.
     * Then already-indexed leagues, stalest first. With the permanent cache
@@ -266,12 +328,40 @@ def plan_scoring(
 
     Leagues whose last attempt FAILED sort after successful ones of the same
     age, so a permanently unreadable league cannot monopolise the queue.
+
+    Why backfill needs its own tier rather than a place in ``refresh``
+    ------------------------------------------------------------------
+    It had one, and it did not work. Backfill candidates are overwhelmingly
+    leagues that were SKIPPED for budget at the tail of a previous queue,
+    and until :func:`record_scoring` was fixed that marked them ``ok=False``,
+    which ``staleness_key`` sorts *after* every healthy league. They were
+    therefore re-queued last, skipped again, and re-demoted -- 114 leagues
+    on the committed state, none of which had ever been re-read.
+    ``backfill_share`` is capped well below 1.0 so draining them still
+    cannot starve discovery.
     """
     known = state.get("known_dynasty") or {}
     scored = state.get("scored") or {}
 
-    never = [lid for lid in known if lid not in scored]
-    seen_before = [lid for lid in known if lid in scored]
+    # ``None`` means the caller did not look at the detail store, which is a
+    # different statement from "the detail store is empty". Treating them
+    # alike would make every indexed league a backfill candidate for any
+    # caller that has not opted in, and the backfill tier would then hijack
+    # the whole queue. So unknown disables the tier; an explicitly empty set
+    # enables it and legitimately makes everything a candidate.
+    if have_detail is None:
+        missing_audit = set()
+    else:
+        missing_audit = set(leagues_missing_audit(state, have_detail))
+    # Only leagues still in known_dynasty can be scored -- the queue is built
+    # from its records. A retired league keeps its corpus entry but has
+    # nothing to re-read.
+    backfill_ids = [lid for lid in known if lid in missing_audit]
+
+    never = [lid for lid in known
+             if lid not in scored and lid not in missing_audit]
+    seen_before = [lid for lid in known
+                   if lid in scored and lid not in missing_audit]
 
     def staleness_key(lid: str):
         rec = scored.get(lid) or {}
@@ -287,32 +377,55 @@ def plan_scoring(
     ))
     seen_before.sort(key=staleness_key)
 
+    # Oldest evidence gap first, then fewest deferrals, so a league the crawl
+    # keeps skipping is not the same league it skips tomorrow. Deterministic
+    # tie-break on the id keeps a run reproducible.
+    backfill_ids.sort(key=lambda lid: (
+        str((scored.get(lid) or {}).get("last_ok_at") or ""),
+        int((scored.get(lid) or {}).get("n_deferrals") or 0),
+        lid,
+    ))
+
+    n_backfill_slots = int(max(0, max_leagues)
+                           * max(0.0, min(1.0, backfill_share)))
+    backfill_batch = backfill_ids[:n_backfill_slots]
+    slots_left = max(0, max_leagues - len(backfill_batch))
+
     reserved = int(max(0, scoring_budget) * max(0.0, min(1.0, new_league_share)))
     n_new_affordable = max(0, reserved // max(1, est_calls_new))
-    new_batch = never[: min(max_leagues, n_new_affordable)]
-    refresh_batch = seen_before[: max(0, max_leagues - len(new_batch))]
+    new_batch = never[: min(slots_left, n_new_affordable)]
+    refresh_batch = seen_before[: max(0, slots_left - len(new_batch))]
 
     return {
+        "backfill": [dict(known[lid]) for lid in backfill_batch],
         "new": [dict(known[lid]) for lid in new_batch],
         "refresh": [dict(known[lid]) for lid in refresh_batch],
         "reserved_for_new": reserved,
         "n_never_scored_total": len(never),
         "n_previously_scored_total": len(seen_before),
+        "n_missing_audit_total": len(missing_audit),
+        "n_backfill_slots": n_backfill_slots,
     }
 
 
-def state_summary(state: Dict) -> Dict:
+def state_summary(state: Dict,
+                  have_detail: Optional[Iterable[str]] = None) -> Dict:
     """Compact, publishable view of crawl progress.
 
     Goes into the corpus artifact so the page can say how much is queued,
     not just how much is done. "5 leagues indexed, 0 queued" and "5 indexed,
     61 queued" describe very different systems and the difference should be
     visible.
+
+    ``have_detail`` is optional and adds ``n_missing_audit`` -- indexed
+    leagues whose managers the evidence gate has to withhold for want of a
+    retained audit. That is the backlog the backfill tier drains, and it is
+    the one number that predicts whether the withheld count will fall.
     """
     known = state.get("known_dynasty") or {}
     scored = state.get("scored") or {}
     ok_ids = {k for k, v in scored.items() if v.get("ok")}
-    return {
+    out = {
         "n_dynasty_leagues_discovered": len(known),
         "n_scored_ok": len(ok_ids),
         "n_never_scored": len([k for k in known if k not in scored]),
@@ -325,3 +438,6 @@ def state_summary(state: Dict) -> Dict:
         "crawl_runs": int(state.get("n_runs") or 0),
         "updated_at": state.get("updated_at"),
     }
+    if have_detail is not None:
+        out["n_missing_audit"] = len(leagues_missing_audit(state, have_detail))
+    return out

@@ -933,5 +933,153 @@ class TestSeedRegistryIsTheDurableFloor(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
 
 
+# ---------------------------------------------------------------------------
+# Draining the withheld population
+# ---------------------------------------------------------------------------
+
+class TestSkippedIsNotFailed(unittest.TestCase):
+    """A league the run never read must not be recorded as a failure.
+
+    This is the defect that produced a permanently withheld population.
+    ``plan_scoring`` sorts failed leagues after successful ones of the same
+    age, so a league skipped for budget at the tail of the queue was marked
+    failed, demoted below every healthy league, and skipped again next run.
+    Measured on the committed crawl state: 108 of 114 leagues holding a
+    score with no retained audit carried the reason "api call budget
+    exhausted before this league was read", and none had ever been re-read.
+    """
+
+    def _scored_once(self):
+        st = cs.empty_state(2026)
+        st = cs.record_discovery(
+            st, frontier=[], seen_leagues=[], seen_users=[],
+            dynasty=[{"league_id": "L1", "name": "L1", "hop": 1}])
+        return cs.record_scoring(st, [{"league_id": "L1", "ok": True}])
+
+    def test_skip_preserves_the_previous_success(self):
+        st = self._scored_once()
+        ok_at = st["scored"]["L1"]["last_ok_at"]
+        st = cs.record_scoring(st, [{
+            "league_id": "L1", "ok": False, "skipped": True, "calls": 0,
+            "reason": "api call budget exhausted before this league was read",
+        }])
+        rec = st["scored"]["L1"]
+        self.assertTrue(rec["ok"], "a skipped league was demoted to failed")
+        self.assertEqual(rec["last_ok_at"], ok_at)
+        self.assertEqual(rec["n_attempts"], 1, "a skip is not an attempt")
+        self.assertEqual(rec["n_deferrals"], 1)
+
+    def test_a_real_failure_is_still_recorded(self):
+        """The skip carve-out must not swallow genuine failures."""
+        st = self._scored_once()
+        st = cs.record_scoring(st, [{
+            "league_id": "L1", "ok": False, "calls": 40,
+            "reason": "incomplete read",
+        }])
+        rec = st["scored"]["L1"]
+        self.assertFalse(rec["ok"])
+        self.assertEqual(rec["n_attempts"], 2)
+        self.assertEqual(rec["reason"], "incomplete read")
+
+    def test_harness_marks_budget_skips(self):
+        """The signal has to come from the harness, or nothing above fires."""
+        src = (REPO_ROOT / "scripts" / "js"
+               / "score_league_harness.js").read_text(encoding="utf-8")
+        for phrase in ("api call budget exhausted before this league was read",
+                       "wall-clock budget exhausted before this league was read"):
+            idx = src.index(phrase)
+            window = src[max(0, idx - 200):idx]
+            self.assertIn("skipped: true", window,
+                          f"{phrase!r} is not marked as a skip")
+
+
+class TestAuditBackfillTier(unittest.TestCase):
+    """Indexed leagues missing an audit are re-scored ahead of new discovery.
+
+    Only these can move a manager from withheld to published: a newly
+    discovered league adds managers who are themselves withheld until their
+    own audit lands.
+    """
+
+    def _state(self, n_indexed=4, n_new=4):
+        st = cs.empty_state(2026)
+        dyn = [{"league_id": f"idx{i}", "name": f"I{i}", "hop": 1}
+               for i in range(n_indexed)]
+        dyn += [{"league_id": f"new{i}", "name": f"N{i}", "hop": 1}
+                for i in range(n_new)]
+        st = cs.record_discovery(st, frontier=[], seen_leagues=[],
+                                 seen_users=[], dynasty=dyn)
+        return cs.record_scoring(st, [{"league_id": f"idx{i}", "ok": True}
+                                      for i in range(n_indexed)])
+
+    def test_missing_audit_is_keyed_off_ever_ok_not_last_ok(self):
+        """A league scored then skipped is still indexed, so still a candidate.
+
+        Keying off ``ok`` would miss exactly the starved population -- on the
+        committed state, all 114 of them.
+        """
+        st = self._state(n_indexed=1, n_new=0)
+        st = cs.record_scoring(st, [{
+            "league_id": "idx0", "ok": False, "skipped": True,
+            "reason": "api call budget exhausted before this league was read",
+        }])
+        self.assertEqual(cs.leagues_missing_audit(st, set()), ["idx0"])
+
+    def test_backfill_is_queued_ahead_of_new_leagues(self):
+        st = self._state()
+        plan = cs.plan_scoring(st, max_leagues=4, new_league_share=1.0,
+                               scoring_budget=1600, have_detail=set(),
+                               backfill_share=0.5)
+        self.assertEqual(len(plan["backfill"]), 2)
+        self.assertTrue(all(b["league_id"].startswith("idx")
+                            for b in plan["backfill"]))
+        total = (len(plan["backfill"]) + len(plan["new"])
+                 + len(plan["refresh"]))
+        self.assertLessEqual(total, 4, "backfill must not inflate the cap")
+
+    def test_a_league_with_a_retained_audit_is_not_backfilled(self):
+        st = self._state()
+        have = {f"idx{i}" for i in range(4)}
+        plan = cs.plan_scoring(st, max_leagues=4, new_league_share=1.0,
+                               scoring_budget=1600, have_detail=have,
+                               backfill_share=0.5)
+        self.assertEqual(plan["backfill"], [])
+        self.assertEqual(plan["n_missing_audit_total"], 0)
+
+    def test_backfill_cannot_starve_discovery(self):
+        """Draining the backlog must not stop the corpus growing."""
+        st = self._state(n_indexed=50, n_new=10)
+        plan = cs.plan_scoring(st, max_leagues=10, new_league_share=1.0,
+                               scoring_budget=16000, have_detail=set(),
+                               backfill_share=0.5)
+        self.assertEqual(len(plan["backfill"]), 5)
+        self.assertGreater(len(plan["new"]), 0,
+                           "discovery was starved by the backfill tier")
+
+    def test_unknown_detail_store_disables_the_tier(self):
+        """``None`` means "did not look", which is not "nothing retained".
+
+        Conflating them would make every indexed league a candidate for any
+        caller that has not opted in, and backfill would hijack the queue.
+        """
+        st = self._state()
+        plan = cs.plan_scoring(st, max_leagues=4, new_league_share=1.0,
+                               scoring_budget=1600)
+        self.assertEqual(plan["backfill"], [])
+        self.assertEqual(len(plan["new"]), 4)
+
+    def test_retained_league_ids_reads_the_store(self):
+        from dynasty import manager_detail
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "detail"
+            self.assertEqual(manager_detail.retained_league_ids(d), set())
+            written = manager_detail.write_league_detail(d, {
+                "schema": manager_detail.LEAGUE_DETAIL_SCHEMA,
+                "league_id": "12345", "managers": [],
+            })
+            self.assertIsNotNone(written)
+            self.assertEqual(manager_detail.retained_league_ids(d), {"12345"})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
