@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-22T13:14:18.714331+00:00",
-  "entry_count": 216,
+  "updated_at": "2026-09-22T15:30:41.659853+00:00",
+  "entry_count": 222,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -738,6 +738,11 @@
       "video_ids": [],
       "query": "Nelson Agholor week 2 2026 highlights"
     },
+    "2026:2:2334": {
+      "searched_at": "2026-09-22T15:30:41.659853+00:00",
+      "video_ids": [],
+      "query": "Phillip Dorsett week 2 2026 highlights"
+    },
     "2026:2:2374": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
@@ -940,6 +945,11 @@
       "video_ids": [],
       "query": "Kareem Hunt week 2 2026 highlights"
     },
+    "2026:2:4111": {
+      "searched_at": "2026-09-22T15:30:41.659853+00:00",
+      "video_ids": [],
+      "query": "D'Onta Foreman week 2 2026 highlights"
+    },
     "2026:2:4127": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
@@ -1011,6 +1021,11 @@
       "video_ids": [],
       "query": "Noah Brown week 2 2026 highlights"
     },
+    "2026:2:4274": {
+      "searched_at": "2026-09-22T15:30:41.659853+00:00",
+      "video_ids": [],
+      "query": "David Moore week 2 2026 highlights"
+    },
     "2026:2:4314": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
@@ -1047,6 +1062,11 @@
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
       "query": "Dare Ogunbowale week 2 2026 highlights"
+    },
+    "2026:2:4854": {
+      "searched_at": "2026-09-22T15:30:41.659853+00:00",
+      "video_ids": [],
+      "query": "River Cracraft week 2 2026 highlights"
     },
     "2026:2:4866": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
@@ -1110,6 +1130,11 @@
       "video_ids": [],
       "query": "Mike Gesicki week 2 2026 highlights"
     },
+    "2026:2:5000": {
+      "searched_at": "2026-09-22T15:30:41.659853+00:00",
+      "video_ids": [],
+      "query": "Chase Edmonds week 2 2026 highlights"
+    },
     "2026:2:5010": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
@@ -1129,6 +1154,11 @@
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
       "query": "Dallas Goedert week 2 2026 highlights"
+    },
+    "2026:2:5032": {
+      "searched_at": "2026-09-22T15:30:41.659853+00:00",
+      "video_ids": [],
+      "query": "Jordan Akins week 2 2026 highlights"
     },
     "2026:2:5086": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
