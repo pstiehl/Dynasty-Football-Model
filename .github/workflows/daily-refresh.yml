@@ -208,6 +208,38 @@ jobs:
       #                           first build spent its entire budget
       #                           re-reading the same five leagues and had
       #                           nothing left to find a sixth.
+      #   --backfill-share 0.5    share of the 40 league SLOTS reserved for
+      #                           INDEXED leagues whose pick-level audit is
+      #                           missing. This does NOT raise the caps: it
+      #                           partitions the same 40 slots and the same
+      #                           3000 calls, so crawl volume and the rate
+      #                           floor are unchanged.
+      #
+      #                           Why it is needed. A manager is published
+      #                           only when every league in their score has
+      #                           a retained audit. 114 indexed leagues had
+      #                           a score and no audit, which withheld 1,456
+      #                           of 3,024 managers. Those leagues could not
+      #                           drain on their own: 108 of the 114 had
+      #                           been SKIPPED for budget at the tail of a
+      #                           previous queue, which was recorded as a
+      #                           failure, and plan_scoring sorts failures
+      #                           last -- so they were re-queued last and
+      #                           skipped again, every run. The skip is no
+      #                           longer recorded as a failure (see
+      #                           dynasty.crawl_state.record_scoring) and
+      #                           this share gives the backlog a guaranteed
+      #                           turn ahead of new discovery.
+      #
+      #                           Only a backfill can convert a withheld
+      #                           manager into a published one; a newly
+      #                           discovered league adds managers who are
+      #                           themselves withheld until their own audit
+      #                           lands. 0.5 rather than 1.0 so draining the
+      #                           backlog cannot stop the corpus growing.
+      #                           The tier empties itself: when no indexed
+      #                           league is missing an audit the slots fall
+      #                           back to new and refresh automatically.
       #
       # Two committed artifacts make each run cheaper than the last:
       # data/cross_league/crawl_state.json (resume the walk instead of
@@ -229,6 +261,7 @@ jobs:
             --max-discovery-calls 300 \
             --max-seconds 1200 \
             --new-league-share 0.7 \
+            --backfill-share 0.5 \
             --min-delay 0.15 \
             --max-cache-mb 256 \
             --update-seeds \

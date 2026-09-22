@@ -385,7 +385,8 @@ async function scoreOne(spec) {
     if (budget.calls >= MAX_CALLS) {
       results.push({
         league_id: String(spec.league_id), name: spec.name || null,
-        ok: false, reason: 'api call budget exhausted before this league was read',
+        ok: false, skipped: true,
+        reason: 'api call budget exhausted before this league was read',
         calls: 0
       });
       continue;
@@ -393,7 +394,8 @@ async function scoreOne(spec) {
     if (secondsLeft() <= 0) {
       results.push({
         league_id: String(spec.league_id), name: spec.name || null,
-        ok: false, reason: 'wall-clock budget exhausted before this league was read',
+        ok: false, skipped: true,
+        reason: 'wall-clock budget exhausted before this league was read',
         calls: 0
       });
       continue;
