@@ -218,6 +218,45 @@ function xlSubmitUrl(corpus) {
          '/issues/new?template=league-submission.yml';
 }
 
+/* The evidence gate, stated rather than implied.
+ *
+ * Phil: only list managers whose score you can actually take apart. So the
+ * published boards are filtered (dynasty.manager_detail.apply_evidence_gate)
+ * and this is where the site admits it. Two rules:
+ *
+ *  - Never silently shrink the list. "120 more were scored but withheld"
+ *    is a materially different page from one that just happens to be
+ *    shorter, and a visitor who cannot see the difference cannot tell a
+ *    curated board from a broken crawl.
+ *  - Never present the ranks as dense. They are the ranks among ALL scored
+ *    managers, so they skip the withheld rows on purpose -- renumbering
+ *    would tell someone they were first when they were fourth. */
+function xlEvidenceSentence(corpus) {
+  var g = (corpus && corpus.evidence_gate) || null;
+  if (!g) return '';
+  if (!g.applied) {
+    return '<strong>Drill-down evidence is unavailable in this build.</strong> ' +
+      xlEsc(g.why || '') + ' Every manager scored is listed, but opening a ' +
+      'row will not show the transactions behind the score.';
+  }
+  if (!g.n_withheld) {
+    return '<strong>Every manager listed can be opened.</strong> All ' +
+      xlEsc((g.n_shown || 0).toLocaleString()) + ' scored managers have ' +
+      'the pick, trade and waiver evidence behind their score available.';
+  }
+  return '<strong>Only managers whose score can be explained are ' +
+    'listed.</strong> ' +
+    xlEsc((g.n_shown || 0).toLocaleString()) + ' of ' +
+    xlEsc((g.n_scored || 0).toLocaleString()) + ' scored managers are shown; ' +
+    xlEsc((g.n_withheld || 0).toLocaleString()) + ' were scored but are ' +
+    'withheld because the pick-level audit behind their score is not in ' +
+    'this build, so their drill-down would be empty. Their scores are real ' +
+    '\u2014 the evidence for them is not published yet, and a row that ' +
+    'explains nothing is worse than no row. Ranks below are ranks among ' +
+    'all ' + xlEsc((g.n_scored || 0).toLocaleString()) + ' scored managers, ' +
+    'so they skip the withheld ones rather than being renumbered.';
+}
+
 function xlRenderCoverage(corpus) {
   var box = xlEl('xl-coverage');
   if (!box) return;
@@ -233,6 +272,7 @@ function xlRenderCoverage(corpus) {
   }
   var cov = corpus.coverage || {};
   var queue = xlQueueSentence(corpus);
+  var evidence = xlEvidenceSentence(corpus);
   box.className = 'callout';
   box.style.display = 'block';
   box.innerHTML =
@@ -244,6 +284,8 @@ function xlRenderCoverage(corpus) {
     xlProvenanceSentence(corpus) + '</p>' +
     (queue ? '<p class="xl-sub" style="margin:6px 0 0 0">' + queue + '</p>'
            : '') +
+    (evidence ? '<p class="xl-sub" style="margin:6px 0 0 0">' + evidence +
+                '</p>' : '') +
     '<p class="xl-sub" style="margin:6px 0 0 0"><strong>This is not all of ' +
     'Sleeper, and it is not a random sample of it.</strong> Sleeper ' +
     'publishes no way to list leagues, so a corpus can only be built by ' +
@@ -313,7 +355,8 @@ function xlRenderDraftBoard(corpus) {
     'their score. Draft score is the evidence-weighted average of this ' +
     "manager's within-league draft z-score, shrunk toward neutral by total " +
     'pick count. A manager needs ' + xlEsc(gate == null ? 6 : gate) +
-    '+ scored picks to appear, so one lucky draft cannot top the board.</p>';
+    '+ scored picks to appear, so one lucky draft cannot top the board.</p>' +
+    xlWithheldNote(corpus);
 }
 
 /* ------------------------------------------------------- overall board */
@@ -362,7 +405,22 @@ function xlRenderLeaderboard(corpus) {
     '<p class="xl-sub">Click a manager to see every indexed league behind ' +
     'the score, and every pick, trade and waiver add that earned it. Score ' +
     'is 100 + 15 × the weighted component average, on the same scale as ' +
-    'the per-league Manager Score page.</p>';
+    'the per-league Manager Score page.</p>' +
+    xlWithheldNote(corpus);
+}
+
+/* Repeated under each board, not only in the banner at the top.
+ * A visitor who scrolls to the bottom of a 1,200-row table and wonders
+ * where rank 4 went should not have to scroll back up to find out. */
+function xlWithheldNote(corpus) {
+  var g = (corpus && corpus.evidence_gate) || null;
+  if (!g || !g.applied || !g.n_withheld) return '';
+  return '<p class="xl-sub">' +
+    xlEsc((g.n_withheld || 0).toLocaleString()) + ' further manager' +
+    (g.n_withheld === 1 ? ' was' : 's were') + ' scored but are not listed ' +
+    'here: the pick-level audit behind their score is not in this build, so ' +
+    'their drill-down would open empty. Rank numbers skip them rather than ' +
+    'being renumbered.</p>';
 }
 
 /* A score nobody can take apart is a score nobody should trust: every
@@ -903,6 +961,8 @@ if (typeof module !== 'undefined' && module.exports) {
     XLX: XLX,
     xlCoverageSentence: xlCoverageSentence,
     xlProvenanceSentence: xlProvenanceSentence,
+    xlEvidenceSentence: xlEvidenceSentence,
+    xlWithheldNote: xlWithheldNote,
     xlRenderCoverage: xlRenderCoverage,
     xlRenderDraftBoard: xlRenderDraftBoard,
     xlRenderLeaderboard: xlRenderLeaderboard,

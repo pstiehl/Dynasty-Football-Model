@@ -2547,6 +2547,23 @@ def generate_site(
                     _md.detail_dir(Path("data/cross_league")))
                 _corpus["manager_detail"] = _md.publish_manager_details(
                     out_root, _corpus, _details)
+                # Phil 2026-09-22: only list managers whose score can be
+                # explained. Applied AFTER publishing the shards (so a
+                # withheld manager's file still exists for a direct link)
+                # and BEFORE write_corpus_artifact, which is the copy the
+                # page reads. The committed corpus keeps every scored
+                # manager -- see apply_evidence_gate for why gating the
+                # resumption state would drop people permanently.
+                _gate = _md.apply_evidence_gate(_corpus, _details)
+                import logging
+                logging.getLogger(__name__).info(
+                    "manager evidence gate: applied=%s, %s of %s managers "
+                    "shown, %s withheld for lack of drill-down evidence%s",
+                    _gate.get("applied"), _gate.get("n_shown"),
+                    _gate.get("n_scored"), _gate.get("n_withheld"),
+                    (" (e.g. " + ", ".join(_gate.get("withheld_sample") or [])
+                     + ")") if _gate.get("withheld_sample") else "",
+                )
             except Exception as _exc:  # noqa: BLE001
                 import logging
                 logging.getLogger(__name__).warning(

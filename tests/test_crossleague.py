@@ -661,6 +661,34 @@ class TestPageJs(unittest.TestCase):
                 "drill-down panel assertions failed:\n"
                 f"{proc.stdout}\n{proc.stderr}")
 
+    def test_only_explainable_managers_are_rendered(self):
+        """Phil 2026-09-22: no row that opens an empty drill-down.
+
+        ``tests/test_manager_evidence_gate.py`` proves the data layer drops
+        the right managers. This asserts on the rendered markup, which is
+        the only place two further claims can be checked: that a withheld
+        name is absent from the *markup* rather than merely invisible (each
+        leaderboard row also emits a collapsed detail panel carrying the
+        manager id and their league names), and that the page states the
+        withheld count instead of quietly shrinking.
+        """
+        if not NODE:
+            self.skipTest("node not available — evidence-gate assertions skipped")
+        from dynasty.crossleague_js import CROSSLEAGUE_JS
+
+        with tempfile.TemporaryDirectory() as td:
+            js = Path(td) / "xl.js"
+            js.write_text(CROSSLEAGUE_JS, encoding="utf-8")
+
+            suite = (REPO_ROOT / "tests" / "js"
+                     / "crossleague_evidence_tests.mjs")
+            proc = subprocess.run([NODE, str(suite), str(js)],
+                                  capture_output=True, text=True)
+            self.assertEqual(
+                proc.returncode, 0,
+                "evidence-gate assertions failed:\n"
+                f"{proc.stdout}\n{proc.stderr}")
+
     def test_harness_is_valid_js(self):
         """The scoring harness runs the shipped page code; if it will not
         parse, the whole corpus build is dead."""
