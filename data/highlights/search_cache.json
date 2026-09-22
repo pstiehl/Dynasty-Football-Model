@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-22T19:33:56.735130+00:00",
-  "entry_count": 226,
+  "updated_at": "2026-09-22T19:51:13.404944+00:00",
+  "entry_count": 228,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -827,6 +827,11 @@
       "video_ids": [],
       "query": "Tyler Boyd week 2 2026 highlights"
     },
+    "2026:2:3258": {
+      "searched_at": "2026-09-22T19:51:13.404944+00:00",
+      "video_ids": [],
+      "query": "Nick Vannett week 2 2026 highlights"
+    },
     "2026:2:3269": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
@@ -1040,6 +1045,11 @@
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
       "query": "Tim Patrick week 2 2026 highlights"
+    },
+    "2026:2:4381": {
+      "searched_at": "2026-09-22T19:51:13.404944+00:00",
+      "video_ids": [],
+      "query": "Taysom Hill week 2 2026 highlights"
     },
     "2026:2:4443": {
       "searched_at": "2026-09-22T19:33:56.735130+00:00",
