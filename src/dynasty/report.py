@@ -35,6 +35,7 @@ from .branding import SITE_NAME, SITE_TAGLINE, page_title, site_name_html
 from . import player_highlights as _hl
 from . import analytics as _analytics
 from . import custom_domain as _custom_domain
+from . import prospect_view as _pv
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +208,20 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
   background: white; border: 1px solid var(--border); color: var(--text);
   text-decoration: none; font-weight: 600; font-size: 14px; }
 .notfound-links a:hover { background: var(--hover); border-color: var(--accent); }
+/* ---- prospect projection provenance ----
+ * A projected number that came from a draft-slot lookup table must not look
+ * like one derived from a player's own comps. These badges are the
+ * difference, and they are deliberately legible rather than subtle: the
+ * live board showed 3200 three times with nothing to distinguish it. */
+.basis-pill { display:inline-block; margin-left:6px; padding:1px 7px;
+  border-radius:9px; font-size:10px; font-weight:700; letter-spacing:.02em;
+  text-transform:uppercase; vertical-align:middle; cursor:help; }
+.basis-constant { background:#fef3c7; color:#92400e; }
+.basis-floor { background:#ffedd5; color:#9a3412; }
+.basis-blend { background:#e0e7ff; color:#3730a3; }
+.basis-nocapital { background:#f1f5f9; color:#475569; }
+.basis-none { background:#f3f4f6; color:#6b7280; }
+.draft-chip-board { background:#f1f5f9; color:#475569; }
 """ + _hl.PLAYER_HIGHLIGHTS_CSS
 
 
@@ -1442,6 +1457,62 @@ def _delta_chip(delta: Optional[float]) -> str:
     return f'<span class="div-chip {cls}">{arrow} {int(round(d)):+d}</span>'
 
 
+def _draft_chip(prospect: Dict) -> str:
+    """The inline draft badge, or ``""``.
+
+    Replaces an f-string that interpolated ``drafted.get("round")`` straight
+    into ``f"R{d_round}"``. When the round was ``None`` -- which is every
+    Tankathon big-board entry, because those players have not been drafted
+    -- the page rendered the literal text ``RNone``, next to a ``?`` from
+    ``team or "?"``. Phil saw ``Arch Manning ? RNone`` at rank 2.
+
+    Now the two cases are different badges, because they are different
+    facts. A real selection shows team/round/pick. A big-board entry shows
+    its board rank and says that is what it is -- an opinion about a draft
+    that has not happened, not a pick.
+    """
+    st = _pv.draft_status(prospect)
+    if st["kind"] == "drafted":
+        label = _pv.draft_label(prospect)
+        year = st["year"] or ""
+        title = (f"Drafted {year} round {st['round']}"
+                 + (f" pick {st['pick']}" if st["pick"] else "")
+                 + (f", {st['team']}" if st["team"] else ""))
+        return (f' <span class="draft-chip" title="{_esc(title)}">'
+                f'\U0001f3c8 {_esc(label)}</span>')
+    if st["kind"] == "big_board":
+        return (' <span class="draft-chip draft-chip-board" '
+                'title="Not drafted yet. This is a Tankathon big-board rank '
+                '— one site\'s projection of where this player might go, '
+                'not a selection and not draft capital.">'
+                f'\U0001f4cb board #{_esc(st["board_rank"])}</span>')
+    return ""
+
+
+def _basis_pill(prospect: Dict) -> str:
+    """A badge naming what a prospect's projection rests on.
+
+    The live page showed ``3200`` / ``13.5`` for its top three rows and no
+    indication that those are the ``QB``/``R1_top10`` tier constants rather
+    than three separate estimates. A reader has no way to tell a measured
+    projection from a table lookup, so the number reads as more than it is.
+    This is that distinction, on the row.
+    """
+    basis = _pv.projection_basis(prospect)
+    if basis["key"] == "comps":
+        return ""          # the normal case needs no annotation
+    cls = {
+        "baseline": "basis-pill basis-constant",
+        "floor": "basis-pill basis-floor",
+        "blend": "basis-pill basis-blend",
+        "comps_no_capital": "basis-pill basis-nocapital",
+        "none": "basis-pill basis-none",
+        "unknown": "basis-pill basis-none",
+    }.get(basis["key"], "basis-pill")
+    return (f' <span class="{cls}" title="{_esc(basis["detail"])}">'
+            f'{_esc(basis["label"])}</span>')
+
+
 def _te_experimental_pill() -> str:
     return (
         '<span class="prospect-te-flag" '
@@ -1482,13 +1553,64 @@ with per-prospect comp pages.</div>
     classes = sorted({int(p.get("draft_class")) for p in prospects
                       if p.get("draft_class") is not None})
 
-    # Sort by model overall rank, defaulting unranked to the bottom.
-    prospects.sort(key=lambda p: p.get("model_overall_rank") or 10**9)
+    # ---- Which board is this? -------------------------------------------
+    #
+    # v3.14 (Phil 2026-09-22). The live page ranked every class together
+    # under one global limit, and stated nowhere which class you were
+    # looking at. The result: row 1 was Michael Penix, class 2024, two NFL
+    # seasons into his career, at the top of a *prospect* board -- while
+    # rows 2 and 3 were 2027 players who have not been drafted. Three
+    # different kinds of thing, ranked against each other, and the numbers
+    # they were ranked on are not comparable: a drafted player's projection
+    # is anchored on real draft capital and an undrafted one's cannot be.
+    #
+    # So the page is now class-first. The default view is the current
+    # rookie class, the heading says so, and future classes are reachable
+    # but never interleaved.
+    class_info = _pv.classify_classes(prospects)
+    current_class = class_info["current"]
 
-    # Default render limit — keep the page snappy. Skill positions only
-    # are already enforced upstream (engine only emits QB/RB/WR/TE), so
-    # we don't filter here.
-    display_prospects = prospects[:150]
+    # Ordering within a class puts evidence-backed projections above tier
+    # constants at equal value -- see prospect_view.sort_for_display.
+    #
+    # An artifact with no ``drafted`` blocks at all (a pre-v3.3 cache, and
+    # the committed test fixture) cannot be split into rookie vs future
+    # classes, because nothing in it says who was drafted. That degrades to
+    # the previous single global board rather than inventing a split: the
+    # honest view of a file with no draft data is one undifferentiated
+    # list.
+    has_draft_data = bool(class_info["drafted"])
+    per_class_limit = 80
+    if has_draft_data:
+        # Current rookie class first, then older drafted classes, then the
+        # undrafted ones -- see prospect_view.class_display_order. NOT
+        # "newest first", which would put the upcoming 2027 class above the
+        # 2026 rookie class and make the first visible row an undrafted
+        # player the moment the filter JS fails to run.
+        display_prospects = []
+        for year in _pv.class_display_order(class_info):
+            in_year = _pv.sort_for_display(_pv.in_class(prospects, year))
+            display_prospects.extend(in_year[:per_class_limit])
+    else:
+        prospects.sort(key=lambda p: p.get("model_overall_rank") or 10**9)
+        display_prospects = prospects[:150]
+
+    # Within-class rank. The artifact's ``model_overall_rank`` is a
+    # cross-class number, which is exactly what made the old board
+    # incoherent; showing it as "#" on a class-filtered table would label
+    # the first row of the 2026 board "#4". Computed here so the rank
+    # column means "position on the board you are looking at".
+    class_rank: Dict[int, int] = {}
+    if has_draft_data:
+        for year in class_info["all"]:
+            for i, p in enumerate(
+                    _pv.sort_for_display(_pv.in_class(prospects, year)), 1):
+                class_rank[id(p)] = i
+
+    saturation = _pv.saturation_report(
+        _pv.in_class(prospects, current_class) if has_draft_data
+        else prospects
+    )
 
     # ---- Table rows ------------------------------------------------------
     rows_html = ""
@@ -1504,27 +1626,29 @@ with per-prospect comp pages.</div>
         # this prospect to an actual NFL draft pick, surface the round
         # / pick / team inline so the table answers "is this person
         # actually a 2026 NFL rookie?" at a glance.
-        drafted = p.get("drafted") or {}
-        if drafted:
-            d_round = drafted.get("round")
-            d_pick = drafted.get("pick")
-            d_team = drafted.get("team") or "?"
-            drafted_html = (
-                f' <span class="draft-chip" title="Drafted {drafted.get("year")} '
-                f'round {d_round} pick {d_pick}, {d_team}">🏈 {d_team} R{d_round} #{d_pick}</span>'
-            )
-        else:
-            drafted_html = ""
+        # v3.14: no more ``RNone`` / ``?``. See _draft_chip.
+        drafted_html = _draft_chip(p)
+        really_drafted = _pv.is_drafted(p)
+        basis = _pv.projection_basis(p)
         proj = p.get("projection") or {}
         career_fp = proj.get("projected_career_fp")
         peak3 = proj.get("projected_peak3_fp_pg")
-        rank = p.get("model_overall_rank", "—")
+        if not basis["show_point_estimate"]:
+            # Undrafted with no meaningful NFL comp in the pool. There is
+            # nothing to project from, so the cells stay empty rather than
+            # carrying a number we made up.
+            career_fp = None
+            peak3 = None
+        # Within-class rank when we can compute one, else the artifact's
+        # cross-class rank (see the class_rank note above).
+        rank = class_rank.get(id(p)) or p.get("model_overall_rank", "—")
         rows_html += (
             f'<tr class="player-row prospect-row{" prospect-te-row" if is_te else ""}" '
             f'data-name="{_esc((p.get("name") or "").lower())}" '
             f'data-position="{_esc(pos)}" '
             f'data-class="{_esc(p.get("draft_class") or "")}" '
-            f'data-drafted="{1 if drafted else 0}" '
+            f'data-drafted="{1 if really_drafted else 0}" '
+            f'data-basis="{_esc(basis["key"])}" '
             f'onclick="location=\'players/{slug}-prospect.html\'">'
             f'<td class="rank">{_esc(rank)}{te_flag}</td>'
             f'<td class="name">'
@@ -1539,7 +1663,8 @@ with per-prospect comp pages.</div>
             f'<td class="years">{_esc(p.get("draft_class") or "—")}</td>'
             f'<td class="team">{_esc(p.get("school") or "—")}</td>'
             f'<td class="years">{_fmt_or_dash(p.get("age"), fmt="{:.1f}")}</td>'
-            f'<td class="score">{_fmt_or_dash(career_fp, fmt="{:.0f}")}</td>'
+            f'<td class="score">{_fmt_or_dash(career_fp, fmt="{:.0f}")}'
+            f'{_basis_pill(p)}</td>'
             f'<td class="years" style="text-align:right">{_fmt_or_dash(peak3, fmt="{:.1f}")}</td>'
             f'<td class="years" style="text-align:right">{_esc(ktc_rank_sf) if ktc_rank_sf is not None else "—"}</td>'
             f'<td style="text-align:right">{_delta_chip(delta)}</td>'
@@ -1547,10 +1672,62 @@ with per-prospect comp pages.</div>
         )
 
     # ---- Filter chips ----------------------------------------------------
-    class_chip_html = "".join(
-        f'<button type="button" class="chip class-chip" data-class="{c}">{c}</button>'
-        for c in classes
+    #
+    # The class chips carry which KIND of class each one is, so the page can
+    # say "2027 has not been drafted" when you switch to it instead of
+    # presenting it as another ranking of the same thing. The default active
+    # chip is the current rookie class rather than "All": a board mixing
+    # 2022 through 2027 is not a view anybody asked for.
+    future_set = set(class_info["future"])
+    def _class_chip(year: int) -> str:
+        is_future = year in future_set
+        active = " active" if (has_draft_data and year == current_class) else ""
+        note = " · not drafted" if is_future else ""
+        kind = "future" if is_future else "drafted"
+        return (f'<button type="button" class="chip class-chip{active}" '
+                f'data-class="{year}" data-class-kind="{kind}">'
+                f'{year}{note}</button>')
+
+    class_chip_html = "".join(_class_chip(c) for c in classes)
+    all_chip_active = "" if has_draft_data else " active"
+    # Keyed by string: the chips' data-class attribute is a string in the
+    # DOM, so a numeric key here would never match on lookup.
+    class_kinds_json = json.dumps(
+        {str(c): ("future" if c in future_set else "drafted") for c in classes}
     )
+
+    if has_draft_data and current_class is not None:
+        board_heading = (
+            f"The <strong>{current_class}</strong> rookie class — "
+            f"{len(_pv.in_class(prospects, current_class)):,} drafted "
+            "skill-position players"
+        )
+        future_note = (
+            ("Future classes ("
+             + ", ".join(str(y) for y in class_info["future"])
+             + ") have not been drafted. Their projections carry no draft "
+             "capital, so they are kept on their own board rather than "
+             "ranked against drafted players.")
+            if class_info["future"] else ""
+        )
+    else:
+        board_heading = (
+            "All scored prospects — this artifact carries no draft records, "
+            "so classes cannot be separated into drafted and upcoming"
+        )
+        future_note = ""
+
+    saturation_note = ""
+    if saturation["n_baseline"]:
+        saturation_note = (
+            f"{saturation['n_baseline']} of {saturation['n']} players on this "
+            "board have no comp in their pool who ever played in the NFL. "
+            "Their projection is the historical average for their draft slot, "
+            "marked <span class=\"basis-pill basis-constant\">draft-slot "
+            "constant</span> — identical for everyone in the same position "
+            "and pick tier, so it ranks them by draft position and not by "
+            "anything measured about them."
+        )
 
     # ---- Body ------------------------------------------------------------
     n_prospects_total = len(prospects)
@@ -1558,7 +1735,11 @@ with per-prospect comp pages.</div>
 
     body = f"""<div class="container">
 
-<h2>Prospect <span class="accent">Rankings — v3.6</span></h2>
+<h2>Prospect <span class="accent">Rankings — v3.14</span></h2>
+
+<div class="callout" id="board-heading"><strong>Now viewing:</strong>
+{board_heading}.</div>
+
 <p class="lede">Skill-position prospects who were <strong>actually drafted</strong>
 in each class (per <a href="https://www.pro-football-reference.com/years/2026/draft.htm">Pro-Football-Reference</a>
 for 2022–2026; <a href="https://www.tankathon.com/nfl/big_board">Tankathon</a>
@@ -1569,8 +1750,11 @@ first-overall pick can't read 1.4 projected career fp just because his
 college-fp comp pool happened to be undrafted small-school backups.
 KTC delta surfaces where the model disagrees with the current consensus
 dynasty board — positive (green) = model bullish, negative (red) = model
-bearish. Default sort is by NFL draft pick within each class; click any
-column to re-sort.</p>
+bearish. <strong>#</strong> is the player's rank within the class shown,
+not across every class. Click any column to re-sort.</p>
+
+{f'<div class="callout callout-warn">{future_note}</div>' if future_note else ""}
+{f'<div class="callout">{saturation_note}</div>' if saturation_note else ""}
 
 <div class="prospect-status-row">
   <span class="status-pill status-pill-ok">✅ QB · RB · WR engine validated
@@ -1605,15 +1789,15 @@ where the model and the consensus board disagree.</div>
     <button type="button" class="chip pos-chip" data-pos="TE">TE ⚠️</button>
   </div>
   <div class="chip-row" id="class-chips">
-    <button type="button" class="chip class-chip active" data-class="">All classes</button>
+    <button type="button" class="chip class-chip{all_chip_active}" data-class="" data-class-kind="all">All classes</button>
     {class_chip_html}
   </div>
   <span class="stats" id="stats"></span>
 </div>
 
 <p class="lede" style="font-size:13px;margin-top:6px">KTC snapshot: {ktc_label} ·
-Showing {len(display_prospects)} of {n_prospects_total:,} ranked prospects.
-Click a column header to sort.</p>
+Showing {len(display_prospects)} of {n_prospects_total:,} ranked prospects
+(up to {per_class_limit} per class). Click a column header to sort.</p>
 
 <table id="prospect-table" data-sortable="true">
 <thead><tr>
@@ -1654,6 +1838,10 @@ function update() {{
     if (ok) shown++;
   }});
   stats.textContent = shown + ' / ' + rows.length + ' prospects';
+  if (boardHeading) {{
+    boardHeading.innerHTML = '<strong>Now viewing:</strong> '
+      + describeClass(activeClass) + '.';
+  }}
 }}
 q.addEventListener('input', update);
 document.querySelectorAll('.pos-chip').forEach(c => {{

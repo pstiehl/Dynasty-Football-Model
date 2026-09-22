@@ -154,6 +154,32 @@ PICK_TIER_YEARS_IN_LEAGUE: Dict[str, float] = {
 }
 
 
+def _is_real_pick(pick_record: Optional[Mapping]) -> bool:
+    """True when this entry is an actual NFL selection.
+
+    v3.14 (Phil 2026-09-22). ``_index_tankathon_by_class`` normalises a
+    big-board entry with ``rnd=None``, ``team=None`` and ``pick=<big-board
+    rank>``, described in its own docstring as a "pick proxy". It is not a
+    proxy for anything: it is one site's opinion about a draft that has not
+    happened, fed into a table of what NFL draft SLOTS historically return.
+
+    The visible consequence on the live page was that Arch Manning
+    (big-board rank 4, undrafted) and Fernando Mendoza (actual first
+    overall pick) both scored the ``QB``/``R1_top10`` constant -- 3200
+    projected career fp and 13.5 peak3 fp/g, identical, for the top three
+    rows of the board. Ordering by a constant is arbitrary, which is what
+    Phil saw.
+
+    The round is the discriminator: every real pick has one and no
+    undrafted player can.
+    """
+    if not pick_record:
+        return False
+    if str(pick_record.get("source") or "") == "tankathon_big_board":
+        return False
+    return pick_record.get("rnd") is not None
+
+
 def _pick_tier(pick: Optional[int]) -> str:
     if pick is None:
         return "UDFA"
@@ -172,9 +198,45 @@ def _pick_tier(pick: Optional[int]) -> str:
     return "R7"
 
 
+#: Projection source for a prospect with no draft capital and no NFL-career
+#: comps. Distinct from a number, on purpose: see ``_project_arc``.
+NO_EVIDENCE_SOURCE = "insufficient_evidence_undrafted"
+
+
+def _no_evidence_projection() -> Dict[str, Optional[float]]:
+    """The "we do not know" projection: no numbers, and a reason.
+
+    Every numeric field is ``None`` rather than ``0.0``. A zero would sort,
+    average and render as a measurement of zero production, which is a
+    different and false claim -- the same silent-null failure mode that
+    once made every cross-league manager score exactly 100.0.
+    """
+    return {
+        "projected_career_fp": None,
+        "projected_peak3_fp_pg": None,
+        "projected_years_in_league": None,
+        "projected_career_fp_stdev": None,
+        "n_comps_with_nfl": 0,
+        "n_meaningful_nfl_comps": 0,
+        "projection_confidence": 0.0,
+        "projection_source": NO_EVIDENCE_SOURCE,
+        "floor_applied": False,
+        "comp_only_career_fp": None,
+        "pick_tier_baseline_fp": None,
+    }
+
+
 def _baseline_projection(position: str, pick: Optional[int]) -> Dict[str, float]:
     """Pick-tier-baseline projection used when the comp pool has no
-    NFL careers (or to anchor a confidence-blend when comps are thin)."""
+    NFL careers (or to anchor a confidence-blend when comps are thin).
+
+    Only ever called for a REAL pick now. ``pick=None`` still means UDFA --
+    an actual undrafted free agent, which is a real outcome with a real
+    baseline. An undrafted-yet prospect is a different state and must not
+    reach here: "went undrafted" is a claim, and it is false for a player
+    whose draft has not happened. ``_project_arc`` handles that case
+    without a baseline at all.
+    """
     tier = _pick_tier(pick)
     return {
         "projected_career_fp": float(PICK_TIER_BASELINES_SF_PPR.get((position, tier), 100.0)),
@@ -489,6 +551,7 @@ def _project_arc(
     *,
     position: str = "",
     pick: Optional[int] = None,
+    drafted: bool = True,
 ) -> Dict[str, float]:
     """Similarity-weighted projection from comp NFL careers, blended
     with a draft-pick-tier baseline (v3.4) when the comp pool is thin
@@ -501,6 +564,27 @@ def _project_arc(
     the pick-tier prior: a 1st-overall pick is going to have a real
     NFL career even if no historical-similar college player happened
     to play professionally.
+
+    v3.14 (Phil 2026-09-22) -- ``drafted=False`` removes the baseline
+    entirely.
+
+    The pick-tier prior earns its place by being about draft capital: the
+    NFL spent a real selection on this player, which is strong independent
+    evidence. A prospect whose draft has not happened has no draft capital,
+    so there is no prior to apply and nothing legitimate to blend toward.
+    Applying one anyway is what put three different quarterbacks on the
+    live board at an identical 3200 projected career fp.
+
+    Falling back to the UDFA tier instead would be equally wrong in the
+    other direction: "undrafted" is a real outcome, and asserting it about
+    someone who has not been drafted yet would replace an overestimate with
+    a fabricated one.
+
+    So an undrafted prospect gets a pure comp-weighted projection, and when
+    the comp pool contains no meaningful NFL career at all, it gets NO point
+    estimate -- ``projected_career_fp`` is ``None`` and the source is
+    ``NO_EVIDENCE_SOURCE``. The page renders that as a dash with a reason.
+    An honest gap is more useful than a confident constant.
     """
     weights: List[float] = []
     career_fps: List[float] = []
@@ -516,8 +600,11 @@ def _project_arc(
         weights.append(w)
     tot = sum(weights)
     if tot <= 0 or not comp_records:
-        # No comps at all — use pure pick-tier baseline.
-        return _baseline_projection(position, pick)
+        # No comps at all. With a real pick, the pick-tier baseline is the
+        # best available estimate; without one there is nothing to say.
+        if drafted:
+            return _baseline_projection(position, pick)
+        return _no_evidence_projection()
     proj_career = sum(w * x for w, x in zip(weights, career_fps)) / tot
     proj_peak3 = sum(w * x for w, x in zip(weights, peak3s)) / tot
     proj_years = sum(w * x for w, x in zip(weights, yrs_list)) / tot
@@ -535,6 +622,29 @@ def _project_arc(
     # v3.6 — confidence is driven by meaningful comps, with a higher
     # FULL_CONFIDENCE threshold so the baseline retains weight further.
     confidence = min(n_meaningful / float(FULL_CONFIDENCE_NFL_COMPS), 1.0)
+
+    if not drafted:
+        # No draft capital: comps only, and no point estimate at all when
+        # the comp pool has no meaningful NFL career behind it.
+        if n_meaningful == 0:
+            out = _no_evidence_projection()
+            out["n_comps_with_nfl"] = n_with_nfl
+            out["comp_only_career_fp"] = round(proj_career, 1)
+            return out
+        return {
+            "projected_career_fp": round(proj_career, 1),
+            "projected_peak3_fp_pg": round(proj_peak3, 2),
+            "projected_years_in_league": round(proj_years, 2),
+            "projected_career_fp_stdev": round(stdev, 1),
+            "n_comps_with_nfl": n_with_nfl,
+            "n_meaningful_nfl_comps": n_meaningful,
+            "projection_confidence": round(confidence, 3),
+            "projection_source": "comp_weighted_no_draft_capital",
+            "floor_applied": False,
+            "comp_only_career_fp": round(proj_career, 1),
+            "pick_tier_baseline_fp": None,
+        }
+
     baseline = _baseline_projection(position, pick)
     blended_career = (
         confidence * proj_career + (1 - confidence) * baseline["projected_career_fp"]
@@ -813,9 +923,12 @@ def build_prospect_record(
         }
         comp_records.append(rec)
 
-    pick_number = pfr_pick.get("pick") if pfr_pick else None
+    # v3.14: a big-board rank is not draft capital -- see _is_real_pick.
+    really_drafted = _is_real_pick(pfr_pick)
+    pick_number = pfr_pick.get("pick") if (pfr_pick and really_drafted) else None
     projection = _project_arc(
         comp_records, position=target.position, pick=pick_number,
+        drafted=really_drafted,
     )
     # v3.4: when a pfr_pick is supplied (drafted-only mode), trust it as
     # the authoritative draft year — a corpus record may be off by one
@@ -858,8 +971,12 @@ def _build_stub_record_for_undiscovered_pick(
     pick-tier baseline. The user sees “no college comp data” in the UI.
     """
     pos = pick.get("position") or ""
-    pick_no = pick.get("pick")
-    projection = _baseline_projection(pos, pick_no)
+    really_drafted = _is_real_pick(pick)
+    pick_no = pick.get("pick") if really_drafted else None
+    # No college comps AND no draft capital leaves nothing to project from,
+    # so say so rather than emitting a tier constant (v3.14).
+    projection = (_baseline_projection(pos, pick_no) if really_drafted
+                  else _no_evidence_projection())
     fake_slug = re.sub(r"[^a-z0-9]+", "-", (pick.get("player_name") or "").lower()).strip("-")
     return {
         "cfb_player_id": pick.get("college_stats_slug") or fake_slug,
