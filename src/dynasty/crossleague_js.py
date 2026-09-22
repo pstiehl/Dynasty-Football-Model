@@ -254,7 +254,11 @@ function xlEvidenceSentence(corpus) {
     '\u2014 the evidence for them is not published yet, and a row that ' +
     'explains nothing is worse than no row. Ranks below are ranks among ' +
     'all ' + xlEsc((g.n_scored || 0).toLocaleString()) + ' scored managers, ' +
-    'so they skip the withheld ones rather than being renumbered.';
+    'so they skip the withheld ones rather than being renumbered. ' +
+    '<strong>This board grows.</strong> The crawl re-scores a bounded ' +
+    'number of leagues per run, and a league ships its pick-level audit ' +
+    'at the moment it is scored, so every run moves managers from withheld ' +
+    'to listed and none of them move back.';
 }
 
 function xlRenderCoverage(corpus) {

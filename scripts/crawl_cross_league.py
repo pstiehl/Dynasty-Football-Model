@@ -924,10 +924,32 @@ def main(argv: Optional[List[str]] = None) -> int:
         # corpus carries the resulting stats block, so the page can state how
         # much evidence exists without probing 1,400 URLs to find out.
         details = manager_detail.read_league_details(detail_dir)
+
+        # THE GATE RUNS HERE TOO, and before publish, exactly as it does in
+        # dynasty.report. It used to run only in the site build, which meant
+        # this path published a shard for every scored manager -- measured on
+        # a real run: 2,468 files, 12 MB, of which 2,431 said "no
+        # transaction-level evidence retained". Those are precisely the
+        # drill-downs Phil asked to stop seeing, and writing them here while
+        # the site build withheld them meant the two publishers disagreed
+        # about what the board is.
+        #
+        # Gating first also means publish_manager_details iterates the
+        # already-gated leaderboard, so a withheld manager gets no shard and
+        # there is no URL to reach one at.
+        #
+        # This mutates the in-memory corpus only. The committed
+        # data/cross_league/corpus.json was written above, ungated, so the
+        # crawler's resumption state keeps every manager and gating the view
+        # cannot shrink the next crawl.
+        gate = manager_detail.apply_evidence_gate(corpus, details)
         stats = manager_detail.publish_manager_details(
             args.site_out, corpus, details)
         corpus["manager_detail"] = stats
         kib = stats["bytes"] / 1024.0
+        print(f"  evidence gate: {gate['n_shown']} of {gate['n_scored']} "
+              f"manager(s) shown, {gate['n_withheld']} withheld "
+              f"({gate['reason']})")
         print(f"  published {stats['n_files']} manager detail file(s), "
               f"{kib:.0f} KiB, from {stats['n_leagues_with_detail']} league "
               f"audit(s) ({stats['n_managers_complete']} complete, "

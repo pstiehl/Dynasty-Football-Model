@@ -59,16 +59,24 @@ jobs:
       # fully regenerable -- the SCORES persist in corpus.json, so an evicted
       # cache costs one slower crawl, never an indexed league. See .gitignore.
       #
-      # data/cross_league/detail is the per-league transaction audit behind
-      # the Best Managers drill-down. Same bargain again: it is bulk and
-      # derived, so it must not go in git (an audit inside the
-      # daily-committed corpus.json is the exact regression PR #72 fixed),
-      # but the crawl only re-scores a bounded number of leagues per run, so
-      # without persistence the drill-down would only ever explain today's
-      # ~40 leagues. Carried here, evidence accumulates run over run exactly
-      # as the corpus does. An eviction costs explanation, never a score:
-      # the page reports a league whose audit is absent as "not in this
-      # build" rather than rendering it as no activity.
+      # data/cross_league/detail USED TO BE CACHED HERE. It is now committed,
+      # and it is deliberately not in this list.
+      #
+      # It is the per-league transaction audit behind the Best Managers
+      # drill-down, and the evidence gate publishes only managers whose score
+      # that audit can explain. Carrying it in a 7-day cache made the board
+      # depend on a cache hit: on an eviction the store came back empty, the
+      # gate correctly withheld everyone, and the published board went from
+      # 2,432 managers to 0. That is measured, not hypothetical.
+      #
+      # Leaving it here as well as in git would be worse than either alone --
+      # a restored stale copy can only re-add audits for leagues the corpus
+      # has since retired, which prune_league_details then deletes again.
+      # Git is now the single source for it. See .gitignore for why
+      # committing it does not reintroduce the PR #72 regression (short
+      # version: one gzipped file per league with mtime pinned, so an
+      # unchanged league is byte-identical and costs no new blob, unlike
+      # corpus.json which is rewritten in full every day).
       - name: Restore scraped-page cache
         uses: actions/cache@v4
         with:
@@ -76,7 +84,6 @@ jobs:
             data/pfr_cache
             data/sr_cache
             data/cross_league/cache
-            data/cross_league/detail
           key: scrape-cache-${{ github.run_id }}
           restore-keys: |
             scrape-cache-
@@ -278,6 +285,19 @@ jobs:
       # frontier and scoring ledger that let tomorrow's run RESUME the walk
       # instead of repeating it. That file is what stopped the crawl being a
       # treadmill, so it has to survive the runner.
+      #
+      # It ALSO picks up data/cross_league/detail/ -- the per-league
+      # transaction audits, newly committed (see .gitignore). That is
+      # intentional and load-bearing: corpus.json and detail/ are two halves
+      # of one artifact, and committing them in the same commit is what keeps
+      # them consistent. A league in the corpus with no audit is withheld
+      # from the board; an audit for a league the corpus has retired is
+      # pruned. Splitting them across commits would publish one state while
+      # the other caught up.
+      #
+      # Each run adds a blob only for the leagues it actually re-scored --
+      # write_league_detail pins gzip mtime=0, so an unchanged league
+      # re-serialises byte-identically and git stores nothing new.
       #
       # data/cross_league/cache/ is gitignored and deliberately NOT committed
       # (raw third-party data, and regenerable); it is restored by the

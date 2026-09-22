@@ -15,22 +15,38 @@ This module puts the evidence back **without** putting it back in git.
 
 Where the bytes go, and why that is not a regression
 ----------------------------------------------------
-Two stores, neither of them committed:
+Two stores:
 
 ``data/cross_league/detail/<league_id>.json.gz``
-    The durable per-league audit, gzipped. Gitignored, and carried between
-    runs by the same ``actions/cache`` entry that already carries
-    ``data/cross_league/cache``. This mirrors a decision the crawl already
-    made for raw Sleeper responses: regenerable third-party-derived bulk
-    belongs in the build cache, not in the repository.
+    The durable per-league audit, gzipped, and **committed**. See the long
+    note in ``.gitignore`` for the full reasoning; the short version is that
+    this directory was cache-only until 2026-09-22, and a cache eviction
+    therefore emptied the published board — measured, 2,432 managers to 0 —
+    because the evidence gate lists only managers whose score can be
+    explained. Evidence that exists only in a 7-day cache is not evidence
+    the site can promise.
+
+    Committing it is affordable for a reason that does not apply to
+    corpus.json: this is one file per league, and :func:`write_league_detail`
+    pins gzip ``mtime=0``, so re-writing an unchanged league is
+    byte-identical and git stores no new blob. Only leagues actually
+    re-scored that run cost anything. Measured on a real 14-league crawl:
+    mean 37,478 bytes gzipped per league, ~8.5 MB projected for the whole
+    237-league store, and a recurring daily delta bounded by
+    ``--max-leagues`` at ~1.5 MB. corpus.json beside it is 3.2 MB rewritten
+    in full daily, so the audit store costs less per day than the file it
+    explains.
 
 ``dynasty_site/managers/<shard>/<manager>.json``
     The published shards the browser fetches. ``dynasty_site/`` is
     gitignored and rebuilt by CI on every run — it is the deploy artifact,
     not a source tree — so **publishing here adds zero bytes to the repo.**
 
-So the thing PR #72 fixed (a daily-rewritten committed audit) is not
-reintroduced. What changed is only *where* the audit lives.
+So the thing PR #72 fixed is not reintroduced. PR #72 removed a
+multi-megabyte audit from a single file rewritten in full every day; that
+file still carries only the per-component ``n`` and ``z``. What changed is
+only *where* the audit lives, and the per-league shape is what makes
+committing it cost a bounded daily delta instead of its entire size.
 
 Why per-league durable, per-manager published
 ---------------------------------------------
@@ -732,6 +748,42 @@ def managers_fully_explained(corpus: Dict, details: Dict[str, Dict]) -> set:
     return out
 
 
+def managers_with_scored_transactions(corpus: Dict,
+                                      details: Dict[str, Dict]) -> set:
+    """Manager ids with at least one SCORED transaction row in the audits.
+
+    A second, independent condition on top of
+    :func:`managers_fully_explained`, and deliberately not folded into it:
+    the two answer different questions. "Is the audit retained?" is a fact
+    about this build. "Is there anything in it?" is a fact about the
+    manager. ``coverage.complete`` mirrors the first, so keeping them apart
+    is what lets the mirror hold.
+
+    Why the board needs both. Measured on the 2026-09-22 build, 11 of 186
+    otherwise-passing managers had ``n = 0`` on draft, trade AND waiver,
+    composite 0.0, and ranks in the 1200-1400s. Their audits were retained
+    and truthful -- they say, correctly, that nothing scoreable happened --
+    so the first predicate passes them. But the row a visitor clicks opens
+    on an empty table, which is the complaint that started this work, and
+    it reads as "no activity" rather than "no activity we price". Several
+    of them did have trades; those trades could not be valued, so they sit
+    in ``trades_unscored`` and contribute nothing to the number being
+    explained.
+
+    A "Best Managers" board also has no business ranking a seat that did
+    nothing measurable. Withholding them is not hiding a score -- the score
+    is 0.0 and they are ranked below 1,200 others -- it is declining to
+    publish a row with nothing behind it.
+    """
+    out: set = set()
+    for lid, detail in (details or {}).items():
+        for m in (detail.get("managers") or []):
+            if ((m.get("picks") or []) or (m.get("trades") or [])
+                    or (m.get("waivers") or [])):
+                out.add(str(m.get("id")))
+    return out
+
+
 def managers_with_evidence(corpus: Dict, details: Dict[str, Dict]) -> set:
     """Manager ids that have at least one league audit in ``details``.
 
@@ -825,7 +877,12 @@ def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
         corpus["evidence_gate"] = gate
         return gate
 
-    keep = managers_fully_explained(corpus, details)
+    # Both conditions, for the reasons in each function's docstring: the
+    # audit for every one of their leagues must be retained, AND it must
+    # actually contain a scored transaction. Neither alone is enough to
+    # promise a visitor that the row opens on something readable.
+    keep = (managers_fully_explained(corpus, details)
+            & managers_with_scored_transactions(corpus, details))
 
     kept_lb = [r for r in leaderboard
                if str(r.get("manager_id") or "") in keep]
@@ -858,10 +915,14 @@ def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
         "n_draft_withheld": len(draft_board) - len(kept_db),
         "why": (
             "a manager is listed only when EVERY league counted in their "
-            "score has its pick-level audit retained, so each row opens to "
-            "the transactions that produced the number and no drill-down "
-            "reports missing evidence. Ranks are the ranks among all scored "
-            "managers and therefore skip the withheld ones."
+            "score has its pick-level audit retained AND that audit holds at "
+            "least one scored transaction, so each row opens to the "
+            "transactions that produced the number and no drill-down "
+            "reports missing evidence or an empty table. Ranks are the ranks "
+            "among all scored managers and therefore skip the withheld ones. "
+            "The board grows as the crawl re-scores leagues: a league ships "
+            "its audit at the moment it is scored, and the crawl covers a "
+            "bounded number of leagues per run."
         ),
     }
     corpus["evidence_gate"] = gate
