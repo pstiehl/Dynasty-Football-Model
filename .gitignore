@@ -122,21 +122,56 @@ data/pfr_cache/draft_class/
 # daily schedule keeps it inside the 7-day eviction window.
 data/cross_league/cache/
 
-# Per-league transaction audits behind the Best Managers drill-down, one
-# gzipped file per league.
+# data/cross_league/detail/ is deliberately NOT listed here. It is
+# COMMITTED, and the reasoning is worth keeping next to the cache above,
+# because the two look similar and are not.
 #
-# Same reasoning as the cache above, and the same reason PR #72 removed the
-# audit from corpus.json in the first place: this is bulk, derived, and
-# rewritten whenever a league is re-scored. corpus.json is committed on
-# every daily run, so an inline audit (2.3 MB for five leagues, ~56 MB at
-# the corpus's current 122) would be paid again in git history every single
-# day, forever.
+# It used to be ignored, on the reasoning that it was "bulk, derived, and
+# rewritten whenever a league is re-scored" -- the same argument that made
+# PR #72 strip the audit out of corpus.json. That argument was right about
+# corpus.json and wrong about this directory, and the difference is
+# measurable:
 #
-# Losing this costs explanation, never correctness. The SCORES live in the
-# committed corpus; an evicted store means the drill-down says "the
-# pick-level record for this league is not in this build" until the crawl
-# next scores that league. The page is built to say exactly that rather
-# than render an empty panel that would read as no activity.
+#  * corpus.json is ONE file rewritten in full every day. An inline audit
+#    there costs its entire size again in git history daily -- the ~56 MB/day
+#    figure that motivated PR #72. That stays true, and the audit stays out
+#    of corpus.json.
+#  * detail/ is one gzipped file PER LEAGUE, and write_league_detail() pins
+#    gzip mtime=0 so re-writing an unchanged league produces byte-identical
+#    output. Git content-addresses blobs, so an unchanged league costs zero
+#    new bytes. Only leagues actually re-scored that run create a blob.
 #
-# Restored in CI by the same actions/cache entry as the Sleeper cache.
-data/cross_league/detail/
+# Measured on a real 14-league crawl (2026-09-22): 21,862 to 55,049 bytes
+# gzipped, mean 37,478. At the corpus's 237 leagues the whole store projects
+# to ~8.5 MB one time, and the recurring daily cost is bounded by
+# --max-leagues (40) at ~1.5 MB worst case -- usually far less, since a run
+# that re-scores 14 leagues writes 14 blobs.
+#
+# For scale, corpus.json next to it is 3.2 MB and is rewritten IN FULL every
+# day, so it already costs 3.2 MB of new history daily. The audit store's
+# recurring cost is smaller than the file it explains.
+#
+# It is also NOT the same kind of data as data/cross_league/cache/ above.
+# The cache is ~24 MB of VERBATIM third-party responses -- republishing
+# Sleeper's data, which reason 1 above declines to do. detail/ is this
+# project's own derived scoring output: which pick, what it was worth under
+# OUR model, and the z-score it produced. Publishing our own arithmetic is
+# the entire point of the drill-down.
+#
+# Why it is committed AS WELL AS cached (it is still in the actions/cache
+# entry; see daily-refresh.yml): the evidence gate lists only managers whose
+# score can be explained, so the board's size is a direct function of how
+# much of this store survives.
+#
+# The cache does most of the work and does it well -- measured on production
+# 2026-09-22, 136 cached league audits give 1,389 of 2,771 managers a
+# complete audit. What the cache cannot do is survive its own 7-day eviction
+# window, and roughly 46% of league-evidence on the live site is already
+# `missing` for want of a recent re-score. Git is the floor under that: an
+# eviction costs re-crawl time instead of explanation, and a clean checkout
+# (a local build, or a fork) gets real evidence instead of none.
+#
+# Note for anyone measuring this: a clean checkout WITHOUT the cache
+# legitimately withholds nearly everything, because there is nothing to
+# explain anybody with. That is the build environment, not the state of the
+# data, and it is exactly the gap this commit closes.

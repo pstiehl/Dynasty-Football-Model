@@ -60,15 +60,25 @@ jobs:
       # cache costs one slower crawl, never an indexed league. See .gitignore.
       #
       # data/cross_league/detail is the per-league transaction audit behind
-      # the Best Managers drill-down. Same bargain again: it is bulk and
-      # derived, so it must not go in git (an audit inside the
-      # daily-committed corpus.json is the exact regression PR #72 fixed),
-      # but the crawl only re-scores a bounded number of leagues per run, so
-      # without persistence the drill-down would only ever explain today's
-      # ~40 leagues. Carried here, evidence accumulates run over run exactly
-      # as the corpus does. An eviction costs explanation, never a score:
-      # the page reports a league whose audit is absent as "not in this
-      # build" rather than rendering it as no activity.
+      # the Best Managers drill-down. It stays cached here AND is now also
+      # committed (see .gitignore). Both, deliberately.
+      #
+      # The cache is the warm accumulator: the crawl re-scores only a bounded
+      # number of leagues per run, so evidence builds up here run over run
+      # and is what gives the live site its current coverage -- measured on
+      # production 2026-09-22, 136 league audits behind 1,389 of 2,771
+      # managers with a complete audit.
+      #
+      # Git is the durable FLOOR under that. A cache entry is evicted after 7
+      # days, and when it goes the drill-down evidence goes with it for every
+      # league not re-scored since. Committing the audits means an eviction
+      # costs re-crawl time rather than explanation, and a clean checkout --
+      # a local build, or a fork -- has real evidence instead of none.
+      #
+      # Restoring on top of the committed copies is additive: actions/cache
+      # only writes the files it holds, so the store ends up the union of
+      # both. The two cannot disagree in practice, since the same run that
+      # saves the cache also commits what it wrote.
       - name: Restore scraped-page cache
         uses: actions/cache@v4
         with:
@@ -278,6 +288,19 @@ jobs:
       # frontier and scoring ledger that let tomorrow's run RESUME the walk
       # instead of repeating it. That file is what stopped the crawl being a
       # treadmill, so it has to survive the runner.
+      #
+      # It ALSO picks up data/cross_league/detail/ -- the per-league
+      # transaction audits, newly committed (see .gitignore). That is
+      # intentional and load-bearing: corpus.json and detail/ are two halves
+      # of one artifact, and committing them in the same commit is what keeps
+      # them consistent. A league in the corpus with no audit is withheld
+      # from the board; an audit for a league the corpus has retired is
+      # pruned. Splitting them across commits would publish one state while
+      # the other caught up.
+      #
+      # Each run adds a blob only for the leagues it actually re-scored --
+      # write_league_detail pins gzip mtime=0, so an unchanged league
+      # re-serialises byte-identically and git stores nothing new.
       #
       # data/cross_league/cache/ is gitignored and deliberately NOT committed
       # (raw third-party data, and regenerable); it is restored by the

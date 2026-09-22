@@ -9,16 +9,22 @@ down."
 The condition is real and reproducible from the committed corpus:
 ``FantasyticBeast`` sits at rank 4 with a score of 118.7 off a single
 league. The score is correct -- 20 scored picks, z = 2.16 on the draft
-component -- but the pick-level audit behind it lives in the build cache
-(``data/cross_league/detail/``, gitignored), so on a build where that
-league was not re-scored the row opens an empty panel.
+component -- but the pick-level audit behind it USED TO live only in the
+build cache (``data/cross_league/detail/``, then gitignored), so on a build
+where that league was not re-scored the row opened an empty panel.
+
+That store is now committed, for the reason set out in ``.gitignore``: the
+gate alone turned a 2,432-manager board into an empty one, because a fresh
+checkout had no audits to explain anybody with. Whether a clone carries
+audits at all is asserted in ``test_published_artifacts.CommittedAuditStore``,
+against the real committed files.
 
 What this file can and cannot check, stated plainly
 ---------------------------------------------------
-The detail store is **not in the repository** by design, so no test in a
-clone can assert what the live build retained. What is asserted here is the
-gate's behaviour against the **real 2,302-manager corpus** with a detail
-store constructed to match each case:
+This file drives the gate to CHOSEN states -- "this manager is audited,
+this one is not" -- which real data cannot be made to do on demand. So it
+asserts the gate's behaviour against the **real committed corpus** with a
+detail store constructed to match each case:
 
 * a store that lacks FantasyticBeast's only league -> withheld,
 * a store that contains it -> listed again,
@@ -60,6 +66,15 @@ def synth_detail(league_id: str, manager_ids) -> dict:
 
     Only the fields the gate and ``build_manager_detail`` read are filled;
     the schema key matters because ``read_league_details`` filters on it.
+
+    ``picks`` carries one scored row per manager. The gate requires an
+    audit to CONTAIN a scored transaction, not merely to exist (see
+    ``managers_with_scored_transactions``): a retained audit listing zero
+    picks, trades and waivers describes a seat that did nothing scoreable,
+    and publishing it gives a visitor a row that opens on an empty table.
+    An all-empty fixture would therefore exercise the withhold path while
+    claiming to test the publish path. ``synth_detail_empty`` below is the
+    fixture for that state, tested explicitly.
     """
     return {
         "schema": md.LEAGUE_DETAIL_SCHEMA,
@@ -73,7 +88,8 @@ def synth_detail(league_id: str, manager_ids) -> dict:
                 "id": str(mid),
                 "name": f"m{mid}",
                 "components": {},
-                "picks": [],
+                "picks": [{"season": "2024", "slot": 1,
+                           "player": "Fixture Player", "surplus": 1.0}],
                 "trades": [],
                 "trades_unscored": [],
                 "waivers": [],
@@ -81,6 +97,14 @@ def synth_detail(league_id: str, manager_ids) -> dict:
             for mid in manager_ids
         ],
     }
+
+
+def synth_detail_empty(league_id: str, manager_ids) -> dict:
+    """A retained audit that truthfully records no scored transactions."""
+    d = synth_detail(league_id, manager_ids)
+    for m in d["managers"]:
+        m["picks"] = []
+    return d
 
 
 def find_row(corpus: dict, display_name: str):
@@ -218,11 +242,17 @@ class TestEvidenceGate(unittest.TestCase):
         This test previously asserted the opposite, on the reasoning that
         "no evidence for anybody" is a different fact from "no evidence for
         this manager" and should not blank the board. The distinction is
-        real; the published consequence was not. On the live site the
-        detail store IS empty on every build (data/cross_league/detail/ is
-        gitignored and only ever exists in the CI cache), so the fail-open
+        real; the published consequence was not. At the time the detail
+        store was empty on every build (data/cross_league/detail/ was
+        gitignored and only ever existed in the CI cache), so the fail-open
         branch was not an edge case -- it was the only branch that ever
         ran, and it shipped 2,432 managers with no retrievable evidence.
+
+        The store is committed now, so this state should no longer occur in
+        a normal build. The fail-closed behaviour still has to hold: it is
+        what makes a future loss of the audits show up as an honest empty
+        board with a published reason, instead of silently reverting to
+        thousands of unexplainable rows.
 
         Fail-closed: no rows, and the reason published rather than a
         silently short board.
@@ -288,6 +318,41 @@ class TestEvidenceGate(unittest.TestCase):
         corpus = load_corpus()
         md.apply_evidence_gate(corpus, {"x": synth_detail("x", ["1"])})
         self.assertEqual(CORPUS_PATH.read_bytes(), raw_before)
+
+    def test_retained_audit_with_no_transactions_is_withheld(self):
+        """A truthful audit of nothing is still an empty drill-down.
+
+        Measured on the 2026-09-22 build: 11 of 186 otherwise-passing
+        managers had n = 0 on draft, trade AND waiver and composite 0.0.
+        Their audits were retained and correct -- nothing scoreable
+        happened -- so the every-league-audited predicate passed them. The
+        row a visitor clicks still opened on an empty table, which is the
+        complaint that started this work, and a "Best Managers" board has
+        no business ranking a seat with nothing behind it.
+
+        Note what is NOT asserted: that their score is wrong. It is 0.0 and
+        it is right. Only the row is withheld.
+        """
+        corpus = load_corpus()
+        row = find_row(corpus, PHIL_CASE)
+        self.assertIsNotNone(row)
+        mid = str(row["manager_id"])
+        leagues = [str(lg["league_id"]) for lg in row["leagues"]]
+
+        empty = {lid: synth_detail_empty(lid, [mid]) for lid in leagues}
+        md.apply_evidence_gate(corpus, empty)
+        self.assertNotIn(
+            PHIL_CASE, names(corpus["leaderboard"]),
+            "an audit containing no scored transactions must not put a "
+            "manager on the board")
+
+        # Same manager, same leagues, one scored pick -> listed. This is
+        # what proves the withhold above is caused by the empty audit and
+        # not by something incidental to the fixture.
+        corpus = load_corpus()
+        full = {lid: synth_detail(lid, [mid]) for lid in leagues}
+        md.apply_evidence_gate(corpus, full)
+        self.assertIn(PHIL_CASE, names(corpus["leaderboard"]))
 
 
 def gate_without_log(gate: dict) -> dict:

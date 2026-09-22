@@ -42,6 +42,7 @@ from dynasty.crossleague import (                   # noqa: E402
 )
 
 CORPUS_PATH = REPO_ROOT / "data" / "cross_league" / "corpus.json"
+DETAIL_DIR = REPO_ROOT / "data" / "cross_league" / "detail"
 DRAFT_2026 = REPO_ROOT / "data" / "pfr" / "draft_class_2026.json"
 
 #: The manager Phil named. The acceptance check, not an example.
@@ -55,16 +56,27 @@ PHIL_ROOKIES = ["Denzel Boston", "Caleb Douglas", "Carnell Tate",
 def synth_detail(league_id: str, manager_ids) -> dict:
     """A league audit shaped like ``league_detail_from_result`` output.
 
-    This is the one place a constructed input is unavoidable: the retained
-    audits live in ``data/cross_league/detail/``, which is gitignored and
-    exists only in the CI build cache, so no clone can read a real one.
-    It is used ONLY to exercise the has-evidence branch. Every
-    withheld/absence assertion below runs against the real empty store,
-    which is what a real build actually has.
+    Used to drive the gate to a CHOSEN state -- "this exact manager is
+    audited and this one is not" -- which a real store cannot do on demand.
+    Tests that assert on real data use :data:`DETAIL_DIR` instead; see
+    :class:`CommittedAuditStore` below, which runs the real publish path
+    over the real committed audits.
+
+    Each manager carries one scored pick, because the gate requires an
+    audit to contain a scored transaction as well as merely existing (see
+    ``managers_with_scored_transactions``). A manager entry with no
+    transactions is a real state -- a seat that did nothing scoreable --
+    and is deliberately withheld, so a fixture without one would be
+    testing the withhold path while claiming to test the publish path.
     """
     return {
         "league_id": str(league_id),
-        "managers": [{"id": str(m)} for m in manager_ids],
+        "managers": [
+            {"id": str(m), "picks": [{"season": "2024", "slot": 1,
+                                      "player": "Fixture Player",
+                                      "surplus": 1.0}]}
+            for m in manager_ids
+        ],
     }
 
 
@@ -266,6 +278,129 @@ class RookieClassJoin(unittest.TestCase):
                          "unranked rows sort last, never raise")
         self.assertIn("insufficient_evidence_undrafted",
                       pv.NO_ESTIMATE_SOURCES)
+
+
+class CommittedAuditStore(unittest.TestCase):
+    """The durability claim, asserted against a clone rather than a cache.
+
+    What the gate does in production is fine: measured on the live site
+    2026-09-22, 136 cached league audits give **1,389 of 2,771** managers a
+    complete audit, so the gate publishes a board of that order rather than
+    an empty one. ``actions/cache`` is doing its job.
+
+    What it cannot do is outlive its own 7-day eviction window. Roughly 46%
+    of league-evidence on the live site is already ``missing`` for want of
+    a recent re-score, and a clean checkout -- a local build, or a fork --
+    has none at all, which is why building here without the cache withholds
+    nearly everything. That is the build environment, not the data.
+
+    So these tests assert the floor, not the ceiling: a clone carries real
+    audits, and a build from committed bytes alone publishes a board whose
+    every row opens onto transactions. They fail if the store stops being
+    committed, so a change that removes it breaks the build instead of
+    quietly shrinking the page the next time a cache expires.
+    """
+
+    def test_audit_store_is_committed_and_populated(self):
+        """A clone must carry audits. A cache is not a source of truth."""
+        self.assertTrue(
+            DETAIL_DIR.is_dir(),
+            "data/cross_league/detail/ must exist in the repository; the "
+            "published board is gated on it")
+        files = sorted(DETAIL_DIR.glob("*.json.gz"))
+        self.assertTrue(
+            files,
+            "no committed league audits: every manager would be withheld "
+            "and the Best Managers board would publish empty")
+
+    def test_audit_store_is_not_gitignored(self):
+        """The one-line change that caused the outage, pinned."""
+        import subprocess
+        probe = DETAIL_DIR / "probe.json.gz"
+        res = subprocess.run(
+            ["git", "check-ignore", "-q", str(probe)],
+            cwd=str(REPO_ROOT), capture_output=True)
+        # exit 0 = ignored, 1 = not ignored.
+        self.assertEqual(
+            res.returncode, 1,
+            "data/cross_league/detail/ is gitignored again; audits would "
+            "live only in the 7-day Actions cache and an eviction would "
+            "empty the board")
+
+    def test_real_committed_audits_publish_a_readable_board(self):
+        """End to end, from committed bytes only. No crawl, no cache.
+
+        This is the test that would have caught the regression: it uses the
+        real corpus and the real audit store, runs the real publish path,
+        and asserts the visitor-facing outcome -- rows exist, and every one
+        of them opens onto transactions.
+        """
+        import tempfile
+        corpus = load_corpus(CORPUS_PATH)
+        details = md.read_league_details(DETAIL_DIR)
+        self.assertTrue(details, "committed audits must load")
+
+        with tempfile.TemporaryDirectory() as td:
+            out = Path(td)
+            gate = md.apply_evidence_gate(corpus, details)
+            corpus["manager_detail"] = md.publish_manager_details(
+                out, corpus, details)
+            art = json.loads(Path(write_corpus_artifact(out, corpus)).read_bytes())
+
+            self.assertTrue(gate["applied"])
+            self.assertEqual(gate["reason"], "gated")
+            self.assertGreater(
+                len(art["leaderboard"]), 0,
+                "a build from committed data must publish a non-empty board")
+            self.assertEqual(gate["n_shown"], len(art["leaderboard"]))
+            self.assertEqual(
+                gate["n_shown"] + gate["n_withheld"], gate["n_scored"],
+                "the published counts must add up")
+
+            shards = sorted((out / "managers").rglob("*.json"))
+            self.assertEqual(
+                len(shards), len(art["leaderboard"]),
+                "exactly one reachable shard per published row")
+
+            # The claim the board makes about every row it prints.
+            for path in shards:
+                doc = json.loads(path.read_text())
+                self.assertTrue(doc["coverage"]["complete"])
+                rows = 0
+                for lg in doc["leagues"]:
+                    self.assertEqual(
+                        lg["evidence"], "complete",
+                        f"{doc['display_name']} has an unexplained league")
+                    d = lg.get("detail") or {}
+                    rows += (len(d.get("picks") or [])
+                             + len(d.get("trades") or [])
+                             + len(d.get("waivers") or []))
+                self.assertGreater(
+                    rows, 0,
+                    f"{doc['display_name']} is listed but their drill-down "
+                    f"has no transactions to read")
+
+    def test_rewriting_an_unchanged_league_is_byte_identical(self):
+        """What makes committing the store affordable.
+
+        ``write_league_detail`` pins gzip ``mtime=0`` so a league that did
+        not change re-serialises to the same bytes and git stores no new
+        blob. Without this the daily job would commit the entire store
+        every run, which is the cost that got the audit removed from
+        corpus.json in PR #72.
+        """
+        import gzip
+        import tempfile
+        src = sorted(DETAIL_DIR.glob("*.json.gz"))[0]
+        original = src.read_bytes()
+        doc = json.loads(gzip.open(src, "rb").read().decode("utf-8"))
+        with tempfile.TemporaryDirectory() as td:
+            written = md.write_league_detail(Path(td), doc)
+            self.assertIsNotNone(written)
+            self.assertEqual(
+                Path(written).read_bytes(), original,
+                "an unchanged league must re-serialise byte-identically, "
+                "or every daily run rewrites the whole audit store")
 
 
 if __name__ == "__main__":
