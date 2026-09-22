@@ -201,15 +201,57 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
 .comp-row.comp-hit-starter td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
 .comp-row.comp-hit-bust td:first-child { box-shadow: inset 3px 0 0 #dc2626; }
 .comp-row.comp-hit-unknown td:first-child { box-shadow: inset 3px 0 0 #9ca3af; }
+.notfound-links { list-style: none; padding: 0; margin: 8px 0 0;
+  display: flex; flex-wrap: wrap; gap: 8px; }
+.notfound-links a { display: inline-block; padding: 8px 14px; border-radius: 999px;
+  background: white; border: 1px solid var(--border); color: var(--text);
+  text-decoration: none; font-weight: 600; font-size: 14px; }
+.notfound-links a:hover { background: var(--hover); border-color: var(--accent); }
 """ + _hl.PLAYER_HIGHLIGHTS_CSS
 
 
-def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) -> str:
+#: Prefix from a page inside a one-deep subdirectory back to the site root.
+#:
+#: Every page under ``dynasty_site/players/`` needs this in front of every
+#: link it emits at the site root, because a browser resolves a relative
+#: href against the directory of the page it is on -- not against the site
+#: root. It is a named constant rather than a literal at each call site so
+#: that "what is the prefix" and "which pages are nested" have exactly one
+#: answer each, and adding a second nested directory is one edit here.
+SUBDIR_PREFIX = "../"
+
+
+def _site_header(active: str, latest_ts: Optional[datetime], league_label: str,
+                 prefix: str = "") -> str:
+    """The brand block and the nav.
+
+    ``prefix`` is the path from the page being rendered back to the site
+    root: ``""`` for a root page, ``SUBDIR_PREFIX`` for anything under
+    ``players/``. It is prepended to every internal href below.
+
+    THIS ARGUMENT IS NOT COSMETIC. It was added after a live outage: this
+    header emitted bare filenames (``rankings.html``), player detail pages
+    are written into ``dynasty_site/players/``, and they reuse this header
+    verbatim. So the nav on ``/players/aaron-jones-033293.html`` resolved to
+    ``/players/rankings.html`` -- and all seven tabs 404ed on every one of
+    the hundreds of detail pages. The reported symptom was "clicking
+    between tabs 404s; go back a page and re-click", which is exactly what
+    a root-relative nav on a nested page feels like.
+
+    The stylesheet had been given its ``../`` (every nested call site
+    already passed ``css_href="../assets/style.css"``); the nav never was.
+    That is the asymmetry this parameter removes -- one mechanism now
+    carries depth for the whole page, rather than the CSS knowing its depth
+    and the nav guessing.
+
+    Defaulting to ``""`` keeps every root call site unchanged and keeps the
+    built root pages byte-identical.
+    """
     ts = latest_ts.strftime("%B %d, %Y at %I:%M %p UTC") if latest_ts else "—"
 
     def link(href, label, key):
         cls = ' class="active"' if key == active else ""
-        return f'<a href="{href}"{cls}>{label}</a>'
+        return f'<a href="{prefix}{href}"{cls}>{label}</a>'
 
     # Nav is deliberately short. Methodology, Sources and Prospects are
     # still built and still reachable by direct link and from the footer -
@@ -245,12 +287,12 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
 
     def plink(href, label, key):
         cls = ' class="active"' if key == primary_active else ""
-        return f'<a href="{href}"{cls}>{label}</a>'
+        return f'<a href="{prefix}{href}"{cls}>{label}</a>'
 
     return f"""<header class="site">
   <div class="row">
     <div>
-      <h1><a href="rankings.html">{site_name_html()}</a></h1>
+      <h1><a href="{prefix}rankings.html">{site_name_html()}</a></h1>
       <div class="meta">{_esc(SITE_TAGLINE)} · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
     </div>
     <nav>
@@ -276,8 +318,19 @@ def _footer() -> str:
     )
 
 
-def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/style.css") -> str:
+def _page(title: str, header_html: str, body_html: str,
+          css_href: Optional[str] = None, prefix: str = "") -> str:
     """Wrap a body in the site chrome.
+
+    ``prefix`` is the path from this page back to the site root -- ``""``
+    for a root page, ``SUBDIR_PREFIX`` under ``players/`` -- and it is the
+    single input that sets the page's depth. The stylesheet href and
+    ``DFM_BASE`` are both derived from it, so they cannot disagree.
+
+    ``css_href`` is still accepted for call sites that pass it explicitly,
+    and still wins when given. Passing only ``css_href="../assets/style.css"``
+    remains correct: the prefix is recovered from it below, which is what
+    keeps an un-migrated caller from silently losing its nav prefix again.
 
     Two things are injected here rather than per page, both for the same
     reason -- a page that forgets them is a page where the owner's
@@ -296,7 +349,12 @@ def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/
     unless ``DFM_ANALYTICS_TOKEN`` is in the build environment -- see
     ``dynasty.analytics`` and docs/ANALYTICS.md.
     """
-    base = "../" if css_href.startswith("../") else ""
+    # One source of depth, two consumers. ``prefix`` is authoritative when
+    # supplied; otherwise it is recovered from an explicit ``css_href``,
+    # which already encoded exactly this depth before the prefix existed.
+    if css_href is None:
+        css_href = f"{prefix}assets/style.css"
+    base = prefix or (SUBDIR_PREFIX if css_href.startswith(SUBDIR_PREFIX) else "")
     desc = (
         f"{SITE_NAME} — dynasty fantasy football rankings built on NFL "
         "fantasy-production career arcs, with recent highlights for every "
@@ -1184,6 +1242,76 @@ production history. See <a href="methodology.html">Methodology</a>.</p>
 
 
 # ---------------------------------------------------------------------------
+# 404 page
+# ---------------------------------------------------------------------------
+
+def build_not_found(latest_ts: Optional[datetime], league_label: str) -> str:
+    """The page a visitor gets for a URL this build did not produce.
+
+    Added alongside the nav-prefix fix, and for the same reason. Every nav
+    link on every player detail page 404ed for an unknown length of time,
+    and what a visitor saw was GitHub Pages' own 404 -- unbranded, with no
+    way back into the site and nothing that would prompt anyone to report
+    it. The bug was ours; the dead end made it invisible.
+
+    GitHub Pages serves ``/404.html`` from the site root for any unmatched
+    path, at any depth, WITHOUT rewriting the URL. So a miss at
+    ``/players/rankings.html`` renders this file while the browser still
+    believes it is inside ``/players/``, and a relative href here would
+    resolve against that directory and miss again. Every link below is
+    therefore ROOT-ABSOLUTE (``/rankings.html``).
+
+    That is safe only because this site is served from the root of a custom
+    domain (``custom_domain.DEFAULT_DOMAIN``). On the old project URL
+    ``pstiehl.github.io/Dynasty-Football-Model/`` these links would point
+    outside the site -- which is the trap ``custom_domain`` warns about, and
+    this is the one file that must break the "keep internal links relative"
+    rule to do its job. It is called out here so the exception is a decision
+    rather than an oversight. The link audit in ``tests/support/link_audit``
+    reports root-absolute hrefs separately for the same reason.
+
+    This page is a safety net, not a feature. It does not know what the
+    visitor wanted and does not guess.
+    """
+    tabs = (
+        ("/rankings.html", "Similar NFL Career Paths"),
+        ("/league.html", "Dynasty Rankings"),
+        ("/crossleague.html", "Best Managers"),
+        ("/myteam.html", "Input Sleeper Team"),
+        ("/prospects.html", "Prospects"),
+        ("/methodology.html", "Methodology"),
+        ("/sources.html", "Sources"),
+    )
+    links = "".join(
+        f'<li><a href="{href}">{_esc(label)}</a></li>' for href, label in tabs
+    )
+    body = f"""<div class="wrap">
+<h2>That page isn't here</h2>
+<p class="lede">The link you followed points at something this build did not
+produce. That is usually our fault rather than yours -- if you got here by
+clicking inside the site, please
+<a href="https://github.com/pstiehl/Dynasty-Football-Model/issues">open an
+issue</a> and say which link you clicked.</p>
+
+<div class="card">
+  <h3>Go somewhere real</h3>
+  <ul class="notfound-links">{links}</ul>
+</div>
+
+<p class="lede" style="margin-top:24px">Player and prospect pages live under
+<code>/players/</code> and are reachable by clicking a name on
+<a href="/rankings.html">Similar NFL Career Paths</a> or
+<a href="/prospects.html">Prospects</a> -- they are generated per build, so
+a bookmarked page can disappear when a player leaves the model.</p>
+</div>"""
+    return _page(
+        page_title("Page not found"),
+        _site_header("", latest_ts, league_label),
+        body,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Prospects page (decoupled)
 # ---------------------------------------------------------------------------
 
@@ -1840,11 +1968,15 @@ available.</p>
 
 </div>"""
 
+    # Written to dynasty_site/players/<slug>-prospect.html, so every link
+    # the chrome emits needs SUBDIR_PREFIX. Passing it to BOTH calls is the
+    # point: before this, only _page knew the page was nested, and the nav
+    # _site_header produced 404ed on every prospect page.
     return _page(
         page_title(f"{name} (Prospect)"),
-        _site_header("prospects", latest_ts, label),
+        _site_header("prospects", latest_ts, label, prefix=SUBDIR_PREFIX),
         body,
-        css_href="../assets/style.css",
+        prefix=SUBDIR_PREFIX,
     )
 
 
@@ -2140,11 +2272,14 @@ league's specific scoring + roster rules? Head to
 
 </div>"""
 
+    # Written to dynasty_site/players/<slug>.html. This is the page Phil
+    # reported: every nav tab 404ed here because _site_header emitted bare
+    # filenames while _page had already been given the nested css_href.
     return _page(
         page_title(row["name"]),
-        _site_header("rankings", latest_ts, league_label),
+        _site_header("rankings", latest_ts, league_label, prefix=SUBDIR_PREFIX),
         body,
-        css_href="../assets/style.css",
+        prefix=SUBDIR_PREFIX,
     )
 
 
@@ -2314,6 +2449,14 @@ def generate_site(
     )
     (out_root / "sources.html").write_text(
         _build_sources(latest_ts, label),
+        encoding="utf-8",
+    )
+    # GitHub Pages serves this for any unmatched path at any depth. Written
+    # unconditionally and early: it is the fallback for the rest of the
+    # build, so it must exist even if a later step throws. See
+    # ``build_not_found`` for why its links are root-absolute.
+    (out_root / "404.html").write_text(
+        build_not_found(latest_ts, label),
         encoding="utf-8",
     )
     (out_root / "prospects.html").write_text(
