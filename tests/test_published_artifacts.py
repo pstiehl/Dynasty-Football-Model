@@ -283,18 +283,22 @@ class RookieClassJoin(unittest.TestCase):
 class CommittedAuditStore(unittest.TestCase):
     """The durability claim, asserted against a clone rather than a cache.
 
-    The gate in this PR is correct and, on its own, would have shipped an
-    empty board. The reason was not the gate: ``data/cross_league/detail/``
-    was gitignored and restored from ``actions/cache``, so a fresh checkout
-    -- which is what CI builds from -- had no audits at all. Measured on
-    the real artifacts: leaderboard 2,432 -> 0, ``managers/`` 2,432 files
-    -> 0, and 0 of 40 manager pages sampled from the live site carried any
-    retained evidence.
+    What the gate does in production is fine: measured on the live site
+    2026-09-22, 136 cached league audits give **1,389 of 2,771** managers a
+    complete audit, so the gate publishes a board of that order rather than
+    an empty one. ``actions/cache`` is doing its job.
 
-    These tests fail if the store stops being committed. That is the whole
-    point: the board's contents now depend on files in the repository, so
-    a change that removes them must break the build rather than quietly
-    empty the page.
+    What it cannot do is outlive its own 7-day eviction window. Roughly 46%
+    of league-evidence on the live site is already ``missing`` for want of
+    a recent re-score, and a clean checkout -- a local build, or a fork --
+    has none at all, which is why building here without the cache withholds
+    nearly everything. That is the build environment, not the data.
+
+    So these tests assert the floor, not the ceiling: a clone carries real
+    audits, and a build from committed bytes alone publishes a board whose
+    every row opens onto transactions. They fail if the store stops being
+    committed, so a change that removes it breaks the build instead of
+    quietly shrinking the page the next time a cache expires.
     """
 
     def test_audit_store_is_committed_and_populated(self):

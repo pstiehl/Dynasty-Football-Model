@@ -158,8 +158,20 @@ data/cross_league/cache/
 # OUR model, and the z-score it produced. Publishing our own arithmetic is
 # the entire point of the drill-down.
 #
-# Why it must be committed rather than cached: the evidence gate lists only
-# managers whose score can be explained. When this store lived only in
-# actions/cache, a cache eviction silently emptied the published board --
-# measured: 2,432 managers -> 0. Committing it means an eviction costs
-# re-crawl time and nothing else.
+# Why it is committed AS WELL AS cached (it is still in the actions/cache
+# entry; see daily-refresh.yml): the evidence gate lists only managers whose
+# score can be explained, so the board's size is a direct function of how
+# much of this store survives.
+#
+# The cache does most of the work and does it well -- measured on production
+# 2026-09-22, 136 cached league audits give 1,389 of 2,771 managers a
+# complete audit. What the cache cannot do is survive its own 7-day eviction
+# window, and roughly 46% of league-evidence on the live site is already
+# `missing` for want of a recent re-score. Git is the floor under that: an
+# eviction costs re-crawl time instead of explanation, and a clean checkout
+# (a local build, or a fork) gets real evidence instead of none.
+#
+# Note for anyone measuring this: a clean checkout WITHOUT the cache
+# legitimately withholds nearly everything, because there is nothing to
+# explain anybody with. That is the build environment, not the state of the
+# data, and it is exactly the gap this commit closes.

@@ -18,13 +18,21 @@ Where the bytes go, and why that is not a regression
 Two stores:
 
 ``data/cross_league/detail/<league_id>.json.gz``
-    The durable per-league audit, gzipped, and **committed**. See the long
-    note in ``.gitignore`` for the full reasoning; the short version is that
-    this directory was cache-only until 2026-09-22, and a cache eviction
-    therefore emptied the published board — measured, 2,432 managers to 0 —
-    because the evidence gate lists only managers whose score can be
-    explained. Evidence that exists only in a 7-day cache is not evidence
-    the site can promise.
+    The per-league audit, gzipped. Restored by ``actions/cache`` AND, since
+    2026-09-22, **committed**. See the long note in ``.gitignore``.
+
+    The cache carries most of the coverage and does it well: measured on
+    production, 136 cached league audits give 1,389 of 2,771 managers a
+    complete audit. Git is the floor under it. A cache entry is evicted
+    after 7 days, roughly 46% of league-evidence on the live site is
+    already ``missing`` for want of a recent re-score, and a clean checkout
+    has none at all. Committing the audits makes an eviction cost re-crawl
+    time rather than explanation.
+
+    Measuring this locally will mislead you unless the cache is present: a
+    clean checkout without it legitimately withholds nearly every manager,
+    because there is nothing to explain them with. That is a property of
+    the build environment, not of the data.
 
     Committing it is affordable for a reason that does not apply to
     corpus.json: this is one file per league, and :func:`write_league_detail`

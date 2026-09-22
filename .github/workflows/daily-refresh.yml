@@ -59,24 +59,26 @@ jobs:
       # fully regenerable -- the SCORES persist in corpus.json, so an evicted
       # cache costs one slower crawl, never an indexed league. See .gitignore.
       #
-      # data/cross_league/detail USED TO BE CACHED HERE. It is now committed,
-      # and it is deliberately not in this list.
+      # data/cross_league/detail is the per-league transaction audit behind
+      # the Best Managers drill-down. It stays cached here AND is now also
+      # committed (see .gitignore). Both, deliberately.
       #
-      # It is the per-league transaction audit behind the Best Managers
-      # drill-down, and the evidence gate publishes only managers whose score
-      # that audit can explain. Carrying it in a 7-day cache made the board
-      # depend on a cache hit: on an eviction the store came back empty, the
-      # gate correctly withheld everyone, and the published board went from
-      # 2,432 managers to 0. That is measured, not hypothetical.
+      # The cache is the warm accumulator: the crawl re-scores only a bounded
+      # number of leagues per run, so evidence builds up here run over run
+      # and is what gives the live site its current coverage -- measured on
+      # production 2026-09-22, 136 league audits behind 1,389 of 2,771
+      # managers with a complete audit.
       #
-      # Leaving it here as well as in git would be worse than either alone --
-      # a restored stale copy can only re-add audits for leagues the corpus
-      # has since retired, which prune_league_details then deletes again.
-      # Git is now the single source for it. See .gitignore for why
-      # committing it does not reintroduce the PR #72 regression (short
-      # version: one gzipped file per league with mtime pinned, so an
-      # unchanged league is byte-identical and costs no new blob, unlike
-      # corpus.json which is rewritten in full every day).
+      # Git is the durable FLOOR under that. A cache entry is evicted after 7
+      # days, and when it goes the drill-down evidence goes with it for every
+      # league not re-scored since. Committing the audits means an eviction
+      # costs re-crawl time rather than explanation, and a clean checkout --
+      # a local build, or a fork -- has real evidence instead of none.
+      #
+      # Restoring on top of the committed copies is additive: actions/cache
+      # only writes the files it holds, so the store ends up the union of
+      # both. The two cannot disagree in practice, since the same run that
+      # saves the cache also commits what it wrote.
       - name: Restore scraped-page cache
         uses: actions/cache@v4
         with:
@@ -84,6 +86,7 @@ jobs:
             data/pfr_cache
             data/sr_cache
             data/cross_league/cache
+            data/cross_league/detail
           key: scrape-cache-${{ github.run_id }}
           restore-keys: |
             scrape-cache-
