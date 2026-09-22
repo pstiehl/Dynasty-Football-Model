@@ -58,22 +58,66 @@ provenance column, and its own artifact. Nothing a veteran row shows
 changes. Both boards link to the prospect page, which is where the
 historical NFL comparisons actually live.
 
-Everything here is pure and stdlib-only: it reads a dict and returns
-dicts, so it is testable without the engine, the corpus or numpy.
+v3.15 -- the class has NFL snaps now
+------------------------------------
+
+Phil, 2026-09-22, after the above shipped: "the model is still comparing
+them to college players. It should be comparing them to nfl players
+using their nfl stats to this point. the model should be taking all of
+their starts so far from the 2026 season and comparing them to similar
+historical nfl players who put up similar stats through their first 2
+games."
+
+He is right, and the argument above has a shelf life that expired the
+moment these players took a snap. "There is no NFL production to comp"
+was true in April and is false in September. :func:`attach_nfl_comps`
+adds, to every row that has one, the player's actual NFL line to date
+and the historical players whose **first N career games** looked most
+like it -- N read off his game logs, never hardcoded.
+
+The college projection stays on the row, demoted: it is what we have
+for a rookie who has not played, and it is the weaker estimator even
+for one who has. It is no longer the headline.
+
+What the ordering still rests on
+--------------------------------
+
+The rows are still ordered by the college/draft-capital projection, and
+that is deliberate rather than leftover. Two games cannot rank 80
+players: sorting this board on a two-game sample would put whoever drew
+the best coverage matchup in week 1 at the top and call it a dynasty
+ranking. The NFL line and its comps are shown on every row precisely so
+a reader can see the small sample instead of having it silently folded
+into a sort key.
+
+The pure-function core here is stdlib-only and reads dicts. Only
+:func:`attach_nfl_comps` touches the corpus, and it takes injectable
+paths so tests never need the real files.
 """
 from __future__ import annotations
 
+import logging
 from typing import Dict, List, Mapping, Optional, Sequence
 
 from . import prospect_view as _pv
+
+log = logging.getLogger(__name__)
 
 #: Marks a row as coming from the college-production layer rather than from
 #: NFL production. Present on every row this module emits, so no consumer
 #: can mistake one for a veteran row.
 ROOKIE_ENGINE = "prospect_college_arc_v3"
 
-#: Schema for the published artifact.
-ROOKIE_ARTIFACT_SCHEMA = "dynasty.rookie_rankings.v1"
+#: Marks the NFL-production comparison layer added in v3.15. A row
+#: carrying ``nfl_comp_engine`` has been compared against historical NFL
+#: players; a row without one has not played and says so.
+ROOKIE_NFL_ENGINE = "nfl_first_n_games_v1"
+
+#: Schema for the published artifact. Bumped from v1: every row may now
+#: carry ``nfl`` (the player's own NFL line to date) and ``nfl_comps``
+#: (historical players through the same number of career games). A
+#: consumer pinned to v1 will not silently read the new shape.
+ROOKIE_ARTIFACT_SCHEMA = "dynasty.rookie_rankings.v2"
 
 
 def rookie_class_year(artifact: Optional[Mapping]) -> Optional[int]:
@@ -156,6 +200,163 @@ def rookie_rows(artifact: Optional[Mapping],
     return rows[:limit] if limit else rows
 
 
+# ---------------------------------------------------------------------------
+# v3.15 -- NFL production and NFL comps
+# ---------------------------------------------------------------------------
+
+def attach_nfl_comps(rows: Sequence[Dict], *,
+                     k: int = 10,
+                     weekly_path: str = "",
+                     corpus_path: str = "") -> Dict:
+    """Add each rookie's real NFL line to date and his NFL comps.
+
+    Mutates ``rows`` in place and returns a coverage summary.
+
+    For every row we try to resolve the player in the current season's
+    weekly stat file, by draft-card name and then by corpus name. On a
+    hit the row gains:
+
+    ``nfl_games``      games he has actually played (the N everything else keys off)
+    ``nfl_line``       his cumulative line and per-game rates
+    ``nfl_comps``      historical players through their own first N games
+    ``nfl_comp_state`` ``ok`` / ``cohort_too_small`` / ``unsupported_position``
+
+    A row with no 2026 stat line gets ``nfl_games = 0`` and
+    ``nfl_comp_state = "no_nfl_games"``. That is a real state -- a
+    drafted rookie who has not played -- and it is recorded rather than
+    quietly backfilled with the college comps, which is exactly the
+    substitution Phil has now rejected twice.
+
+    Never raises. A missing weekly corpus degrades every row to the
+    "has not played" state and logs once; it must not take down a build
+    that was fine before this feature existed.
+    """
+    summary = {
+        "engine": ROOKIE_NFL_ENGINE,
+        "n_rows": len(rows),
+        "n_with_nfl_games": 0,
+        "n_with_comps": 0,
+        "n_no_nfl_games": 0,
+        "n_games_seen": [],
+        "season": None,
+        "cohort_sizes": {},
+        "available": False,
+    }
+    if not rows:
+        return summary
+
+    try:
+        from .engine import rookie_nfl_debut_similarity as _sim
+        from .sources import nflverse_weekly_stats as _weekly
+    except Exception as exc:  # noqa: BLE001
+        log.warning("rookie NFL comps unavailable (import): %s", exc)
+        for r in rows:
+            _mark_no_nfl(r)
+        summary["n_no_nfl_games"] = len(rows)
+        return summary
+
+    try:
+        season = _weekly.current_season(weekly_path)
+        summary["season"] = season
+        summary["available"] = bool(_weekly.current_weeks(weekly_path))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("rookie NFL comps unavailable (weekly corpus): %s", exc)
+        for r in rows:
+            _mark_no_nfl(r)
+        summary["n_no_nfl_games"] = len(rows)
+        return summary
+
+    n_seen = set()
+    for row in rows:
+        # Two shots at the join: the name on the draft card and the name
+        # in the college corpus. They disagree often enough to matter --
+        # "KC Concepcion" on the NFL roster, "Kevin Concepcion" in the
+        # corpus -- and a missed join looks identical to "has not
+        # played", which would be a silent lie on the page.
+        pid = None
+        try:
+            pid = _sim.resolve_player_id(
+                row.get("name") or "",
+                weekly_path=weekly_path,
+                aliases=(row.get("corpus_name") or "",),
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("rookie NFL id resolution failed for %r: %s",
+                        row.get("name"), exc)
+
+        if not pid:
+            _mark_no_nfl(row)
+            summary["n_no_nfl_games"] += 1
+            continue
+
+        try:
+            result = _sim.comps_for_player(
+                pid, row.get("position") or "", k=k,
+                weekly_path=weekly_path, corpus_path=corpus_path,
+            )
+        except Exception as exc:  # noqa: BLE001
+            log.warning("rookie NFL comps failed for %r: %s",
+                        row.get("name"), exc)
+            _mark_no_nfl(row)
+            summary["n_no_nfl_games"] += 1
+            continue
+
+        state = result.get("state")
+        row["nfl_player_id"] = pid
+        row["nfl_comp_state"] = state
+        row["nfl_games"] = int(result.get("n_games") or 0)
+        row["nfl_line"] = result.get("subject")
+        row["nfl_comps"] = list(result.get("comps") or [])
+        row["nfl_cohort_size"] = int(result.get("cohort_size") or 0)
+        row["nfl_comp_engine"] = ROOKIE_NFL_ENGINE
+        row["nfl_season"] = season
+
+        if row["nfl_games"]:
+            summary["n_with_nfl_games"] += 1
+            n_seen.add(row["nfl_games"])
+            if row["nfl_comps"]:
+                summary["n_with_comps"] += 1
+                # Keyed by position AND N. A cohort is "WRs through 2
+                # games", not "players through 2 games": keying on N
+                # alone made the last position written overwrite the
+                # rest, so the summary reported 844 for a comparison
+                # actually drawn from 1,200.
+                summary["cohort_sizes"][
+                    f"{row.get('position') or '?'}@{row['nfl_games']}"
+                ] = row["nfl_cohort_size"]
+        else:
+            summary["n_no_nfl_games"] += 1
+
+    summary["n_games_seen"] = sorted(n_seen)
+    return summary
+
+
+def _mark_no_nfl(row: Dict) -> None:
+    """The honest empty state for a rookie with no 2026 stat line."""
+    row["nfl_player_id"] = None
+    row["nfl_comp_state"] = "no_nfl_games"
+    row["nfl_games"] = 0
+    row["nfl_line"] = None
+    row["nfl_comps"] = []
+    row["nfl_cohort_size"] = 0
+    row["nfl_comp_engine"] = ROOKIE_NFL_ENGINE
+
+
+def nfl_sample_label(rows: Sequence[Mapping]) -> Optional[str]:
+    """"N = 2 games" -- the sample size, stated as a plain sentence.
+
+    Derived from the rows, so it tracks the season instead of asserting
+    a week. Returns ``None`` when nobody has played.
+    """
+    ns = sorted({int(r.get("nfl_games") or 0) for r in rows
+                 if r.get("nfl_games")})
+    if not ns:
+        return None
+    if len(ns) == 1:
+        return f"N = {ns[0]} game{'s' if ns[0] != 1 else ''}"
+    return f"N = {ns[0]}\u2013{ns[-1]} games, per player"
+
+
 def _display_name(prospect: Mapping) -> str:
     """The name to show: the draft card's, falling back to the corpus's.
 
@@ -205,6 +406,12 @@ def coverage(artifact: Optional[Mapping], rows: Sequence[Mapping]) -> Dict:
     in_class = _pv.in_class(prospects, year) if year is not None else []
     drafted = [p for p in in_class if _pv.is_drafted(p)]
     evidence = sum(1 for r in rows if r.get("evidence_backed"))
+    # v3.15. Counted separately from the college-projection states above:
+    # "has an NFL line" and "has an evidence-backed college projection"
+    # are different facts about a player and a reader must be able to see
+    # how many rows rest on each.
+    played = [r for r in rows if r.get("nfl_games")]
+    with_comps = [r for r in played if r.get("nfl_comps")]
     return {
         "class_year": year,
         "n_in_class": len(in_class),
@@ -212,6 +419,10 @@ def coverage(artifact: Optional[Mapping], rows: Sequence[Mapping]) -> Dict:
         "n_shown": len(rows),
         "n_evidence_backed": evidence,
         "n_draft_slot_constant": len(rows) - evidence,
+        "n_with_nfl_games": len(played),
+        "n_with_nfl_comps": len(with_comps),
+        "n_not_yet_played": len(rows) - len(played),
+        "nfl_sample_label": nfl_sample_label(rows),
     }
 
 
@@ -229,14 +440,30 @@ def artifact_payload(artifact: Optional[Mapping],
     return {
         "schema": ROOKIE_ARTIFACT_SCHEMA,
         "engine": ROOKIE_ENGINE,
+        "nfl_comp_engine": ROOKIE_NFL_ENGINE,
         "class_year": cov["class_year"],
         "coverage": cov,
+        "primary_comparison": (
+            "Each rookie who has played is compared to historical NFL "
+            "players through the same number of career games "
+            "(nfl_games / nfl_line / nfl_comps on each row). N is read "
+            "from his 2026 game logs and grows every week."
+        ),
+        "sample_warning": (
+            "The NFL comparison rests on "
+            + (cov.get("nfl_sample_label") or "no games yet")
+            + ". That is a very small sample: it describes how these "
+            "players began, not how they will finish, and it is not a "
+            "career projection."
+        ),
         "why_separate": (
-            "These projections come from the college-production layer, not "
-            "from NFL production: the class has no completed NFL season "
-            "yet. The units match a veteran's production_score but the "
-            "error bars do not, so the rows are published as their own "
-            "cohort rather than merged into the veteran ranking."
+            "projected_career_fp on each row still comes from the "
+            "college-production layer and draft capital, not from NFL "
+            "production. It is retained as a secondary figure and as the "
+            "board's sort key, because a two-game sample cannot rank a "
+            "class. The units match a veteran's production_score but the "
+            "error bars do not, so the rows stay their own cohort rather "
+            "than merging into the veteran ranking."
         ),
         "rookies": list(rows),
     }

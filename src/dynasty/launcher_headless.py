@@ -61,6 +61,29 @@ def main():
         print(f"  WARN: nflverse refresh failed: {e}")
         print("  (Engine will run against the previously cached corpus.)")
 
+    # v3.15: the weekly artifacts behind the rookie NFL comparison.
+    #
+    # Separate from the season refresh above because it answers a
+    # different question: the season file says "16 games, 1,100 yards",
+    # and a rookie comparison needs "through two games he had 154". This
+    # re-pulls the in-progress season every build, so N grows on its own
+    # as weeks are played and nothing has to be edited in September.
+    #
+    # Warn-and-continue, exactly like the season refresh: a network
+    # failure leaves the previous artifacts in place and the rookie board
+    # renders last build's N rather than taking the site down.
+    try:
+        import refresh_nflverse_weekly  # type: ignore
+        weekly_summary = refresh_nflverse_weekly.refresh(verbose=False)
+        print(
+            f"  weekly OK · season={weekly_summary['current_season']} "
+            f"weeks={weekly_summary['current_weeks']} "
+            f"first_n_players={weekly_summary['first_n_players']:,}"
+        )
+    except Exception as e:
+        print(f"  WARN: nflverse weekly refresh failed: {e}")
+        print("  (Rookie NFL comps will use the previously cached weekly data.)")
+
     # Step 3: Sleeper + MFL player metadata.
     print("\n[3/8] Syncing player metadata (Sleeper + MFL)...")
     try:

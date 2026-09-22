@@ -65,6 +65,16 @@ data/sr_cache/
 # v3.10 per-player parsed-career-stats cache (rebuilt from data/pfr_cache).
 data/cache/pfr_career_stats/
 
+# v3.15 raw nflverse weekly downloads (~29 MB, one ~1.1 MB gz per season
+# back to 1999). Cache only, and fully regenerable by re-running
+# scripts/refresh_nflverse_weekly.py. The committed source of truth is
+# the pair of derived artifacts the script writes next to it:
+#   data/nflverse/player_first_n_games.csv.gz  (~470 KB)
+#   data/nflverse/player_week_current.csv.gz   (~13 KB)
+# Those two ARE tracked on purpose -- the rookie NFL comparison reads
+# them on every build and CI has no network step that would rebuild them.
+data/nflverse/weekly_cache/
+
 # v3.0 sports-reference HTML cache. Cache only; the parsed/normalized
 # data lives at data/sos/*.csv(.gz) and is regenerable by re-running
 # scripts/build_cfb_sos_corpus.py. Shared with v3.0 PR 1 by convention.
