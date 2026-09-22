@@ -212,21 +212,37 @@ class TestEvidenceGate(unittest.TestCase):
         ranks = [r["rank"] for r in shown]
         self.assertEqual(ranks, sorted(ranks), "order is preserved")
 
-    def test_empty_detail_store_fails_open_and_says_so(self):
-        """No evidence for anybody is a different fact from no evidence for one.
+    def test_empty_detail_store_fails_closed_and_says_so(self):
+        """An empty store withholds everything. It used to show everything.
 
-        A bare checkout and a CI cache miss both produce an empty store.
-        Blanking a 2,302-row board in that case and calling it a quality
-        feature would be worse than the bug.
+        This test previously asserted the opposite, on the reasoning that
+        "no evidence for anybody" is a different fact from "no evidence for
+        this manager" and should not blank the board. The distinction is
+        real; the published consequence was not. On the live site the
+        detail store IS empty on every build (data/cross_league/detail/ is
+        gitignored and only ever exists in the CI cache), so the fail-open
+        branch was not an edge case -- it was the only branch that ever
+        ran, and it shipped 2,432 managers with no retrievable evidence.
+
+        Fail-closed: no rows, and the reason published rather than a
+        silently short board.
         """
         n_before = len(self.corpus["leaderboard"])
+        n_draft_before = len(self.corpus["draft_board"])
         gate = md.apply_evidence_gate(self.corpus, {})
 
-        self.assertFalse(gate["applied"])
-        self.assertEqual(len(self.corpus["leaderboard"]), n_before,
-                         "an empty store must not filter the board")
-        self.assertEqual(gate["n_withheld"], 0)
-        self.assertIn("no per-league audits", gate["why"])
+        self.assertTrue(gate["applied"])
+        self.assertEqual(gate["reason"], "audit_data_unavailable")
+        self.assertEqual(self.corpus["leaderboard"], [],
+                         "an empty store must withhold every row")
+        self.assertEqual(self.corpus["draft_board"], [])
+        self.assertEqual(gate["n_withheld"], n_before)
+        self.assertEqual(gate["n_draft_withheld"], n_draft_before)
+        self.assertEqual(gate["n_shown"], 0)
+        # The count is published, not swallowed.
+        self.assertEqual(gate["n_scored"], n_before)
+        self.assertIn("audit data unavailable", gate["why"])
+        self.assertFalse(self.corpus["manager_detail"]["available"])
 
     # --------------------------------------------------- no silent drift
     def test_evidence_gate_agrees_with_build_manager_detail(self):

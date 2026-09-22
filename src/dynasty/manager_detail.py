@@ -632,6 +632,12 @@ def publish_manager_details(out_root: Path, corpus: Dict,
         "schema": MANAGER_DETAIL_SCHEMA,
         "dir": SITE_DIRNAME,
         "shard_buckets": SHARD_BUCKETS,
+        # ``available`` is what the page branches on. Without it, a build
+        # that wrote zero shards is indistinguishable from one that wrote
+        # thousands until the reader counts, and "no managers" silently
+        # reads as "no activity" rather than "no audit data in this build".
+        "available": bool(n_files),
+        "reason": (None if n_files else "audit_data_unavailable"),
         "n_files": n_files,
         "bytes": n_bytes,
         "n_leagues_with_detail": len(details),
@@ -679,6 +685,53 @@ def publish_manager_details(out_root: Path, corpus: Dict,
 #    something.
 
 
+def managers_fully_explained(corpus: Dict, details: Dict[str, Dict]) -> set:
+    """Manager ids whose EVERY indexed league has a retained audit.
+
+    This is the predicate the published board is gated on, and it is
+    deliberately stricter than :func:`managers_with_evidence`.
+
+    ``crossleague_js`` renders two warning banners on a drill-down:
+
+    * "No transaction-level evidence is retained for any of this manager's
+      leagues yet" -- when ``coverage.n_leagues_with_evidence`` is 0;
+    * "Pick-level evidence is available for N of M indexed league(s)" plus
+      a per-league "this league's pick-level audit is not in the build
+      cache" -- when ``coverage.complete`` is False.
+
+    Phil, 2026-09-22: "remove all examples where you cannot see the
+    transactions that are driving the manager score." A manager with one
+    audited league out of four satisfies "at least one" and still renders
+    the second banner, so an at-least-one gate leaves exactly the rows he
+    asked to have removed. Requiring every league to be audited is what
+    makes both banners unreachable.
+
+    Mirrors ``coverage.complete`` in :func:`build_manager_detail`;
+    ``test_gate_predicate_matches_coverage_complete`` asserts they agree
+    row-for-row on the committed corpus, so the two cannot drift.
+    """
+    by_league: Dict[str, set] = {}
+    for lid, detail in (details or {}).items():
+        by_league[str(lid)] = {
+            str(m.get("id")) for m in (detail.get("managers") or [])
+        }
+
+    out: set = set()
+    for row in (corpus or {}).get("leaderboard") or []:
+        mid = str(row.get("manager_id") or "")
+        if not mid:
+            continue
+        leagues = row.get("leagues") or []
+        if not leagues:
+            # No indexed league is not "explained"; coverage.complete is
+            # False for an empty league list too (``and bool(leagues_out)``).
+            continue
+        if all(mid in by_league.get(str(lg.get("league_id")), ())
+               for lg in leagues):
+            out.add(mid)
+    return out
+
+
 def managers_with_evidence(corpus: Dict, details: Dict[str, Dict]) -> set:
     """Manager ids that have at least one league audit in ``details``.
 
@@ -720,14 +773,21 @@ def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
     Returns the gate block, which is also attached as ``corpus['evidence_gate']``
     for the page to render.
 
-    FAILS OPEN, ON PURPOSE, IN EXACTLY ONE CASE. When ``details`` is empty
-    the gate is not applied and ``applied`` is False. An empty detail store
-    means *this build has no evidence for anybody* -- a fresh clone, a local
-    run, a CI cache miss -- which is a different fact from "this manager has
-    no evidence", and conflating them would blank the entire board on a
-    healthy build and call it a data-quality feature. The page shows the
-    reason instead. As soon as one league's audit is present, the gate
-    applies normally.
+    NO FAIL-OPEN. An earlier version skipped the gate entirely when
+    ``details`` was empty, reasoning that "no evidence for anybody" is a
+    different fact from "no evidence for this manager". It is -- but the
+    published behaviour was identical either way: every scored manager
+    shipped in the artifact with nothing behind them. On the live site that
+    meant 2,432 managers in ``crossleague_corpus.json`` and drill-downs
+    reading "No transaction-level evidence is retained", which is the exact
+    output the gate exists to prevent, arrived at by a different route.
+
+    So an empty detail store now withholds every row and says so. Phil,
+    2026-09-22: losing a board is acceptable; showing scores nobody can
+    check is not. The distinction that motivated the fail-open is kept
+    where it belongs -- in ``why`` and ``reason``, so the page can explain
+    a build-wide outage differently from a per-manager gap without
+    publishing unexplainable rows to do it.
     """
     if corpus is None:
         return {"applied": False, "why": "no corpus"}
@@ -737,26 +797,35 @@ def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
     n_scored = len(leaderboard)
 
     if not details:
+        # Fail CLOSED: withhold everything, publish the reason.
+        corpus["leaderboard"] = []
+        corpus["draft_board"] = []
+        corpus["manager_detail"] = {
+            "available": False,
+            "reason": "audit_data_unavailable",
+            "n_files": 0,
+        }
         gate = {
-            "applied": False,
+            "applied": True,
+            "reason": "audit_data_unavailable",
             "n_scored": n_scored,
-            "n_shown": n_scored,
-            "n_withheld": 0,
+            "n_shown": 0,
+            "n_withheld": n_scored,
             "n_draft_scored": len(draft_board),
-            "n_draft_shown": len(draft_board),
-            "n_draft_withheld": 0,
+            "n_draft_shown": 0,
+            "n_draft_withheld": len(draft_board),
             "why": (
-                "no per-league audits were retained for this build, so "
-                "evidence is unavailable for every manager rather than for "
-                "particular ones. The board is unfiltered and the "
-                "drill-downs will be empty until a run repopulates "
-                "data/cross_league/detail/."
+                "audit data unavailable in this build: no per-league "
+                "transaction audits were retained, so no manager's score "
+                "can be explained. The board is withheld rather than "
+                "published unexplained. Scores are unaffected and return "
+                "when a crawl repopulates data/cross_league/detail/."
             ),
         }
         corpus["evidence_gate"] = gate
         return gate
 
-    keep = managers_with_evidence(corpus, details)
+    keep = managers_fully_explained(corpus, details)
 
     kept_lb = [r for r in leaderboard
                if str(r.get("manager_id") or "") in keep]
@@ -780,6 +849,7 @@ def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
 
     gate = {
         "applied": True,
+        "reason": ("all_withheld" if not kept_lb else "gated"),
         "n_scored": n_scored,
         "n_shown": len(kept_lb),
         "n_withheld": n_scored - len(kept_lb),
@@ -787,10 +857,11 @@ def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
         "n_draft_shown": len(kept_db),
         "n_draft_withheld": len(draft_board) - len(kept_db),
         "why": (
-            "a manager is listed only when at least one of their leagues' "
-            "pick-level audits is available, so every row can be opened and "
-            "read. Ranks are the ranks among all scored managers and "
-            "therefore skip the withheld ones."
+            "a manager is listed only when EVERY league counted in their "
+            "score has its pick-level audit retained, so each row opens to "
+            "the transactions that produced the number and no drill-down "
+            "reports missing evidence. Ranks are the ranks among all scored "
+            "managers and therefore skip the withheld ones."
         ),
     }
     corpus["evidence_gate"] = gate
