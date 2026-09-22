@@ -34,6 +34,7 @@ from .sources import nflverse_career_stats as _career_stats
 from .branding import SITE_NAME, SITE_TAGLINE, page_title, site_name_html
 from . import player_highlights as _hl
 from . import analytics as _analytics
+from . import custom_domain as _custom_domain
 
 
 # ---------------------------------------------------------------------------
@@ -2273,6 +2274,12 @@ def generate_site(
     out_root.mkdir(parents=True, exist_ok=True)
     (out_root / "assets").mkdir(parents=True, exist_ok=True)
     (out_root / "players").mkdir(parents=True, exist_ok=True)
+
+    # The custom domain travels with the artifact rather than living only in
+    # the repository's Pages settings, where nothing in a clone can see it.
+    # See dynasty.custom_domain for why, and for the DFM_SITE_DOMAIN escape
+    # hatch back to the github.io URL.
+    _custom_domain.write_cname(out_root)
 
     latest_ts = datetime.now(timezone.utc)
 
