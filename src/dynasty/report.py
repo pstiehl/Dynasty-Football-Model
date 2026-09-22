@@ -36,6 +36,7 @@ from . import player_highlights as _hl
 from . import analytics as _analytics
 from . import custom_domain as _custom_domain
 from . import prospect_view as _pv
+from . import rookie_rankings as _rookies
 
 
 # ---------------------------------------------------------------------------
@@ -444,8 +445,120 @@ def _comp_tier_class(comp_tier: str) -> str:
     return "comp-tier-deep"
 
 
+def _rookie_section(rookie_rows: List[Dict], coverage: Dict,
+                    *, heading_level: str = "h3") -> str:
+    """The current rookie class, as its own labelled board.
+
+    Phil 2026-09-22: 2026 rookies were absent from this page entirely.
+    They are here rather than merged into the sort above because a
+    rookie's number comes from college production and draft capital while
+    a veteran's comes from their own NFL production -- same units,
+    different estimator, different error bars. See
+    ``dynasty.rookie_rankings`` for the full argument, including why
+    merging them would also have moved every veteran's VORP.
+
+    Renders nothing when there is no rookie class to show, so a build
+    without the prospect artifact is unchanged.
+    """
+    if not rookie_rows:
+        return ""
+
+    year = coverage.get("class_year")
+    rows_html = ""
+    for r in rookie_rows:
+        basis_pill = ""
+        if r["projection_basis"] != "comps":
+            cls = {
+                "baseline": "basis-pill basis-constant",
+                "floor": "basis-pill basis-floor",
+                "blend": "basis-pill basis-blend",
+                "comps_no_capital": "basis-pill basis-nocapital",
+                "none": "basis-pill basis-none",
+            }.get(r["projection_basis"], "basis-pill basis-none")
+            basis_pill = (
+                f' <span class="{cls}" '
+                f'title="{_esc(r["projection_basis_detail"])}">'
+                f'{_esc(r["projection_basis_label"])}</span>'
+            )
+        draft_chip = (
+            f' <span class="draft-chip">\U0001f3c8 {_esc(r["draft_label"])}</span>'
+            if r["draft_label"] else ""
+        )
+        name_cell = _hl.player_chip(
+            r["name"], position=r["position"], href=r["href"],
+            extra_html=draft_chip,
+        )
+        rows_html += (
+            f'<tr class="player-row rookie-row" '
+            f'data-name="{_esc(r["name"].lower())}" '
+            f'data-position="{_esc(r["position"])}" '
+            f'data-basis="{_esc(r["projection_basis"])}" '
+            f'onclick="location=\'{_esc(r["href"])}\'">'
+            f'<td class="rank">{r["rookie_rank"]}</td>'
+            f'<td class="name">{name_cell}</td>'
+            f'<td>{_pos_badge(r["position"])}</td>'
+            f'<td class="team">{_esc(r["team"] or "—")}</td>'
+            f'<td class="team">{_esc(r["school"] or "—")}</td>'
+            f'<td class="years">{_fmt_or_dash(r["age"])}</td>'
+            f'<td class="score">'
+            f'{_fmt_or_dash(r["projected_career_fp"], fmt="{:.0f}")}'
+            f'{basis_pill}</td>'
+            f'<td class="years" style="text-align:right">'
+            f'{_fmt_or_dash(r["projected_peak3_fp_pg"])}</td>'
+            f'<td class="years" style="text-align:right">'
+            f'{_esc(r["ktc_rank_sf"]) if r["ktc_rank_sf"] is not None else "—"}'
+            f'</td>'
+            f'</tr>'
+        )
+
+    constant_note = ""
+    if coverage.get("n_draft_slot_constant"):
+        constant_note = (
+            f' {coverage["n_draft_slot_constant"]} of {coverage["n_shown"]} '
+            'rest on a <span class="basis-pill basis-constant">draft-slot '
+            'constant</span> — the historical average for that pick range, '
+            'identical for everyone in the same position and tier.'
+        )
+
+    return f"""
+<{heading_level} id="rookies">The <span class="accent">{_esc(year)}</span>
+rookie class</{heading_level}>
+<div class="callout"><strong>Projected a different way, so ranked
+separately.</strong> This class is weeks into its first NFL season and has
+no completed NFL year, so there is no NFL production to comp. These numbers
+come from the college-production layer: each player's college career is
+comped against historical college players, and the projection is built from
+the NFL careers those comps went on to have, anchored on draft capital.
+That is the same unit as the model score above — projected career fantasy
+points — but a weaker estimator (prospect back-test ρ 0.27 ex-TE), which is
+why the two are not interleaved into one list.{constant_note}
+<br><strong>Click any rookie</strong> for their historical NFL
+comparisons.</div>
+
+<table>
+<thead><tr>
+  <th>#</th><th>Rookie</th><th>Pos</th><th>Team</th><th>School</th>
+  <th>Age</th>
+  <th style="text-align:right">Proj career fp</th>
+  <th style="text-align:right">Proj peak3 fp/g</th>
+  <th style="text-align:right">KTC SF</th>
+</tr></thead>
+<tbody>{rows_html}</tbody>
+</table>
+<p class="lede" style="font-size:13px">All {coverage.get("n_drafted", 0)}
+drafted skill-position players in the {_esc(year)} class. Full board with
+filters and comp grids on <a href="prospects.html">Prospects</a>.</p>
+"""
+
+
 def _build_rankings(engine: EngineResult, latest_ts: datetime, league_label: str,
-                    team_lookup: Dict[str, str], limit: int = 300) -> str:
+                    team_lookup: Dict[str, str], limit: int = 300,
+                    rookie_rows: Optional[List[Dict]] = None,
+                    rookie_coverage: Optional[Dict] = None) -> str:
+    # The rookie class, as its own board below the veteran table. Empty
+    # string when there is no prospect artifact, so a build without one is
+    # byte-identical to before.
+    rookie_html = _rookie_section(rookie_rows or [], rookie_coverage or {})
     rows_html = ""
     for row in engine.rankings[:limit]:
         slug = _slug(row["name"], row["player_id"])
@@ -516,7 +629,7 @@ the top regardless of style. See <a href="methodology.html">Methodology</a>.</di
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
-
+{rookie_html}
 <script>
 const q = document.getElementById('q');
 const pos = document.getElementById('pos');
@@ -556,6 +669,8 @@ def _build_league(
     team_lookup: Dict[str, str],
     *,
     engine: Optional[EngineResult] = None,
+    rookie_rows: Optional[List[Dict]] = None,
+    rookie_coverage: Optional[Dict] = None,
 ) -> str:
     """Render the **Dynasty Rankings** tab as a consensus-vs-model diff.
 
@@ -584,6 +699,8 @@ def _build_league(
             latest_ts=latest_ts,
             league_label=league_label,
             team_lookup=team_lookup,
+            rookie_rows=rookie_rows,
+            rookie_coverage=rookie_coverage,
         )
     return _build_league_overlay_legacy(
         overlays=overlays,
@@ -600,6 +717,8 @@ def _build_league_consensus(
     latest_ts: datetime,
     league_label: str,
     team_lookup: Dict[str, str],
+    rookie_rows: Optional[List[Dict]] = None,
+    rookie_coverage: Optional[Dict] = None,
 ) -> str:
     """Consensus-vs-model diff body for the Dynasty Rankings tab.
 
@@ -612,6 +731,14 @@ def _build_league_consensus(
         because the engine rankings don't carry a slug; we now compute
         it locally from (name, player_id) matching ``_slug()``.
     """
+    # The rookie class, as its own board under the consensus diff. Rookies
+    # cannot appear in the diff itself: it is a model-rank vs KTC-rank
+    # comparison keyed on engine.rankings, and the engine has no row for a
+    # player with no completed NFL season. Rendering them below it with
+    # their own provenance is honest; forging engine rows for them would
+    # not be. Empty string when there is no prospect artifact.
+    rookie_html = _rookie_section(rookie_rows or [], rookie_coverage or {})
+
     crosswalk = load_crosswalk()
     # Superflex PPR is the only format on the Dynasty Rankings tab.
     # KTC's 1QB consensus is still computed by ``compare_to_consensus``
@@ -749,6 +876,7 @@ community consensus for the same league format.</p>
 Refresh with <code>python3 scripts/refresh_ktc_consensus.py</code>.
 Matching uses dynastyprocess <code>ktc_id→gsis_id</code> crosswalk; rows
 that cannot be resolved to a model player are excluded.</p>
+{rookie_html}
 
 <script>
 const CONSENSUS = {payload_json};
@@ -2622,13 +2750,60 @@ def generate_site(
 
     (out_root / "assets" / "style.css").write_text(_shared_css(), encoding="utf-8")
 
+    # The current rookie class, from the college-production layer.
+    #
+    # Phil 2026-09-22: the 2026 class was absent from this page and from
+    # Dynasty Rankings. It is read from the prospect artifact rather than
+    # from the engine because the engine genuinely has nothing for them --
+    # the cohort dispatcher in similarity_v1 skips players with 0 completed
+    # NFL seasons, and three weeks into their first season that is all of
+    # them. See dynasty.rookie_rankings for why they render as their own
+    # cohort instead of being merged into the veteran sort (short version:
+    # different estimator, and merging would move every veteran's VORP).
+    #
+    # Computed BEFORE the pages that use it and never allowed to break the
+    # build: a missing or malformed artifact yields no rookie board, which
+    # is exactly the behaviour before this feature existed.
+    _rookie_rows: List[Dict] = []
+    _rookie_cov: Dict = {}
+    try:
+        _prospects_for_rookies = _load_prospects_artifact()
+        _rookie_rows = _rookies.rookie_rows(_prospects_for_rookies)
+        _rookie_cov = _rookies.coverage(_prospects_for_rookies, _rookie_rows)
+        if _rookie_rows:
+            (out_root / "rookie_rankings.json").write_text(
+                json.dumps(
+                    _rookies.artifact_payload(
+                        _prospects_for_rookies, _rookie_rows),
+                    indent=2, default=float),
+                encoding="utf-8",
+            )
+        import logging
+        logging.getLogger(__name__).info(
+            "rookie class %s: %d drafted, %d shown, %d evidence-backed, "
+            "%d on a draft-slot constant",
+            _rookie_cov.get("class_year"), _rookie_cov.get("n_drafted", 0),
+            _rookie_cov.get("n_shown", 0),
+            _rookie_cov.get("n_evidence_backed", 0),
+            _rookie_cov.get("n_draft_slot_constant", 0),
+        )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning(
+            "rookie class board unavailable: %s", exc)
+
     # rankings.html — primary landing page (no index.html distinction needed)
-    rankings_html = _build_rankings(engine, latest_ts, label, team_lookup, limit=limit)
+    rankings_html = _build_rankings(
+        engine, latest_ts, label, team_lookup, limit=limit,
+        rookie_rows=_rookie_rows, rookie_coverage=_rookie_cov,
+    )
     (out_root / "rankings.html").write_text(rankings_html, encoding="utf-8")
     (out_root / "index.html").write_text(rankings_html, encoding="utf-8")
 
     (out_root / "league.html").write_text(
-        _build_league(overlays, latest_ts, label, team_lookup, engine=engine),
+        _build_league(overlays, latest_ts, label, team_lookup, engine=engine,
+                      rookie_rows=_rookie_rows,
+                      rookie_coverage=_rookie_cov),
         encoding="utf-8",
     )
     (out_root / "methodology.html").write_text(
