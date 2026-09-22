@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-22T17:07:28.826021+00:00",
-  "entry_count": 222,
+  "updated_at": "2026-09-22T19:33:56.735130+00:00",
+  "entry_count": 226,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -859,6 +859,11 @@
       "video_ids": [],
       "query": "Robbie Chosen week 2 2026 highlights"
     },
+    "2026:2:3433": {
+      "searched_at": "2026-09-22T19:33:56.735130+00:00",
+      "video_ids": [],
+      "query": "Alex Erickson week 2 2026 highlights"
+    },
     "2026:2:3634": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [
@@ -1036,6 +1041,11 @@
       "video_ids": [],
       "query": "Tim Patrick week 2 2026 highlights"
     },
+    "2026:2:4443": {
+      "searched_at": "2026-09-22T19:33:56.735130+00:00",
+      "video_ids": [],
+      "query": "Pharaoh Brown week 2 2026 highlights"
+    },
     "2026:2:4454": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [
@@ -1125,6 +1135,11 @@
       "video_ids": [],
       "query": "Nick Chubb week 2 2026 highlights"
     },
+    "2026:2:4992": {
+      "searched_at": "2026-09-22T19:33:56.735130+00:00",
+      "video_ids": [],
+      "query": "Dante Pettis week 2 2026 highlights"
+    },
     "2026:2:4993": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
@@ -1159,6 +1174,11 @@
       "searched_at": "2026-09-22T15:30:41.659853+00:00",
       "video_ids": [],
       "query": "Jordan Akins week 2 2026 highlights"
+    },
+    "2026:2:5046": {
+      "searched_at": "2026-09-22T19:33:56.735130+00:00",
+      "video_ids": [],
+      "query": "Royce Freeman week 2 2026 highlights"
     },
     "2026:2:5086": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
