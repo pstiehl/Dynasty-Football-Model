@@ -86,8 +86,18 @@ jobs:
               continue
             fi
             echo "::group::$f"
-            python -m pytest "$f" -q
-            rc=$?
+            # `|| rc=$?` rather than a bare call followed by `rc=$?`.
+            # GitHub runs this block as `bash -e {0}`, and `set -uo pipefail`
+            # above does NOT clear -e. A bare `python -m pytest` that exits
+            # non-zero therefore aborts the whole step immediately, before
+            # `rc=$?` is ever read -- so the rc==5 tolerance below could
+            # never run, and neither could the quarantine summary. Measured:
+            # this job failed on its first green module set, exit code 5,
+            # at tests/test_v1_2_fantasy_weighted_knn.py ("1 skipped").
+            # Putting the call on the left of `||` makes it a tested
+            # command, which -e ignores.
+            rc=0
+            python -m pytest "$f" -q || rc=$?
             # 5 == "no tests ran" (a module whose cases are all skipped,
             # e.g. test_v1_2_fantasy_weighted_knn). Not a failure.
             if [ "$rc" -ne 0 ] && [ "$rc" -ne 5 ]; then
