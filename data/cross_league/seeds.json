@@ -5,6 +5,13 @@
   "season": 2026,
   "seeds": [
     {
+      "league_id": "1306053445416943616",
+      "name": "Backyard Superflex League ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1307933584589357056",
       "name": "The OG Dynasty Classic: Part 1 Back To Basics",
       "added_by": "crawl",
@@ -789,6 +796,13 @@
       "note": "discovered at hop 1 via GMen550; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1312101935733559296",
+      "name": "This is Where the Fun Begins",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1312101939290316800",
       "name": "Road To Lombardi ",
       "added_by": "crawl",
@@ -815,6 +829,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 1 via texag1882; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1312103822667055104",
+      "name": "Dynasty Junkies",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1312107980166037504",
@@ -1629,6 +1650,13 @@
       "note": "discovered at hop 1 via Mic27; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1312186744552042496",
+      "name": "Beaver Fever",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1312187150036381696",
       "name": "Gotham City",
       "added_by": "crawl",
@@ -2035,11 +2063,25 @@
       "note": "discovered at hop 1 via NizzyNate25; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1312245604281229312",
+      "name": "Fantasy Fiends Dynasty",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1312247074296717312",
       "name": "Reign Dynasty League",
       "added_by": "crawl",
       "added_at": "2026-09-21T19:37:00+00:00",
       "note": "discovered at hop 1 via NizzyNate25; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1312247439578656768",
+      "name": "The Benchwarmers Best Ball ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1312249316311568384",
@@ -2182,6 +2224,13 @@
       "note": "discovered at hop 1 via williampmcneil; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1312344535837204480",
+      "name": "Coulda Been GM\u2019s ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1312350827905556480",
       "name": "Salary CAP - Rabbit Hole \ud83d\udc07 \ud83d\udd73 LG | EST. '22",
       "added_by": "crawl",
@@ -2238,6 +2287,13 @@
       "note": "discovered at hop 1 via RaidersSean; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1312461614863089664",
+      "name": "Titanium Dynasty",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1312466903272284160",
       "name": "One League to Rule them All",
       "added_by": "crawl",
@@ -2257,6 +2313,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 2 via Jangel78; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1312478846347395072",
+      "name": "Best Ball Hogs",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1312479657802608640",
@@ -2684,6 +2747,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:37:00+00:00",
       "note": "discovered at hop 1 via NizzyNate25; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1312572371827195904",
+      "name": "JD5>JD6 ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1312576471998414848",
@@ -3491,6 +3561,13 @@
       "note": "discovered at hop 1 via lewishall; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1312865376928808960",
+      "name": "Backyard League 3.0",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1312875349750583296",
       "name": "The Program",
       "added_by": "crawl",
@@ -3883,11 +3960,32 @@
       "note": "discovered at hop 1 via Creggar; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313039435037683712",
+      "name": "Disco With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313039466587250688",
       "name": "Fishing With The Boys",
       "added_by": "crawl",
       "added_at": "2026-09-22T11:36:14+00:00",
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039513135616000",
+      "name": "Flying With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039559302352896",
+      "name": "Gardening With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313039592705789952",
@@ -3897,6 +3995,20 @@
       "note": "discovered at hop 1 via Creggar; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313039639749087232",
+      "name": "High Rollin with the boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039677279715328",
+      "name": "High Stakes With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313039713292013568",
       "name": "Hot Pot With The Boys",
       "added_by": "crawl",
@@ -3904,11 +4016,95 @@
       "note": "discovered at hop 1 via restartthecarr; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313039747475607552",
+      "name": "Italy With the Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039782166683648",
+      "name": "It's Always Sunny With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039813863047168",
+      "name": "Jiu Jitsu With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039848004648960",
+      "name": "Jungle Juice with the boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039889834479616",
+      "name": "Kickball With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039931819450368",
+      "name": "Knitting With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313039968297287680",
+      "name": "Lake Day With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040025008488448",
+      "name": "May Flowers With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040066175598592",
+      "name": "Medieval Times With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313040099159592960",
       "name": "Miami With The Boys",
       "added_by": "crawl",
       "added_at": "2026-09-22T11:27:25+00:00",
       "note": "discovered at hop 1 via Jedicello; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040139563327488",
+      "name": "Milkshakes with the boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040176372543488",
+      "name": "Naps With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040215987728384",
+      "name": "Nascar With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313040280550666240",
@@ -3925,11 +4121,39 @@
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313040359399378944",
+      "name": "Ninjitsu With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313040397093572608",
       "name": "Paintball With The Boys",
       "added_by": "crawl",
       "added_at": "2026-09-21T20:39:22+00:00",
       "note": "discovered at hop 1 via 2GunzTanner; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040431075823616",
+      "name": "Pickleball With The boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040477481627648",
+      "name": "Pilates With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040513821061120",
+      "name": "Ping Pong With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313040554832982016",
@@ -3946,6 +4170,48 @@
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313040637498490880",
+      "name": "Road Trip With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040680485933056",
+      "name": "Skiing With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040726304518144",
+      "name": "Smores with the boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040765491879936",
+      "name": "Stick Time With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040841735966720",
+      "name": "Summertime With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313040892617056256",
+      "name": "Surf'n With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313040933356322816",
       "name": "Taco Tuesday with the boys",
       "added_by": "crawl",
@@ -3960,6 +4226,69 @@
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313041023017955328",
+      "name": "Vegas With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041070250037248",
+      "name": "Warzone With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041118304149504",
+      "name": "Wrestling With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041170527424512",
+      "name": "Yard Work With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041222880735232",
+      "name": "Beers NFC North",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041310650753024",
+      "name": "Beers NFC South",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041355265572864",
+      "name": "Beers AFC North",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041404494118912",
+      "name": "Beer AFC South",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313041462639747072",
+      "name": "BBQ With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313042087834316800",
       "name": "Chartreuse With The Boys",
       "added_by": "crawl",
@@ -3967,11 +4296,67 @@
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1313042130830131200",
+      "name": "Pre Game With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1313042222211411968",
       "name": "FF With The Boys",
       "added_by": "crawl",
       "added_at": "2026-09-22T11:36:14+00:00",
       "note": "discovered at hop 1 via Creggar; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042285897736192",
+      "name": "Beer League With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042357293158400",
+      "name": "Zoombinis With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042404630097920",
+      "name": "Last Call With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042468526116864",
+      "name": "Whiskey With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042517683339264",
+      "name": "Beers With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042625762185216",
+      "name": "Boat'in with the boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313042659610206208",
+      "name": "Free Pours with the boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313056017780572160",
@@ -4091,6 +4476,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:39:22+00:00",
       "note": "discovered at hop 1 via BertJameson; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313275995553292288",
+      "name": "Dynasty Newbies #2",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313280835050278912",
@@ -4238,6 +4630,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 1 via ProdigyofZen; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313384265643216896",
+      "name": "Pop Warner",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313386272827412480",
@@ -4392,6 +4791,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:49:25+00:00",
       "note": "discovered at hop 1 via FAZBRO25; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1313581116375969792",
+      "name": "American Football League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1313585064629518336",
@@ -4926,6 +5332,27 @@
       "note": "discovered at hop 1 via jgng; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1314096837904318464",
+      "name": "Doing Damage With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314097256403603456",
+      "name": "Drafting With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314097504563777536",
+      "name": "Farming With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1314097898392162304",
       "name": "Gaming With The Boys",
       "added_by": "crawl",
@@ -4940,11 +5367,116 @@
       "note": "discovered at hop 1 via jgng; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1314099231115448320",
+      "name": "House Hunting With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314099821946114048",
+      "name": "Karaoke With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314100085683920896",
+      "name": "Late Nights With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314100361975328768",
+      "name": "Mini Golf With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314101462879457280",
+      "name": "Montreal With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314101660842201088",
+      "name": "Nerf Wars With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314102509928734720",
+      "name": "New York With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1314103039950323712",
       "name": "Night Caps With The Boys",
       "added_by": "crawl",
       "added_at": "2026-09-22T11:27:25+00:00",
       "note": "discovered at hop 1 via jgng; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314103244351356928",
+      "name": "Parking Tickets With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314103629854040064",
+      "name": "Picnic With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314104122563121152",
+      "name": "Pub Subs With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314104429326127104",
+      "name": "Raves With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314104757266182144",
+      "name": "Redzone With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314105025571618817",
+      "name": "Sauna With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314105351380942848",
+      "name": "Soliciting With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314105582520655872",
+      "name": "Spain With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1314105669896396800",
@@ -4959,6 +5491,48 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via springtime08; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314106064270036992",
+      "name": "Thailand With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314106277319700480",
+      "name": "Train Hopping With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314106549496483840",
+      "name": "Unplug With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314106764525842432",
+      "name": "Wafflehouse With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314106967815368704",
+      "name": "Wiffle Ball With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314107203535241216",
+      "name": "Yacht Rock With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1314109840938778624",
@@ -5192,6 +5766,27 @@
       "note": "discovered at hop 1 via pwindynasty; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1314637994648420352",
+      "name": "Molk Ball: Allstars",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314641884328525824",
+      "name": "Molk Ball: I",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314650741624819712",
+      "name": "Dynasty Summer",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1314656043724206080",
       "name": "Dynasty Title Town",
       "added_by": "crawl",
@@ -5199,11 +5794,39 @@
       "note": "discovered at hop 1 via daddadaddest; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1314657008867086336",
+      "name": "Molk Ball: II",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1314657529090834432",
       "name": "Dynasty Addicts ",
       "added_by": "crawl",
       "added_at": "2026-09-21T19:37:00+00:00",
       "note": "discovered at hop 1 via lasserkid; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314659168002531328",
+      "name": "Molk Ball: III",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314661243205738496",
+      "name": "Molk Ball: IV",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314663115824070656",
+      "name": "Molk Ball: V",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1314664419002679296",
@@ -5218,6 +5841,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:39:22+00:00",
       "note": "discovered at hop 1 via BertJameson; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314678284927115264",
+      "name": "Molk Ball: X",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1314689850502303744",
@@ -5295,6 +5925,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 2 via JayArsht; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314766574694973440",
+      "name": "No Days Off-SF PPR TEP",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1314769994063548416",
@@ -5386,6 +6023,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T18:56:43+00:00",
       "note": "discovered at hop 1 via section700; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1314976962317389824",
+      "name": "Dyno Nugs ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1314981532204539904",
@@ -5619,6 +6263,13 @@
       "note": "discovered at hop 1 via HeladosV; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1315356296836288512",
+      "name": "The Campaign",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1315358665078743040",
       "name": "Dunder Mifflin Scranton Dynasty BB",
       "added_by": "crawl",
@@ -5668,11 +6319,32 @@
       "note": "discovered at hop 1 via HOLDSTRONG; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1315415377064230912",
+      "name": "Dickin' Around",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1315420027591086080",
       "name": "No Bs, No Goofy Ish\u2026.",
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via Antighmor; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1315451311440797696",
+      "name": " SIMPLY THE BEST",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1315456930797338624",
+      "name": "True Degenerates Society",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1315460227885203456",
@@ -5792,6 +6464,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 1 via restartthecarr; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1315847527454494720",
+      "name": "Dynasty league",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
     },
     {
       "league_id": "1315850330600128512",
@@ -5971,6 +6650,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via Antighmor; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1316303776906235904",
+      "name": "The Colosseum",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1316312658680479744",
@@ -6680,6 +7366,13 @@
       "note": "discovered at hop 2 via RTDB; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1317559354920009728",
+      "name": "Yet to be named Football League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1317560210289610752",
       "name": "Fantasizing Dynasty ",
       "added_by": "crawl",
@@ -6848,6 +7541,13 @@
       "note": "discovered at hop 1 via lasserkid; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1318359131228237824",
+      "name": "Austin Bowers: the Brock who Shagged Me",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1318363561164050432",
       "name": "#9 Moose Dynasty-DynastyGriff",
       "added_by": "crawl",
@@ -6867,6 +7567,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:37:00+00:00",
       "note": "discovered at hop 1 via NizzyNate25; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1318629667430739968",
+      "name": "Dynasty Wars",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1318642399039209472",
@@ -7016,6 +7723,13 @@
       "note": "discovered at hop 1 via jgng; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1319534584517373952",
+      "name": "Champions League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1319537651736383488",
       "name": "Dynasty Addicts Anonymous",
       "added_by": "crawl",
@@ -7119,6 +7833,20 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:21:57+00:00",
       "note": "discovered at hop 1 via SS0305; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1320160367954915328",
+      "name": "MINNESOTA",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1320160653540851712",
+      "name": "Aaron Rodgers Hates His Family?",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1320178643925745664",
@@ -7252,6 +7980,34 @@
       "added_by": "crawl",
       "added_at": "2026-09-22T11:36:14+00:00",
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1321275482964000768",
+      "name": "Ultimate Dynasty League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1321275583065247744",
+      "name": "Pigskin Junkies",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1321275689004986368",
+      "name": "Hyperactive Dynasty 4.0",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1321275826859159552",
+      "name": "HyperActive Bestball ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1321279989240336384",
@@ -7443,6 +8199,20 @@
       "note": "discovered at hop 1 via BertJameson; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1323047068654137344",
+      "name": "Defend on Titan \ud83d\udd30 Dynasty",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1323047529549410304",
+      "name": "$15 12 TM SF TEP",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1323149748554727424",
       "name": "OnlyDynasty (2) - $75 12 Man SF ",
       "added_by": "crawl",
@@ -7581,6 +8351,20 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:39:22+00:00",
       "note": "discovered at hop 1 via jlee3485; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1324156220004646912",
+      "name": "New Orleans With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1324259834886885376",
+      "name": "Fantasy Field of Dreams",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1324266125709553664",
@@ -7919,6 +8703,13 @@
       "note": "discovered at hop 2 via FantasyMikeMA; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1327133014257303552",
+      "name": "Dynasty Lovers $ League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1327169594128887808",
       "name": "\ud83d\udcb0\u201c67\u201d STFU!! $67",
       "added_by": "crawl",
@@ -7968,11 +8759,25 @@
       "note": "discovered at hop 1 via HeladosV; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1327509020424015872",
+      "name": "Marvel Rivals With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1327651982764183552",
       "name": "The GroupMe Dynasty League",
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via springtime08; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1327700715883212800",
+      "name": "Auction House Dynasty",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1327879239902453760",
@@ -8162,6 +8967,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via HeladosV; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1328934487890882560",
+      "name": "M.O.B.",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1328940142005583872",
@@ -8836,6 +9648,13 @@
       "note": "discovered at hop 2 via RTDB; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1332437515826638848",
+      "name": "David Lynch Weather Report ",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1332477639159463936",
       "name": "WHERE ARE THE TURTLES?!?!?",
       "added_by": "crawl",
@@ -8995,6 +9814,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:21:57+00:00",
       "note": "discovered at hop 1 via SS0305; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1333582127819681792",
+      "name": "\u201cf**k it\u201d",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1333666524254175232",
@@ -9249,6 +10075,13 @@
       "note": "discovered at hop 2 via AdamWhite; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1335707429794488320",
+      "name": "J\u0173\u00f0\u011f\u0119 j\u016f\u00f0\u00ff \u010f\u0177\u0146\u00e6\u00df\u0165\u0177",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1335710455347306496",
       "name": "Gambit Listener League Vol 2",
       "added_by": "crawl",
@@ -9466,6 +10299,20 @@
       "note": "discovered at hop 1 via SS0305; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1337460620215209984",
+      "name": "Star Wars: Dynasty",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1337476501695635456",
+      "name": "Smash or pass 2.0",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1337477373972455424",
       "name": "Startup Fever",
       "added_by": "crawl",
@@ -9585,6 +10432,13 @@
       "note": "discovered at hop 2 via 87Carey; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1338581709653819392",
+      "name": "Mosh Pits With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1338720136269430784",
       "name": "MTBMW Dynasty",
       "added_by": "crawl",
@@ -9604,6 +10458,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T18:56:43+00:00",
       "note": "discovered at hop 1 via section700; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1339015151717748736",
+      "name": "Sunday Dinner With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1339292473221988352",
@@ -9697,6 +10558,13 @@
       "note": "discovered at hop 1 via TreyW62; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1340811420391985152",
+      "name": "*Dynasty Dynamos II ($30 | SF | TEP)*",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via tjkeen; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1341091785279037440",
       "name": "(13)5Year\ud83c\udfc8Dynasty\ud83c\udfcb\ud83c\udffb",
       "added_by": "crawl",
@@ -9758,6 +10626,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 2 via johnstuartgreen; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1342017451637903360",
+      "name": "Plumbing With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1342184447348322304",
@@ -9886,6 +10761,13 @@
       "note": "discovered at hop 1 via Phlegmgoat; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1344558686550392832",
+      "name": "\ud83d\udde1\ufe0f\u26f0\ufe0fOne League to Rule Them All\ud83c\udfd4\ufe0f\ud83c\udff9",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1344711154395512832",
       "name": "Unc Bowl",
       "added_by": "crawl",
@@ -9912,6 +10794,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:21:57+00:00",
       "note": "discovered at hop 1 via iLoveHowie; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1345088153215594496",
+      "name": "Hot Shots",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1345120488627654656",
@@ -10047,6 +10936,13 @@
       "note": "discovered at hop 1 via 2GunzTanner; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1348367796379074560",
+      "name": "Dodgeball With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1348669692826382336",
       "name": "\ud83d\udd35 SF We Draft and We Don\u2019t Judge 3.0",
       "added_by": "crawl",
@@ -10059,6 +10955,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T20:39:22+00:00",
       "note": "discovered at hop 1 via TheBaldMessiah; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1348731899056508928",
+      "name": "Phoenix League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1348754880042373120",
@@ -10075,11 +10978,32 @@
       "note": "discovered at hop 1 via BootyChaser01; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1349268070346035200",
+      "name": "Brunch With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1349489433799319552",
       "name": "Degens Re-Roll",
       "added_by": "crawl",
       "added_at": "2026-09-21T20:21:57+00:00",
       "note": "discovered at hop 1 via TrusDaProcess; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1349528713347207168",
+      "name": "Farmer\u2019s Market With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1349627322155663360",
+      "name": "Frisbee With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1349798130027069440",
@@ -10117,11 +11041,25 @@
       "note": "discovered at hop 1 via Icewalker; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1350189159796453376",
+      "name": "Dive Bars With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1350316457510060032",
       "name": "Trevor Lawrence Sweepstake Extravaganza ",
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 2 via RTDB; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1350339032160153600",
+      "name": "Third Down for What",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1350949303127908352",
@@ -10327,11 +11265,25 @@
       "note": "discovered at hop 1 via lasserkid; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1354462800885350400",
+      "name": "Soju With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1354594499858305024",
       "name": "Champions league $$$",
       "added_by": "crawl",
       "added_at": "2026-09-21T18:56:43+00:00",
       "note": "discovered at hop 1 via Phlegmgoat; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1354612363654868992",
+      "name": "OzzFest With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1354658450214252544",
@@ -10418,6 +11370,13 @@
       "note": "discovered at hop 2 via MWinscher15; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1355807171874398208",
+      "name": "Masters of The Gridiron",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1356163424127578112",
       "name": "Blood, Sweat and Beers",
       "added_by": "crawl",
@@ -10472,6 +11431,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-22T11:27:25+00:00",
       "note": "discovered at hop 1 via williampmcneil; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1356910721669025792",
+      "name": "Xbox With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1356993872693055488",
@@ -10635,6 +11601,13 @@
       "note": "discovered at hop 1 via rnewell34; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1360854332194435072",
+      "name": "Halo With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1361009322632437760",
       "name": "If you\u2019re not 1st, you\u2019re last!",
       "added_by": "crawl",
@@ -10689,6 +11662,20 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via HeladosV; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1361884142949654528",
+      "name": "Talladega Nights",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1361893365569822721",
+      "name": "Derelicte",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via jcall13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1361999559026278400",
@@ -10801,6 +11788,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T18:56:43+00:00",
       "note": "discovered at hop 1 via rhinostrong71; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1364687602753482752",
+      "name": "Pillow Fights With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1364867155560009728",
@@ -10941,6 +11935,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T17:45:05+00:00",
       "note": "discovered at hop 2 via Jangel78; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1368641487025209344",
+      "name": "Remember the TEs",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1369101436838760448",
@@ -11349,6 +12350,13 @@
       "note": "discovered at hop 1 via jgng; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1384231931775836160",
+      "name": "maximumMEATT \ud83d\ude29",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1384975684287344640",
       "name": "4th and 11 Inches",
       "added_by": "crawl",
@@ -11368,6 +12376,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:11:29+00:00",
       "note": "discovered at hop 1 via tooclutch99; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1386122942189940736",
+      "name": "Dynasty Addicts",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1386540524395073536",
@@ -11552,11 +12567,25 @@
       "note": "discovered at hop 2 via DynastyZoltanFF; Sleeper settings.type == 2"
     },
     {
+      "league_id": "1390845213328547840",
+      "name": "The Long Reign SF",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
+    },
+    {
       "league_id": "1391248680866025472",
       "name": "Leep Degen's",
       "added_by": "crawl",
       "added_at": "2026-09-22T11:36:14+00:00",
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1391474483595870208",
+      "name": "Fallout League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via Zweib; Sleeper settings.type == 2"
     },
     {
       "league_id": "1391584492694536192",
@@ -11578,6 +12607,13 @@
       "added_by": "crawl",
       "added_at": "2026-09-22T11:36:14+00:00",
       "note": "discovered at hop 1 via GurleyLeep; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1391943716876345344",
+      "name": "Apollo\u2019s League",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via TSchade13; Sleeper settings.type == 2"
     },
     {
       "league_id": "1391958571691814912",
@@ -11711,6 +12747,20 @@
       "added_by": "crawl",
       "added_at": "2026-09-21T19:49:25+00:00",
       "note": "discovered at hop 1 via SHANOWSKI; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1397429029493092352",
+      "name": "One More With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
+    },
+    {
+      "league_id": "1397439024037122048",
+      "name": "Crowd Surfing With The Boys",
+      "added_by": "crawl",
+      "added_at": "2026-09-22T13:10:00+00:00",
+      "note": "discovered at hop 1 via BeersCo; Sleeper settings.type == 2"
     },
     {
       "league_id": "1397636784258580480",
