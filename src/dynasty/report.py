@@ -37,6 +37,10 @@ from . import analytics as _analytics
 from . import custom_domain as _custom_domain
 from . import prospect_view as _pv
 from . import rookie_rankings as _rookies
+# v3.15: the NFL first-N-games comparison. Imported for its rendered
+# constants (the game definition, the sample caveat) so the page and the
+# engine state one definition between them, not two that can drift.
+from .engine import rookie_nfl_debut_similarity as _rookie_nfl_sim
 
 
 # ---------------------------------------------------------------------------
@@ -223,6 +227,33 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
 .basis-nocapital { background:#f1f5f9; color:#475569; }
 .basis-none { background:#f3f4f6; color:#6b7280; }
 .draft-chip-board { background:#f1f5f9; color:#475569; }
+/* ---- v3.15 NFL first-N-games comparison ----
+ * Phil rejected college comps twice. The NFL line is now the headline on
+ * every rookie surface, so it gets the visual weight: a monospaced stat
+ * line that lines up column-to-column between the rookie and each comp,
+ * and a sample banner that cannot be mistaken for a projection. */
+.nfl-line { font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; white-space: nowrap; }
+.nfl-line strong { font-weight: 700; }
+.nfl-subject-row td { background: #eff6ff; font-weight: 600; }
+.nfl-subject-row td:first-child { box-shadow: inset 3px 0 0 #2563eb; }
+.sample-banner { border-left: 4px solid #d97706; background: #fffbeb;
+  padding: 12px 16px; border-radius: 6px; margin: 14px 0; }
+.sample-banner .n-badge { display:inline-block; background:#d97706;
+  color:white; font-weight:800; font-size:12px; letter-spacing:.04em;
+  padding:2px 10px; border-radius:999px; text-transform:uppercase;
+  margin-right:8px; }
+.secondary-panel { border:1px solid var(--border); border-radius:8px;
+  background:#fafafa; padding:14px 18px; margin-top:26px; }
+.secondary-panel > summary { cursor:pointer; font-weight:700;
+  font-size:14px; color:#6b7280; }
+.secondary-tag { display:inline-block; background:#f3f4f6; color:#6b7280;
+  font-size:10px; font-weight:700; letter-spacing:.04em;
+  text-transform:uppercase; padding:2px 8px; border-radius:9px;
+  margin-left:8px; vertical-align:middle; }
+.no-nfl-note { color:#6b7280; font-style:italic; font-size:12px; }
+.hit-active { background:#eff6ff; color:#1d4ed8; }
+.hit-depth { background:#f5f3ff; color:#6d28d9; }
 """ + _hl.PLAYER_HIGHLIGHTS_CSS
 
 
@@ -445,6 +476,219 @@ def _comp_tier_class(comp_tier: str) -> str:
     return "comp-tier-deep"
 
 
+# ---------------------------------------------------------------------------
+# v3.15 -- NFL first-N-games comparison rendering
+#
+# Phil, 2026-09-22: "the model is still comparing them to college players.
+# It should be comparing them to nfl players using their nfl stats to this
+# point ... comparing them to similar historical nfl players who put up
+# similar stats through their first 2 games."
+#
+# These helpers render one thing consistently everywhere it appears: the
+# rookie's own NFL line, and historical players' lines through the same
+# number of their own career games. Both sides are rendered by the SAME
+# function so the two rows a reader is comparing can never be formatted
+# differently, which is the failure mode that makes a comp table
+# unreadable.
+# ---------------------------------------------------------------------------
+
+#: Em dash, bound to a name because an escape sequence cannot appear
+#: inside an f-string expression on this interpreter.
+DASH = "\u2014"
+
+#: Per-position stat-line layout: (totals key, label, format).
+_NFL_LINE_FIELDS = {
+    "WR": (("targets", "tgt", "{:.0f}"), ("receptions", "rec", "{:.0f}"),
+           ("receiving_yards", "yds", "{:.0f}"),
+           ("receiving_tds", "TD", "{:.0f}")),
+    "TE": (("targets", "tgt", "{:.0f}"), ("receptions", "rec", "{:.0f}"),
+           ("receiving_yards", "yds", "{:.0f}"),
+           ("receiving_tds", "TD", "{:.0f}")),
+    "RB": (("carries", "car", "{:.0f}"),
+           ("rushing_yards", "ru yds", "{:.0f}"),
+           ("rushing_tds", "ru TD", "{:.0f}"),
+           ("receptions", "rec", "{:.0f}"),
+           ("receiving_yards", "re yds", "{:.0f}")),
+    "QB": (("completions", "cmp", "{:.0f}"), ("attempts", "att", "{:.0f}"),
+           ("passing_yards", "yds", "{:.0f}"),
+           ("passing_tds", "TD", "{:.0f}"),
+           ("passing_interceptions", "INT", "{:.0f}"),
+           ("rushing_yards", "ru yds", "{:.0f}")),
+}
+
+
+def _nfl_stat_line(line: Optional[Dict], position: str) -> str:
+    """One player's first-N counting line as a compact monospaced string.
+
+    Returns the empty string for a missing line rather than a zeroed one:
+    "0 rec, 0 yds" and "has not played" are different statements and the
+    page must not conflate them.
+    """
+    if not line:
+        return ""
+    totals = line.get("totals") or {}
+    fields = _NFL_LINE_FIELDS.get((position or "").upper())
+    if not fields:
+        return ""
+    parts = []
+    for key, label, fmt in fields:
+        val = totals.get(key) or 0
+        parts.append(f"{fmt.format(float(val))} {label}")
+    return " \u00b7 ".join(parts)
+
+
+#: Career-outcome chip classes. ``active`` and ``depth`` get their own
+#: colours rather than reusing ``unknown``: an unfinished career and a
+#: career we could not read are different things.
+_OUTCOME_CLASS = {
+    "elite": "hit-elite",
+    "starter": "hit-starter",
+    "depth": "hit-depth",
+    "bust": "hit-bust",
+    "active": "hit-active",
+    "unknown": "hit-unknown",
+}
+
+_OUTCOME_TITLE = {
+    "elite": "Finished with 1500+ career fantasy points (Superflex PPR).",
+    "starter": "Finished with 600-1499 career fantasy points.",
+    "depth": "Finished with 150-599 career fantasy points.",
+    "bust": "Finished under 150 career fantasy points.",
+    "active": "Still active - his career has not finished, so no "
+              "outcome label is applied.",
+    "unknown": "No career record could be resolved.",
+}
+
+
+def _outcome_chip(career: Optional[Dict]) -> str:
+    outcome = (career or {}).get("outcome") or "unknown"
+    cls = _OUTCOME_CLASS.get(outcome, "hit-unknown")
+    return (f'<span class="hit-chip {cls}" '
+            f'title="{_esc(_OUTCOME_TITLE.get(outcome, ""))}">'
+            f'{_esc(outcome)}</span>')
+
+
+def _nfl_sample_banner(n_games, *, cohort_size=None, position=None) -> str:
+    """The sample-size warning. Prominent by requirement, not decoration.
+
+    Phil asked for the sample to be labelled "honestly and prominently"
+    and for the page not to imply a settled projection. The N is
+    interpolated from the data, so this sentence cannot go stale when
+    week 3 lands.
+    """
+    try:
+        n = int(n_games or 0)
+    except (TypeError, ValueError):
+        n = 0
+    if not n:
+        return ""
+    plural = "s" if n != 1 else ""
+    drawn = ""
+    if cohort_size:
+        drawn = (f" Drawn from {int(cohort_size):,} historical "
+                 f"{_esc(position or 'player')}s who played at least "
+                 f"{n} career game{plural}.")
+    return (
+        f'<div class="sample-banner">'
+        f'<span class="n-badge">N = {n} game{plural}</span>'
+        f'<strong>{n} game{plural} is a very small sample.</strong> '
+        f'This shows how these players <em>began</em>, not how they will '
+        f'finish. It is a comparison, not a projection, and it should not '
+        f'be read as a settled view of anyone\u2019s career.{drawn} '
+        f'{_esc(_rookie_nfl_sim.GAME_DEFINITION)}'
+        f'</div>'
+    )
+
+
+def _nfl_comps_table(row: Dict, *, max_comps: int = 10) -> str:
+    """The comparison table: the rookie's line, then his NFL comps'.
+
+    The rookie is rendered as the first row of the same table rather than
+    in a separate panel. That is the whole readability argument: to see
+    *why* somebody is a comp you have to read the two lines against each
+    other, and two tables stacked vertically do not let you do that.
+    """
+    comps = row.get("nfl_comps") or []
+    if not comps:
+        return ""
+    pos = row.get("position") or ""
+    n = row.get("nfl_games") or 0
+
+    subject_line = _nfl_stat_line(row.get("nfl_line"), pos)
+    # Bound to a name rather than inlined: an escape sequence inside an
+    # f-string expression is a SyntaxError on this interpreter.
+    dash = DASH
+    body = (
+        f'<tr class="nfl-subject-row">'
+        f'<td class="name">{_esc(row.get("name") or "")} '
+        f'<span class="secondary-tag">this rookie</span></td>'
+        f'<td class="years">{_esc(row.get("draft_class") or dash)}</td>'
+        f'<td class="nfl-line"><strong>{_esc(subject_line)}</strong></td>'
+        f'<td style="text-align:right">{dash}</td>'
+        f'<td>{dash}</td>'
+        f'<td style="text-align:right">{dash}</td>'
+        f'<td style="text-align:right">{dash}</td>'
+        f'</tr>'
+    )
+
+    for c in comps[:max_comps]:
+        career = c.get("career") or {}
+        body += (
+            f'<tr class="comp-row">'
+            f'<td class="name">{_esc(c.get("name") or dash)}</td>'
+            f'<td class="years">{_esc(c.get("debut_season") or dash)}</td>'
+            f'<td class="nfl-line">{_esc(_nfl_stat_line(c.get("line"), pos))}</td>'
+            f'<td class="score" style="text-align:right">'
+            f'{float(c.get("similarity") or 0.0):.3f}</td>'
+            f'<td>{_outcome_chip(career)}</td>'
+            f'<td class="years" style="text-align:right">'
+            f'{_fmt_or_dash(career.get("career_fp"), fmt="{:,.0f}")}</td>'
+            f'<td class="years" style="text-align:right">'
+            f'{_esc(career.get("seasons_played") or dash)}</td>'
+            f'</tr>'
+        )
+
+    plural = "s" if n != 1 else ""
+    return f"""<table>
+<thead><tr>
+  <th>Player</th>
+  <th>Debut</th>
+  <th>First {n} career game{plural}</th>
+  <th style="text-align:right">Similarity</th>
+  <th>Career outcome</th>
+  <th style="text-align:right">Career fp</th>
+  <th style="text-align:right">Seasons</th>
+</tr></thead>
+<tbody>{body}</tbody>
+</table>"""
+
+
+def _no_nfl_games_note(row: Dict) -> str:
+    """What a drafted rookie with no snaps gets instead of a comp table.
+
+    Explicitly NOT a fallback to the college comps. A reader must be able
+    to tell "we have no NFL evidence for this player" apart from "here is
+    our NFL evidence", and silently swapping in a different kind of
+    comparison is the exact behaviour that was rejected.
+    """
+    state = row.get("nfl_comp_state")
+    if state == "cohort_too_small":
+        return (
+            '<div class="callout callout-warn"><strong>No NFL comparison '
+            'yet.</strong> Too few historical players at this position '
+            'have a career line of this length to rank a comparison '
+            'against. Nothing is shown rather than a ranking built on a '
+            'handful of players.</div>'
+        )
+    return (
+        '<div class="callout"><strong>Has not played an NFL snap '
+        'yet.</strong> There is no NFL production to compare, so no NFL '
+        'comparison is shown. The college-production projection below is '
+        'what the model has for him until he plays \u2014 it is a weaker '
+        'estimator and it is not a substitute for NFL evidence.</div>'
+    )
+
+
 def _rookie_section(rookie_rows: List[Dict], coverage: Dict,
                     *, heading_level: str = "h3") -> str:
     """The current rookie class, as its own labelled board.
@@ -456,6 +700,14 @@ def _rookie_section(rookie_rows: List[Dict], coverage: Dict,
     different estimator, different error bars. See
     ``dynasty.rookie_rankings`` for the full argument, including why
     merging them would also have moved every veteran's VORP.
+
+    v3.15, same day, after Phil read the above shipped: the class has
+    NFL snaps now, so the headline column on every row is the player's
+    OWN 2026 production and his closest historical NFL comp through the
+    same number of career games. The college projection is still here
+    and is still the sort key -- a two-game sample cannot rank 80
+    players -- but it is no longer what the row leads with, and the
+    heading no longer claims there is nothing to comp.
 
     Renders nothing when there is no rookie class to show, so a build
     without the prospect artifact is unchanged.
@@ -488,25 +740,53 @@ def _rookie_section(rookie_rows: List[Dict], coverage: Dict,
             r["name"], position=r["position"], href=r["href"],
             extra_html=draft_chip,
         )
+
+        # ---- the headline cells: his own NFL production, and who he
+        # most resembles through the same number of career games.
+        n_games = r.get("nfl_games") or 0
+        if n_games:
+            nfl_cell = (
+                f'<td class="nfl-line">{_esc(_nfl_stat_line(r.get("nfl_line"), r["position"]))}'
+                f'<br><span class="no-nfl-note">{n_games} game'
+                f'{"s" if n_games != 1 else ""}</span></td>'
+            )
+        else:
+            nfl_cell = ('<td class="no-nfl-note">has not played</td>')
+
+        comps = r.get("nfl_comps") or []
+        if comps:
+            top = comps[0]
+            career = top.get("career") or {}
+            comp_cell = (
+                f'<td class="name">{_esc(top.get("name") or DASH)} '
+                f'{_outcome_chip(career)}'
+                f'<br><span class="no-nfl-note">'
+                f'{_esc(_nfl_stat_line(top.get("line"), r["position"]))} '
+                f'· sim {float(top.get("similarity") or 0.0):.2f}</span></td>'
+            )
+        elif n_games:
+            comp_cell = ('<td class="no-nfl-note">cohort too small</td>')
+        else:
+            comp_cell = f'<td class="no-nfl-note">no NFL comp yet</td>'
+
         rows_html += (
             f'<tr class="player-row rookie-row" '
             f'data-name="{_esc(r["name"].lower())}" '
             f'data-position="{_esc(r["position"])}" '
             f'data-basis="{_esc(r["projection_basis"])}" '
+            f'data-nfl-games="{n_games}" '
             f'onclick="location=\'{_esc(r["href"])}\'">'
             f'<td class="rank">{r["rookie_rank"]}</td>'
             f'<td class="name">{name_cell}</td>'
             f'<td>{_pos_badge(r["position"])}</td>'
-            f'<td class="team">{_esc(r["team"] or "—")}</td>'
-            f'<td class="team">{_esc(r["school"] or "—")}</td>'
-            f'<td class="years">{_fmt_or_dash(r["age"])}</td>'
-            f'<td class="score">'
+            f'<td class="team">{_esc(r["team"] or DASH)}</td>'
+            + nfl_cell
+            + comp_cell
+            + f'<td class="score">'
             f'{_fmt_or_dash(r["projected_career_fp"], fmt="{:.0f}")}'
             f'{basis_pill}</td>'
             f'<td class="years" style="text-align:right">'
-            f'{_fmt_or_dash(r["projected_peak3_fp_pg"])}</td>'
-            f'<td class="years" style="text-align:right">'
-            f'{_esc(r["ktc_rank_sf"]) if r["ktc_rank_sf"] is not None else "—"}'
+            f'{_esc(r["ktc_rank_sf"]) if r["ktc_rank_sf"] is not None else DASH}'
             f'</td>'
             f'</tr>'
         )
@@ -520,34 +800,63 @@ def _rookie_section(rookie_rows: List[Dict], coverage: Dict,
             'identical for everyone in the same position and tier.'
         )
 
+    n_played = coverage.get("n_with_nfl_games") or 0
+    n_waiting = coverage.get("n_not_yet_played") or 0
+    sample_label = coverage.get("nfl_sample_label")
+
+    sample_banner = ""
+    if n_played:
+        sample_banner = (
+            f'<div class="sample-banner">'
+            f'<span class="n-badge">{_esc(sample_label or "small sample")}'
+            f'</span><strong>This is a very small sample.</strong> '
+            f'{n_played} of {coverage.get("n_shown", 0)} rookies have '
+            f'played, most of them twice. What follows is a comparison of '
+            f'how they have <em>started</em> against how historical NFL '
+            f'players started \u2014 not a projection, and not a settled '
+            f'view of anyone\u2019s career. '
+            f'{_esc(_rookie_nfl_sim.GAME_DEFINITION)}'
+            f'</div>'
+        )
+
+    waiting_note = ""
+    if n_waiting:
+        waiting_note = (
+            f' {n_waiting} of {coverage.get("n_shown", 0)} have not played '
+            'an NFL snap yet and show <em>has not played</em> rather than a '
+            'comparison \u2014 they get no NFL comp until they do.'
+        )
+
     return f"""
 <{heading_level} id="rookies">The <span class="accent">{_esc(year)}</span>
 rookie class</{heading_level}>
-<div class="callout"><strong>Projected a different way, so ranked
-separately.</strong> This class is weeks into its first NFL season and has
-no completed NFL year, so there is no NFL production to comp. These numbers
-come from the college-production layer: each player's college career is
-comped against historical college players, and the projection is built from
-the NFL careers those comps went on to have, anchored on draft capital.
-That is the same unit as the model score above — projected career fantasy
-points — but a weaker estimator (prospect back-test ρ 0.27 ex-TE), which is
-why the two are not interleaved into one list.{constant_note}
-<br><strong>Click any rookie</strong> for their historical NFL
-comparisons.</div>
+{sample_banner}
+<div class="callout"><strong>Compared to NFL players on their own NFL
+production.</strong> Each rookie who has played is matched against
+historical NFL players through the <strong>same number of career
+games</strong> he has played \u2014 same position, same N, same definition
+of a game. N comes from his 2026 game logs and grows every week.{waiting_note}
+<br><strong>Click any rookie</strong> for his full NFL comparison table,
+with each comp\u2019s own first-N-games line and what became of his career.
+</div>
 
 <table>
 <thead><tr>
-  <th>#</th><th>Rookie</th><th>Pos</th><th>Team</th><th>School</th>
-  <th>Age</th>
-  <th style="text-align:right">Proj career fp</th>
-  <th style="text-align:right">Proj peak3 fp/g</th>
+  <th>#</th><th>Rookie</th><th>Pos</th><th>Team</th>
+  <th>2026 NFL production</th>
+  <th>Closest NFL comp through same games</th>
+  <th style="text-align:right">College proj fp</th>
   <th style="text-align:right">KTC SF</th>
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
 <p class="lede" style="font-size:13px">All {coverage.get("n_drafted", 0)}
-drafted skill-position players in the {_esc(year)} class. Full board with
-filters and comp grids on <a href="prospects.html">Prospects</a>.</p>
+drafted skill-position players in the {_esc(year)} class.
+<strong>College proj fp</strong> is the secondary, pre-season estimate from
+the college-production layer and draft capital; it is the sort order only
+because a {_esc(sample_label or "small")} sample cannot rank a
+class.{constant_note} Full board with filters on
+<a href="prospects.html">Prospects</a>.</p>
 """
 
 
@@ -2039,11 +2348,25 @@ def _comp_hit_class(hit_label: str) -> str:
 
 
 def _build_prospect_page(prospect: Dict, label: str, latest_ts: datetime,
-                         veteran_slugs: Optional[set] = None) -> str:
-    """Per-prospect page: header + projection panel + top-25 comps with
-    hit-label colouring + KTC delta + (TE only) experimental callout.
-    Mirrors the veteran ``_build_player_page`` layout."""
+                         veteran_slugs: Optional[set] = None,
+                         rookie_row: Optional[Dict] = None) -> str:
+    """Per-prospect page: header + comparison + projection + comp grid.
+
+    v3.15 (Phil 2026-09-22): when ``rookie_row`` carries 2026 NFL game
+    logs, the page LEADS with the NFL comparison -- his real production
+    to date against historical NFL players through the same number of
+    career games -- and the college comp grid moves below it, collapsed,
+    explicitly labelled secondary and pre-season.
+
+    Phil has rejected college comps as the headline twice. For a player
+    with NFL snaps they are no longer the headline. For a player without
+    them they are still all we have, and the page says exactly that
+    rather than presenting them as equivalent evidence.
+    """
     veteran_slugs = veteran_slugs or set()
+    # A rookie in the current class who has actually played. Everything
+    # below keys off this one flag so the two layouts cannot half-apply.
+    has_nfl = bool((rookie_row or {}).get("nfl_games"))
     name = prospect.get("name", "—")
     pos = prospect.get("position", "—")
     school = prospect.get("school", "—")
@@ -2260,30 +2583,51 @@ def _build_prospect_page(prospect: Dict, label: str, latest_ts: datetime,
             f'</tr>'
         )
 
-    body = f"""{header_html}
-<div class="container">
+    # ---- v3.15 NFL comparison (the headline when he has played) --------
+    nfl_section = ""
+    if rookie_row is not None:
+        if has_nfl:
+            n_games = rookie_row.get("nfl_games") or 0
+            plural = "s" if n_games != 1 else ""
+            nfl_table = _nfl_comps_table(rookie_row)
+            if nfl_table:
+                nfl_section = f"""
+<h2>NFL <span class="accent">comparables</span> \u2014 first {n_games}
+career game{plural}</h2>
+{_nfl_sample_banner(n_games,
+                    cohort_size=rookie_row.get("nfl_cohort_size"),
+                    position=pos)}
+<p class="lede">{_esc(name)}\u2019s actual {_esc(rookie_row.get("nfl_season") or "")}
+NFL production, and the historical NFL players whose <strong>own first
+{n_games} career game{plural}</strong> looked most like it \u2014 same
+position, same number of games. His line is the highlighted row, so each
+comp can be read directly against it. <strong>Career outcome</strong> and
+<strong>career fp</strong> say what became of that player.</p>
+{nfl_table}
+"""
+            else:
+                nfl_section = (f'<h2>NFL <span class="accent">comparables'
+                               f'</span></h2>{_no_nfl_games_note(rookie_row)}')
+        else:
+            nfl_section = (f'<h2>NFL <span class="accent">comparables</span>'
+                           f'</h2>{_no_nfl_games_note(rookie_row)}')
 
-{drafted_callout}
-{ktc_callout}
-{proj_callout}
+    # ---- college layer: headline for an unplayed prospect, secondary
+    # for one with NFL snaps. Same markup, different framing and
+    # nesting, decided by ``has_nfl`` alone.
+    college_intro = (
+        "Historical <strong>college</strong> players whose production "
+        "curves most closely match " + _esc(name) + ". Hit-label colouring "
+        "tags each comp's eventual NFL outcome: "
+        '<span class="hit-chip hit-elite">elite</span>, '
+        '<span class="hit-chip hit-starter">starter</span>, '
+        '<span class="hit-chip hit-bust">bust</span>, '
+        '<span class="hit-chip hit-unknown">unknown</span> (still '
+        "developing or never reached the NFL). Click an NFL name to jump "
+        "to its veteran page when available."
+    )
 
-<h2>Projection <span class="accent">Inputs</span></h2>
-<p class="lede">College production summary feeding the v3.0 similarity
-vector. The engine weights these features against the prospect corpus
-(2000–present) to build the comp grid below.</p>
-{prod_html}
-
-<h2>Top-25 <span class="accent">Comparables</span></h2>
-<p class="lede">Historical college players whose production curves most
-closely match {_esc(name)}. Hit-label colouring tags each comp's eventual
-NFL outcome: <span class="hit-chip hit-elite">elite</span>,
-<span class="hit-chip hit-starter">starter</span>,
-<span class="hit-chip hit-bust">bust</span>,
-<span class="hit-chip hit-unknown">unknown</span> (still developing or
-never reached the NFL). Click an NFL name to jump to its veteran page when
-available.</p>
-
-<table>
+    college_table = f"""<table>
 <thead><tr>
   <th>College player</th>
   <th>School</th>
@@ -2296,7 +2640,59 @@ available.</p>
   <th style="text-align:right">Seasons</th>
 </tr></thead>
 <tbody>{comp_rows}</tbody>
-</table>
+</table>"""
+
+    projection_inputs = f"""<h3>Projection inputs</h3>
+<p class="lede">College production summary feeding the v3.0 similarity
+vector. The engine weights these features against the prospect corpus
+(2000\u2013present) to build the comp grid below.</p>
+{prod_html}"""
+
+    if has_nfl:
+        # Collapsed, tagged, and explicitly superseded. It is still on
+        # the page -- deleting evidence is not the same as ranking it --
+        # but nothing about it reads as the primary comparison.
+        college_section = f"""
+<details class="secondary-panel">
+<summary>Pre-season college projection and college comps
+<span class="secondary-tag">secondary</span></summary>
+<div class="callout" style="margin-top:12px"><strong>Superseded by the
+NFL comparison above.</strong> This is the pre-season estimate, built
+before {_esc(name)} played a down: his college production comped against
+historical <em>college</em> players, anchored on draft capital. It is a
+weaker estimator (prospect back-test \u03c1 0.27 ex-TE) and it knows
+nothing about what he has actually done in the NFL. Kept for reference
+only.</div>
+{drafted_callout}
+{ktc_callout}
+{proj_callout}
+{projection_inputs}
+<h3>Top-25 college comparables</h3>
+<p class="lede">{college_intro}</p>
+{college_table}
+</details>"""
+        head_callouts = ""
+    else:
+        college_section = f"""
+<h2>Top-25 college <span class="accent">comparables</span></h2>
+<p class="lede">{college_intro}</p>
+{college_table}"""
+        head_callouts = f"""{drafted_callout}
+{ktc_callout}
+{proj_callout}
+
+<h2>Projection <span class="accent">Inputs</span></h2>
+<p class="lede">College production summary feeding the v3.0 similarity
+vector. The engine weights these features against the prospect corpus
+(2000\u2013present) to build the comp grid below.</p>
+{prod_html}"""
+
+    body = f"""{header_html}
+<div class="container">
+
+{nfl_section}
+{head_callouts}
+{college_section}
 
 <p class="lede" style="margin-top:24px">Methodology details:
 <a href="../methodology.html#prospects">v3.0 prospect engine — PR 3 similarity, PR 4 projection, PR 5 back-test</a>.</p>
@@ -2797,10 +3193,32 @@ def generate_site(
     # again be indistinguishable from "the file was never written".
     _prospects_for_rookies = _load_prospects_artifact()
     _rookie_rows = _rookies.rookie_rows(_prospects_for_rookies)
-    _rookie_cov = _rookies.coverage(_prospects_for_rookies, _rookie_rows)
 
     import logging
     _log = logging.getLogger(__name__)
+
+    # v3.15 (Phil 2026-09-22, second pass): "the model is still comparing
+    # them to college players. It should be comparing them to nfl players
+    # using their nfl stats to this point."
+    #
+    # Attach each rookie's ACTUAL 2026 production and the historical NFL
+    # players who looked like that through the same number of career
+    # games. This runs before coverage() so the counts it reports include
+    # the NFL states, and before the pages so every board renders the
+    # same numbers.
+    #
+    # N comes from the game logs, per player -- some of this class has
+    # played two games, some one, some none. Nothing here is pinned to a
+    # week number.
+    _rookie_nfl = _rookies.attach_nfl_comps(_rookie_rows)
+    _rookie_cov = _rookies.coverage(_prospects_for_rookies, _rookie_rows)
+    _log.info(
+        "rookie NFL comps: %d/%d rows have 2026 game logs (N=%s), "
+        "%d carry comps, cohorts %s",
+        _rookie_nfl.get("n_with_nfl_games", 0), _rookie_nfl.get("n_rows", 0),
+        _rookie_nfl.get("n_games_seen"), _rookie_nfl.get("n_with_comps", 0),
+        _rookie_nfl.get("cohort_sizes"),
+    )
 
     if not _rookie_rows:
         _why = (
@@ -3073,10 +3491,19 @@ def generate_site(
         veteran_slugs = {
             _slug(r["name"], r["player_id"]) for r in engine.rankings
         }
+        # v3.15: hand each current-class rookie his own NFL comparison so
+        # his page leads with it. Keyed on the slug the rookie board
+        # links to, which is the same ``_prospect_slug`` computed here --
+        # a name join would drift the moment the draft card and the
+        # college corpus disagree, which for this class they do.
+        _rookie_by_slug = {
+            r["slug"]: r for r in _rookie_rows if r.get("slug")
+        }
         for _prospect in _prospects_artifact["prospects"]:
             _pslug = _prospect_slug(_prospect)
             _page_html = _build_prospect_page(
-                _prospect, label, latest_ts, veteran_slugs=veteran_slugs
+                _prospect, label, latest_ts, veteran_slugs=veteran_slugs,
+                rookie_row=_rookie_by_slug.get(_pslug),
             )
             (out_root / "players" / f"{_pslug}-prospect.html").write_text(
                 _page_html, encoding="utf-8"
