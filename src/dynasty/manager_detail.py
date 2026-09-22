@@ -642,6 +642,164 @@ def publish_manager_details(out_root: Path, corpus: Dict,
 
 
 # ---------------------------------------------------------------------------
+# The evidence gate — only rank a manager whose score can be explained
+# ---------------------------------------------------------------------------
+#
+# Phil, 2026-09-22: "I only want to display managers where you can see the
+# evidence of their draft, waiver wire, trade data ... for example you
+# cannot see the data for this manager: FantasyticBeast. Users like that
+# should not be included if we cannot see what is driving the manager score
+# in the drill down."
+#
+# The board and the drill-down have always had different coverage, for a
+# structural reason rather than a bug. A manager's SCORE survives forever:
+# ``crossleague`` re-aggregates retained per-league results, so a league
+# scored months ago still contributes. A manager's EVIDENCE lives in the
+# build cache (``data/cross_league/detail/``), which is evicted on a cache
+# miss and only refilled for leagues the current run actually re-scored. So
+# a manager whose leagues have not been re-scored recently keeps a real,
+# correct score with nothing behind it.
+#
+# Rendering them anyway produces the worst available outcome: a ranked row
+# that invites a click and then explains nothing. A visitor cannot tell that
+# apart from "this manager did nothing", which is a claim about a real
+# person that we have no basis for.
+#
+# Two decisions here are deliberate and worth defending:
+#
+# 1. ``rank`` is NOT recomputed. The withheld managers were genuinely
+#    scored and genuinely beat the people below them; renumbering would
+#    promote someone to "rank 1 of the indexed sample" when they were rank
+#    4. So the displayed ranks keep gaps, and the page says why. A gap is a
+#    true statement about a missing row; a renumber is a false statement
+#    about standing.
+#
+# 2. The withheld count is published, not swallowed. "120 of 1,407" is the
+#    difference between a board that is small and a board that is hiding
+#    something.
+
+
+def managers_with_evidence(corpus: Dict, details: Dict[str, Dict]) -> set:
+    """Manager ids that have at least one league audit in ``details``.
+
+    Mirrors the per-league lookup in :func:`build_manager_detail` -- a
+    manager has evidence in a league when that league's retained audit
+    contains a row with their id. Kept as a separate, cheap pass (an index
+    of league -> ids, rather than assembling every document) so the gate can
+    be computed without paying for the full publish, and so it is directly
+    testable. ``test_evidence_gate_agrees_with_build_manager_detail`` asserts
+    the two do not drift.
+    """
+    by_league: Dict[str, set] = {}
+    for lid, detail in (details or {}).items():
+        by_league[str(lid)] = {
+            str(m.get("id")) for m in (detail.get("managers") or [])
+        }
+
+    out: set = set()
+    for row in (corpus or {}).get("leaderboard") or []:
+        mid = str(row.get("manager_id") or "")
+        if not mid:
+            continue
+        for lg in row.get("leagues") or []:
+            if mid in by_league.get(str(lg.get("league_id")), ()):
+                out.add(mid)
+                break
+    return out
+
+
+def apply_evidence_gate(corpus: Dict, details: Dict[str, Dict]) -> Dict:
+    """Restrict the published boards to managers whose score is explainable.
+
+    Mutates ``corpus`` in place -- it is called on the in-memory copy that
+    ``write_corpus_artifact`` publishes into the site, NOT on the committed
+    ``data/cross_league/corpus.json``. The crawler's resumption state must
+    keep every scored manager, or a manager would be permanently dropped the
+    first time their detail aged out of the cache. Only the view is gated.
+
+    Returns the gate block, which is also attached as ``corpus['evidence_gate']``
+    for the page to render.
+
+    FAILS OPEN, ON PURPOSE, IN EXACTLY ONE CASE. When ``details`` is empty
+    the gate is not applied and ``applied`` is False. An empty detail store
+    means *this build has no evidence for anybody* -- a fresh clone, a local
+    run, a CI cache miss -- which is a different fact from "this manager has
+    no evidence", and conflating them would blank the entire board on a
+    healthy build and call it a data-quality feature. The page shows the
+    reason instead. As soon as one league's audit is present, the gate
+    applies normally.
+    """
+    if corpus is None:
+        return {"applied": False, "why": "no corpus"}
+
+    leaderboard = corpus.get("leaderboard") or []
+    draft_board = corpus.get("draft_board") or []
+    n_scored = len(leaderboard)
+
+    if not details:
+        gate = {
+            "applied": False,
+            "n_scored": n_scored,
+            "n_shown": n_scored,
+            "n_withheld": 0,
+            "n_draft_scored": len(draft_board),
+            "n_draft_shown": len(draft_board),
+            "n_draft_withheld": 0,
+            "why": (
+                "no per-league audits were retained for this build, so "
+                "evidence is unavailable for every manager rather than for "
+                "particular ones. The board is unfiltered and the "
+                "drill-downs will be empty until a run repopulates "
+                "data/cross_league/detail/."
+            ),
+        }
+        corpus["evidence_gate"] = gate
+        return gate
+
+    keep = managers_with_evidence(corpus, details)
+
+    kept_lb = [r for r in leaderboard
+               if str(r.get("manager_id") or "") in keep]
+    kept_db = [r for r in draft_board
+               if str(r.get("manager_id") or "") in keep]
+
+    # Names of a few withheld managers, for the build log only. Useful when
+    # someone asks "why is X gone" and nobody wants to re-run the crawl to
+    # find out. Not published: a list of excluded handles on a public page
+    # is a "managers we could not vouch for" board, which is not a thing
+    # this project ships (see the no-worst-managers stance in
+    # crossleague_page).
+    withheld_sample = [
+        str(r.get("display_name") or r.get("manager_id"))
+        for r in leaderboard
+        if str(r.get("manager_id") or "") not in keep
+    ][:10]
+
+    corpus["leaderboard"] = kept_lb
+    corpus["draft_board"] = kept_db
+
+    gate = {
+        "applied": True,
+        "n_scored": n_scored,
+        "n_shown": len(kept_lb),
+        "n_withheld": n_scored - len(kept_lb),
+        "n_draft_scored": len(draft_board),
+        "n_draft_shown": len(kept_db),
+        "n_draft_withheld": len(draft_board) - len(kept_db),
+        "why": (
+            "a manager is listed only when at least one of their leagues' "
+            "pick-level audits is available, so every row can be opened and "
+            "read. Ranks are the ranks among all scored managers and "
+            "therefore skip the withheld ones."
+        ),
+    }
+    corpus["evidence_gate"] = gate
+    gate_log = dict(gate)
+    gate_log["withheld_sample"] = withheld_sample
+    return gate_log
+
+
+# ---------------------------------------------------------------------------
 # Reconciliation — the claim that the drill-down explains the published score
 # ---------------------------------------------------------------------------
 

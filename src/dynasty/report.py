@@ -35,6 +35,8 @@ from .branding import SITE_NAME, SITE_TAGLINE, page_title, site_name_html
 from . import player_highlights as _hl
 from . import analytics as _analytics
 from . import custom_domain as _custom_domain
+from . import prospect_view as _pv
+from . import rookie_rankings as _rookies
 
 
 # ---------------------------------------------------------------------------
@@ -201,15 +203,71 @@ footer { color: var(--muted); font-size: 12px; padding: 32px 40px; text-align: c
 .comp-row.comp-hit-starter td:first-child { box-shadow: inset 3px 0 0 #f59e0b; }
 .comp-row.comp-hit-bust td:first-child { box-shadow: inset 3px 0 0 #dc2626; }
 .comp-row.comp-hit-unknown td:first-child { box-shadow: inset 3px 0 0 #9ca3af; }
+.notfound-links { list-style: none; padding: 0; margin: 8px 0 0;
+  display: flex; flex-wrap: wrap; gap: 8px; }
+.notfound-links a { display: inline-block; padding: 8px 14px; border-radius: 999px;
+  background: white; border: 1px solid var(--border); color: var(--text);
+  text-decoration: none; font-weight: 600; font-size: 14px; }
+.notfound-links a:hover { background: var(--hover); border-color: var(--accent); }
+/* ---- prospect projection provenance ----
+ * A projected number that came from a draft-slot lookup table must not look
+ * like one derived from a player's own comps. These badges are the
+ * difference, and they are deliberately legible rather than subtle: the
+ * live board showed 3200 three times with nothing to distinguish it. */
+.basis-pill { display:inline-block; margin-left:6px; padding:1px 7px;
+  border-radius:9px; font-size:10px; font-weight:700; letter-spacing:.02em;
+  text-transform:uppercase; vertical-align:middle; cursor:help; }
+.basis-constant { background:#fef3c7; color:#92400e; }
+.basis-floor { background:#ffedd5; color:#9a3412; }
+.basis-blend { background:#e0e7ff; color:#3730a3; }
+.basis-nocapital { background:#f1f5f9; color:#475569; }
+.basis-none { background:#f3f4f6; color:#6b7280; }
+.draft-chip-board { background:#f1f5f9; color:#475569; }
 """ + _hl.PLAYER_HIGHLIGHTS_CSS
 
 
-def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) -> str:
+#: Prefix from a page inside a one-deep subdirectory back to the site root.
+#:
+#: Every page under ``dynasty_site/players/`` needs this in front of every
+#: link it emits at the site root, because a browser resolves a relative
+#: href against the directory of the page it is on -- not against the site
+#: root. It is a named constant rather than a literal at each call site so
+#: that "what is the prefix" and "which pages are nested" have exactly one
+#: answer each, and adding a second nested directory is one edit here.
+SUBDIR_PREFIX = "../"
+
+
+def _site_header(active: str, latest_ts: Optional[datetime], league_label: str,
+                 prefix: str = "") -> str:
+    """The brand block and the nav.
+
+    ``prefix`` is the path from the page being rendered back to the site
+    root: ``""`` for a root page, ``SUBDIR_PREFIX`` for anything under
+    ``players/``. It is prepended to every internal href below.
+
+    THIS ARGUMENT IS NOT COSMETIC. It was added after a live outage: this
+    header emitted bare filenames (``rankings.html``), player detail pages
+    are written into ``dynasty_site/players/``, and they reuse this header
+    verbatim. So the nav on ``/players/aaron-jones-033293.html`` resolved to
+    ``/players/rankings.html`` -- and all seven tabs 404ed on every one of
+    the hundreds of detail pages. The reported symptom was "clicking
+    between tabs 404s; go back a page and re-click", which is exactly what
+    a root-relative nav on a nested page feels like.
+
+    The stylesheet had been given its ``../`` (every nested call site
+    already passed ``css_href="../assets/style.css"``); the nav never was.
+    That is the asymmetry this parameter removes -- one mechanism now
+    carries depth for the whole page, rather than the CSS knowing its depth
+    and the nav guessing.
+
+    Defaulting to ``""`` keeps every root call site unchanged and keeps the
+    built root pages byte-identical.
+    """
     ts = latest_ts.strftime("%B %d, %Y at %I:%M %p UTC") if latest_ts else "—"
 
     def link(href, label, key):
         cls = ' class="active"' if key == active else ""
-        return f'<a href="{href}"{cls}>{label}</a>'
+        return f'<a href="{prefix}{href}"{cls}>{label}</a>'
 
     # Nav is deliberately short. Methodology, Sources and Prospects are
     # still built and still reachable by direct link and from the footer -
@@ -245,12 +303,12 @@ def _site_header(active: str, latest_ts: Optional[datetime], league_label: str) 
 
     def plink(href, label, key):
         cls = ' class="active"' if key == primary_active else ""
-        return f'<a href="{href}"{cls}>{label}</a>'
+        return f'<a href="{prefix}{href}"{cls}>{label}</a>'
 
     return f"""<header class="site">
   <div class="row">
     <div>
-      <h1><a href="rankings.html">{site_name_html()}</a></h1>
+      <h1><a href="{prefix}rankings.html">{site_name_html()}</a></h1>
       <div class="meta">{_esc(SITE_TAGLINE)} · Updated {_esc(ts)} · Default format: {_esc(league_label)}</div>
     </div>
     <nav>
@@ -276,8 +334,19 @@ def _footer() -> str:
     )
 
 
-def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/style.css") -> str:
+def _page(title: str, header_html: str, body_html: str,
+          css_href: Optional[str] = None, prefix: str = "") -> str:
     """Wrap a body in the site chrome.
+
+    ``prefix`` is the path from this page back to the site root -- ``""``
+    for a root page, ``SUBDIR_PREFIX`` under ``players/`` -- and it is the
+    single input that sets the page's depth. The stylesheet href and
+    ``DFM_BASE`` are both derived from it, so they cannot disagree.
+
+    ``css_href`` is still accepted for call sites that pass it explicitly,
+    and still wins when given. Passing only ``css_href="../assets/style.css"``
+    remains correct: the prefix is recovered from it below, which is what
+    keeps an un-migrated caller from silently losing its nav prefix again.
 
     Two things are injected here rather than per page, both for the same
     reason -- a page that forgets them is a page where the owner's
@@ -296,7 +365,12 @@ def _page(title: str, header_html: str, body_html: str, css_href: str = "assets/
     unless ``DFM_ANALYTICS_TOKEN`` is in the build environment -- see
     ``dynasty.analytics`` and docs/ANALYTICS.md.
     """
-    base = "../" if css_href.startswith("../") else ""
+    # One source of depth, two consumers. ``prefix`` is authoritative when
+    # supplied; otherwise it is recovered from an explicit ``css_href``,
+    # which already encoded exactly this depth before the prefix existed.
+    if css_href is None:
+        css_href = f"{prefix}assets/style.css"
+    base = prefix or (SUBDIR_PREFIX if css_href.startswith(SUBDIR_PREFIX) else "")
     desc = (
         f"{SITE_NAME} — dynasty fantasy football rankings built on NFL "
         "fantasy-production career arcs, with recent highlights for every "
@@ -371,8 +445,120 @@ def _comp_tier_class(comp_tier: str) -> str:
     return "comp-tier-deep"
 
 
+def _rookie_section(rookie_rows: List[Dict], coverage: Dict,
+                    *, heading_level: str = "h3") -> str:
+    """The current rookie class, as its own labelled board.
+
+    Phil 2026-09-22: 2026 rookies were absent from this page entirely.
+    They are here rather than merged into the sort above because a
+    rookie's number comes from college production and draft capital while
+    a veteran's comes from their own NFL production -- same units,
+    different estimator, different error bars. See
+    ``dynasty.rookie_rankings`` for the full argument, including why
+    merging them would also have moved every veteran's VORP.
+
+    Renders nothing when there is no rookie class to show, so a build
+    without the prospect artifact is unchanged.
+    """
+    if not rookie_rows:
+        return ""
+
+    year = coverage.get("class_year")
+    rows_html = ""
+    for r in rookie_rows:
+        basis_pill = ""
+        if r["projection_basis"] != "comps":
+            cls = {
+                "baseline": "basis-pill basis-constant",
+                "floor": "basis-pill basis-floor",
+                "blend": "basis-pill basis-blend",
+                "comps_no_capital": "basis-pill basis-nocapital",
+                "none": "basis-pill basis-none",
+            }.get(r["projection_basis"], "basis-pill basis-none")
+            basis_pill = (
+                f' <span class="{cls}" '
+                f'title="{_esc(r["projection_basis_detail"])}">'
+                f'{_esc(r["projection_basis_label"])}</span>'
+            )
+        draft_chip = (
+            f' <span class="draft-chip">\U0001f3c8 {_esc(r["draft_label"])}</span>'
+            if r["draft_label"] else ""
+        )
+        name_cell = _hl.player_chip(
+            r["name"], position=r["position"], href=r["href"],
+            extra_html=draft_chip,
+        )
+        rows_html += (
+            f'<tr class="player-row rookie-row" '
+            f'data-name="{_esc(r["name"].lower())}" '
+            f'data-position="{_esc(r["position"])}" '
+            f'data-basis="{_esc(r["projection_basis"])}" '
+            f'onclick="location=\'{_esc(r["href"])}\'">'
+            f'<td class="rank">{r["rookie_rank"]}</td>'
+            f'<td class="name">{name_cell}</td>'
+            f'<td>{_pos_badge(r["position"])}</td>'
+            f'<td class="team">{_esc(r["team"] or "—")}</td>'
+            f'<td class="team">{_esc(r["school"] or "—")}</td>'
+            f'<td class="years">{_fmt_or_dash(r["age"])}</td>'
+            f'<td class="score">'
+            f'{_fmt_or_dash(r["projected_career_fp"], fmt="{:.0f}")}'
+            f'{basis_pill}</td>'
+            f'<td class="years" style="text-align:right">'
+            f'{_fmt_or_dash(r["projected_peak3_fp_pg"])}</td>'
+            f'<td class="years" style="text-align:right">'
+            f'{_esc(r["ktc_rank_sf"]) if r["ktc_rank_sf"] is not None else "—"}'
+            f'</td>'
+            f'</tr>'
+        )
+
+    constant_note = ""
+    if coverage.get("n_draft_slot_constant"):
+        constant_note = (
+            f' {coverage["n_draft_slot_constant"]} of {coverage["n_shown"]} '
+            'rest on a <span class="basis-pill basis-constant">draft-slot '
+            'constant</span> — the historical average for that pick range, '
+            'identical for everyone in the same position and tier.'
+        )
+
+    return f"""
+<{heading_level} id="rookies">The <span class="accent">{_esc(year)}</span>
+rookie class</{heading_level}>
+<div class="callout"><strong>Projected a different way, so ranked
+separately.</strong> This class is weeks into its first NFL season and has
+no completed NFL year, so there is no NFL production to comp. These numbers
+come from the college-production layer: each player's college career is
+comped against historical college players, and the projection is built from
+the NFL careers those comps went on to have, anchored on draft capital.
+That is the same unit as the model score above — projected career fantasy
+points — but a weaker estimator (prospect back-test ρ 0.27 ex-TE), which is
+why the two are not interleaved into one list.{constant_note}
+<br><strong>Click any rookie</strong> for their historical NFL
+comparisons.</div>
+
+<table>
+<thead><tr>
+  <th>#</th><th>Rookie</th><th>Pos</th><th>Team</th><th>School</th>
+  <th>Age</th>
+  <th style="text-align:right">Proj career fp</th>
+  <th style="text-align:right">Proj peak3 fp/g</th>
+  <th style="text-align:right">KTC SF</th>
+</tr></thead>
+<tbody>{rows_html}</tbody>
+</table>
+<p class="lede" style="font-size:13px">All {coverage.get("n_drafted", 0)}
+drafted skill-position players in the {_esc(year)} class. Full board with
+filters and comp grids on <a href="prospects.html">Prospects</a>.</p>
+"""
+
+
 def _build_rankings(engine: EngineResult, latest_ts: datetime, league_label: str,
-                    team_lookup: Dict[str, str], limit: int = 300) -> str:
+                    team_lookup: Dict[str, str], limit: int = 300,
+                    rookie_rows: Optional[List[Dict]] = None,
+                    rookie_coverage: Optional[Dict] = None) -> str:
+    # The rookie class, as its own board below the veteran table. Empty
+    # string when there is no prospect artifact, so a build without one is
+    # byte-identical to before.
+    rookie_html = _rookie_section(rookie_rows or [], rookie_coverage or {})
     rows_html = ""
     for row in engine.rankings[:limit]:
         slug = _slug(row["name"], row["player_id"])
@@ -443,7 +629,7 @@ the top regardless of style. See <a href="methodology.html">Methodology</a>.</di
 </tr></thead>
 <tbody>{rows_html}</tbody>
 </table>
-
+{rookie_html}
 <script>
 const q = document.getElementById('q');
 const pos = document.getElementById('pos');
@@ -483,6 +669,8 @@ def _build_league(
     team_lookup: Dict[str, str],
     *,
     engine: Optional[EngineResult] = None,
+    rookie_rows: Optional[List[Dict]] = None,
+    rookie_coverage: Optional[Dict] = None,
 ) -> str:
     """Render the **Dynasty Rankings** tab as a consensus-vs-model diff.
 
@@ -511,6 +699,8 @@ def _build_league(
             latest_ts=latest_ts,
             league_label=league_label,
             team_lookup=team_lookup,
+            rookie_rows=rookie_rows,
+            rookie_coverage=rookie_coverage,
         )
     return _build_league_overlay_legacy(
         overlays=overlays,
@@ -527,6 +717,8 @@ def _build_league_consensus(
     latest_ts: datetime,
     league_label: str,
     team_lookup: Dict[str, str],
+    rookie_rows: Optional[List[Dict]] = None,
+    rookie_coverage: Optional[Dict] = None,
 ) -> str:
     """Consensus-vs-model diff body for the Dynasty Rankings tab.
 
@@ -539,6 +731,14 @@ def _build_league_consensus(
         because the engine rankings don't carry a slug; we now compute
         it locally from (name, player_id) matching ``_slug()``.
     """
+    # The rookie class, as its own board under the consensus diff. Rookies
+    # cannot appear in the diff itself: it is a model-rank vs KTC-rank
+    # comparison keyed on engine.rankings, and the engine has no row for a
+    # player with no completed NFL season. Rendering them below it with
+    # their own provenance is honest; forging engine rows for them would
+    # not be. Empty string when there is no prospect artifact.
+    rookie_html = _rookie_section(rookie_rows or [], rookie_coverage or {})
+
     crosswalk = load_crosswalk()
     # Superflex PPR is the only format on the Dynasty Rankings tab.
     # KTC's 1QB consensus is still computed by ``compare_to_consensus``
@@ -676,6 +876,7 @@ community consensus for the same league format.</p>
 Refresh with <code>python3 scripts/refresh_ktc_consensus.py</code>.
 Matching uses dynastyprocess <code>ktc_id→gsis_id</code> crosswalk; rows
 that cannot be resolved to a model player are excluded.</p>
+{rookie_html}
 
 <script>
 const CONSENSUS = {payload_json};
@@ -1184,6 +1385,76 @@ production history. See <a href="methodology.html">Methodology</a>.</p>
 
 
 # ---------------------------------------------------------------------------
+# 404 page
+# ---------------------------------------------------------------------------
+
+def build_not_found(latest_ts: Optional[datetime], league_label: str) -> str:
+    """The page a visitor gets for a URL this build did not produce.
+
+    Added alongside the nav-prefix fix, and for the same reason. Every nav
+    link on every player detail page 404ed for an unknown length of time,
+    and what a visitor saw was GitHub Pages' own 404 -- unbranded, with no
+    way back into the site and nothing that would prompt anyone to report
+    it. The bug was ours; the dead end made it invisible.
+
+    GitHub Pages serves ``/404.html`` from the site root for any unmatched
+    path, at any depth, WITHOUT rewriting the URL. So a miss at
+    ``/players/rankings.html`` renders this file while the browser still
+    believes it is inside ``/players/``, and a relative href here would
+    resolve against that directory and miss again. Every link below is
+    therefore ROOT-ABSOLUTE (``/rankings.html``).
+
+    That is safe only because this site is served from the root of a custom
+    domain (``custom_domain.DEFAULT_DOMAIN``). On the old project URL
+    ``pstiehl.github.io/Dynasty-Football-Model/`` these links would point
+    outside the site -- which is the trap ``custom_domain`` warns about, and
+    this is the one file that must break the "keep internal links relative"
+    rule to do its job. It is called out here so the exception is a decision
+    rather than an oversight. The link audit in ``tests/support/link_audit``
+    reports root-absolute hrefs separately for the same reason.
+
+    This page is a safety net, not a feature. It does not know what the
+    visitor wanted and does not guess.
+    """
+    tabs = (
+        ("/rankings.html", "Similar NFL Career Paths"),
+        ("/league.html", "Dynasty Rankings"),
+        ("/crossleague.html", "Best Managers"),
+        ("/myteam.html", "Input Sleeper Team"),
+        ("/prospects.html", "Prospects"),
+        ("/methodology.html", "Methodology"),
+        ("/sources.html", "Sources"),
+    )
+    links = "".join(
+        f'<li><a href="{href}">{_esc(label)}</a></li>' for href, label in tabs
+    )
+    body = f"""<div class="wrap">
+<h2>That page isn't here</h2>
+<p class="lede">The link you followed points at something this build did not
+produce. That is usually our fault rather than yours -- if you got here by
+clicking inside the site, please
+<a href="https://github.com/pstiehl/Dynasty-Football-Model/issues">open an
+issue</a> and say which link you clicked.</p>
+
+<div class="card">
+  <h3>Go somewhere real</h3>
+  <ul class="notfound-links">{links}</ul>
+</div>
+
+<p class="lede" style="margin-top:24px">Player and prospect pages live under
+<code>/players/</code> and are reachable by clicking a name on
+<a href="/rankings.html">Similar NFL Career Paths</a> or
+<a href="/prospects.html">Prospects</a> -- they are generated per build, so
+a bookmarked page can disappear when a player leaves the model.</p>
+</div>"""
+    return _page(
+        page_title("Page not found"),
+        _site_header("", latest_ts, league_label),
+        body,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Prospects page (decoupled)
 # ---------------------------------------------------------------------------
 
@@ -1314,6 +1585,62 @@ def _delta_chip(delta: Optional[float]) -> str:
     return f'<span class="div-chip {cls}">{arrow} {int(round(d)):+d}</span>'
 
 
+def _draft_chip(prospect: Dict) -> str:
+    """The inline draft badge, or ``""``.
+
+    Replaces an f-string that interpolated ``drafted.get("round")`` straight
+    into ``f"R{d_round}"``. When the round was ``None`` -- which is every
+    Tankathon big-board entry, because those players have not been drafted
+    -- the page rendered the literal text ``RNone``, next to a ``?`` from
+    ``team or "?"``. Phil saw ``Arch Manning ? RNone`` at rank 2.
+
+    Now the two cases are different badges, because they are different
+    facts. A real selection shows team/round/pick. A big-board entry shows
+    its board rank and says that is what it is -- an opinion about a draft
+    that has not happened, not a pick.
+    """
+    st = _pv.draft_status(prospect)
+    if st["kind"] == "drafted":
+        label = _pv.draft_label(prospect)
+        year = st["year"] or ""
+        title = (f"Drafted {year} round {st['round']}"
+                 + (f" pick {st['pick']}" if st["pick"] else "")
+                 + (f", {st['team']}" if st["team"] else ""))
+        return (f' <span class="draft-chip" title="{_esc(title)}">'
+                f'\U0001f3c8 {_esc(label)}</span>')
+    if st["kind"] == "big_board":
+        return (' <span class="draft-chip draft-chip-board" '
+                'title="Not drafted yet. This is a Tankathon big-board rank '
+                '— one site\'s projection of where this player might go, '
+                'not a selection and not draft capital.">'
+                f'\U0001f4cb board #{_esc(st["board_rank"])}</span>')
+    return ""
+
+
+def _basis_pill(prospect: Dict) -> str:
+    """A badge naming what a prospect's projection rests on.
+
+    The live page showed ``3200`` / ``13.5`` for its top three rows and no
+    indication that those are the ``QB``/``R1_top10`` tier constants rather
+    than three separate estimates. A reader has no way to tell a measured
+    projection from a table lookup, so the number reads as more than it is.
+    This is that distinction, on the row.
+    """
+    basis = _pv.projection_basis(prospect)
+    if basis["key"] == "comps":
+        return ""          # the normal case needs no annotation
+    cls = {
+        "baseline": "basis-pill basis-constant",
+        "floor": "basis-pill basis-floor",
+        "blend": "basis-pill basis-blend",
+        "comps_no_capital": "basis-pill basis-nocapital",
+        "none": "basis-pill basis-none",
+        "unknown": "basis-pill basis-none",
+    }.get(basis["key"], "basis-pill")
+    return (f' <span class="{cls}" title="{_esc(basis["detail"])}">'
+            f'{_esc(basis["label"])}</span>')
+
+
 def _te_experimental_pill() -> str:
     return (
         '<span class="prospect-te-flag" '
@@ -1354,13 +1681,64 @@ with per-prospect comp pages.</div>
     classes = sorted({int(p.get("draft_class")) for p in prospects
                       if p.get("draft_class") is not None})
 
-    # Sort by model overall rank, defaulting unranked to the bottom.
-    prospects.sort(key=lambda p: p.get("model_overall_rank") or 10**9)
+    # ---- Which board is this? -------------------------------------------
+    #
+    # v3.14 (Phil 2026-09-22). The live page ranked every class together
+    # under one global limit, and stated nowhere which class you were
+    # looking at. The result: row 1 was Michael Penix, class 2024, two NFL
+    # seasons into his career, at the top of a *prospect* board -- while
+    # rows 2 and 3 were 2027 players who have not been drafted. Three
+    # different kinds of thing, ranked against each other, and the numbers
+    # they were ranked on are not comparable: a drafted player's projection
+    # is anchored on real draft capital and an undrafted one's cannot be.
+    #
+    # So the page is now class-first. The default view is the current
+    # rookie class, the heading says so, and future classes are reachable
+    # but never interleaved.
+    class_info = _pv.classify_classes(prospects)
+    current_class = class_info["current"]
 
-    # Default render limit — keep the page snappy. Skill positions only
-    # are already enforced upstream (engine only emits QB/RB/WR/TE), so
-    # we don't filter here.
-    display_prospects = prospects[:150]
+    # Ordering within a class puts evidence-backed projections above tier
+    # constants at equal value -- see prospect_view.sort_for_display.
+    #
+    # An artifact with no ``drafted`` blocks at all (a pre-v3.3 cache, and
+    # the committed test fixture) cannot be split into rookie vs future
+    # classes, because nothing in it says who was drafted. That degrades to
+    # the previous single global board rather than inventing a split: the
+    # honest view of a file with no draft data is one undifferentiated
+    # list.
+    has_draft_data = bool(class_info["drafted"])
+    per_class_limit = 80
+    if has_draft_data:
+        # Current rookie class first, then older drafted classes, then the
+        # undrafted ones -- see prospect_view.class_display_order. NOT
+        # "newest first", which would put the upcoming 2027 class above the
+        # 2026 rookie class and make the first visible row an undrafted
+        # player the moment the filter JS fails to run.
+        display_prospects = []
+        for year in _pv.class_display_order(class_info):
+            in_year = _pv.sort_for_display(_pv.in_class(prospects, year))
+            display_prospects.extend(in_year[:per_class_limit])
+    else:
+        prospects.sort(key=lambda p: p.get("model_overall_rank") or 10**9)
+        display_prospects = prospects[:150]
+
+    # Within-class rank. The artifact's ``model_overall_rank`` is a
+    # cross-class number, which is exactly what made the old board
+    # incoherent; showing it as "#" on a class-filtered table would label
+    # the first row of the 2026 board "#4". Computed here so the rank
+    # column means "position on the board you are looking at".
+    class_rank: Dict[int, int] = {}
+    if has_draft_data:
+        for year in class_info["all"]:
+            for i, p in enumerate(
+                    _pv.sort_for_display(_pv.in_class(prospects, year)), 1):
+                class_rank[id(p)] = i
+
+    saturation = _pv.saturation_report(
+        _pv.in_class(prospects, current_class) if has_draft_data
+        else prospects
+    )
 
     # ---- Table rows ------------------------------------------------------
     rows_html = ""
@@ -1376,27 +1754,29 @@ with per-prospect comp pages.</div>
         # this prospect to an actual NFL draft pick, surface the round
         # / pick / team inline so the table answers "is this person
         # actually a 2026 NFL rookie?" at a glance.
-        drafted = p.get("drafted") or {}
-        if drafted:
-            d_round = drafted.get("round")
-            d_pick = drafted.get("pick")
-            d_team = drafted.get("team") or "?"
-            drafted_html = (
-                f' <span class="draft-chip" title="Drafted {drafted.get("year")} '
-                f'round {d_round} pick {d_pick}, {d_team}">🏈 {d_team} R{d_round} #{d_pick}</span>'
-            )
-        else:
-            drafted_html = ""
+        # v3.14: no more ``RNone`` / ``?``. See _draft_chip.
+        drafted_html = _draft_chip(p)
+        really_drafted = _pv.is_drafted(p)
+        basis = _pv.projection_basis(p)
         proj = p.get("projection") or {}
         career_fp = proj.get("projected_career_fp")
         peak3 = proj.get("projected_peak3_fp_pg")
-        rank = p.get("model_overall_rank", "—")
+        if not basis["show_point_estimate"]:
+            # Undrafted with no meaningful NFL comp in the pool. There is
+            # nothing to project from, so the cells stay empty rather than
+            # carrying a number we made up.
+            career_fp = None
+            peak3 = None
+        # Within-class rank when we can compute one, else the artifact's
+        # cross-class rank (see the class_rank note above).
+        rank = class_rank.get(id(p)) or p.get("model_overall_rank", "—")
         rows_html += (
             f'<tr class="player-row prospect-row{" prospect-te-row" if is_te else ""}" '
             f'data-name="{_esc((p.get("name") or "").lower())}" '
             f'data-position="{_esc(pos)}" '
             f'data-class="{_esc(p.get("draft_class") or "")}" '
-            f'data-drafted="{1 if drafted else 0}" '
+            f'data-drafted="{1 if really_drafted else 0}" '
+            f'data-basis="{_esc(basis["key"])}" '
             f'onclick="location=\'players/{slug}-prospect.html\'">'
             f'<td class="rank">{_esc(rank)}{te_flag}</td>'
             f'<td class="name">'
@@ -1411,7 +1791,8 @@ with per-prospect comp pages.</div>
             f'<td class="years">{_esc(p.get("draft_class") or "—")}</td>'
             f'<td class="team">{_esc(p.get("school") or "—")}</td>'
             f'<td class="years">{_fmt_or_dash(p.get("age"), fmt="{:.1f}")}</td>'
-            f'<td class="score">{_fmt_or_dash(career_fp, fmt="{:.0f}")}</td>'
+            f'<td class="score">{_fmt_or_dash(career_fp, fmt="{:.0f}")}'
+            f'{_basis_pill(p)}</td>'
             f'<td class="years" style="text-align:right">{_fmt_or_dash(peak3, fmt="{:.1f}")}</td>'
             f'<td class="years" style="text-align:right">{_esc(ktc_rank_sf) if ktc_rank_sf is not None else "—"}</td>'
             f'<td style="text-align:right">{_delta_chip(delta)}</td>'
@@ -1419,10 +1800,62 @@ with per-prospect comp pages.</div>
         )
 
     # ---- Filter chips ----------------------------------------------------
-    class_chip_html = "".join(
-        f'<button type="button" class="chip class-chip" data-class="{c}">{c}</button>'
-        for c in classes
+    #
+    # The class chips carry which KIND of class each one is, so the page can
+    # say "2027 has not been drafted" when you switch to it instead of
+    # presenting it as another ranking of the same thing. The default active
+    # chip is the current rookie class rather than "All": a board mixing
+    # 2022 through 2027 is not a view anybody asked for.
+    future_set = set(class_info["future"])
+    def _class_chip(year: int) -> str:
+        is_future = year in future_set
+        active = " active" if (has_draft_data and year == current_class) else ""
+        note = " · not drafted" if is_future else ""
+        kind = "future" if is_future else "drafted"
+        return (f'<button type="button" class="chip class-chip{active}" '
+                f'data-class="{year}" data-class-kind="{kind}">'
+                f'{year}{note}</button>')
+
+    class_chip_html = "".join(_class_chip(c) for c in classes)
+    all_chip_active = "" if has_draft_data else " active"
+    # Keyed by string: the chips' data-class attribute is a string in the
+    # DOM, so a numeric key here would never match on lookup.
+    class_kinds_json = json.dumps(
+        {str(c): ("future" if c in future_set else "drafted") for c in classes}
     )
+
+    if has_draft_data and current_class is not None:
+        board_heading = (
+            f"The <strong>{current_class}</strong> rookie class — "
+            f"{len(_pv.in_class(prospects, current_class)):,} drafted "
+            "skill-position players"
+        )
+        future_note = (
+            ("Future classes ("
+             + ", ".join(str(y) for y in class_info["future"])
+             + ") have not been drafted. Their projections carry no draft "
+             "capital, so they are kept on their own board rather than "
+             "ranked against drafted players.")
+            if class_info["future"] else ""
+        )
+    else:
+        board_heading = (
+            "All scored prospects — this artifact carries no draft records, "
+            "so classes cannot be separated into drafted and upcoming"
+        )
+        future_note = ""
+
+    saturation_note = ""
+    if saturation["n_baseline"]:
+        saturation_note = (
+            f"{saturation['n_baseline']} of {saturation['n']} players on this "
+            "board have no comp in their pool who ever played in the NFL. "
+            "Their projection is the historical average for their draft slot, "
+            "marked <span class=\"basis-pill basis-constant\">draft-slot "
+            "constant</span> — identical for everyone in the same position "
+            "and pick tier, so it ranks them by draft position and not by "
+            "anything measured about them."
+        )
 
     # ---- Body ------------------------------------------------------------
     n_prospects_total = len(prospects)
@@ -1430,7 +1863,11 @@ with per-prospect comp pages.</div>
 
     body = f"""<div class="container">
 
-<h2>Prospect <span class="accent">Rankings — v3.6</span></h2>
+<h2>Prospect <span class="accent">Rankings — v3.14</span></h2>
+
+<div class="callout" id="board-heading"><strong>Now viewing:</strong>
+{board_heading}.</div>
+
 <p class="lede">Skill-position prospects who were <strong>actually drafted</strong>
 in each class (per <a href="https://www.pro-football-reference.com/years/2026/draft.htm">Pro-Football-Reference</a>
 for 2022–2026; <a href="https://www.tankathon.com/nfl/big_board">Tankathon</a>
@@ -1441,8 +1878,11 @@ first-overall pick can't read 1.4 projected career fp just because his
 college-fp comp pool happened to be undrafted small-school backups.
 KTC delta surfaces where the model disagrees with the current consensus
 dynasty board — positive (green) = model bullish, negative (red) = model
-bearish. Default sort is by NFL draft pick within each class; click any
-column to re-sort.</p>
+bearish. <strong>#</strong> is the player's rank within the class shown,
+not across every class. Click any column to re-sort.</p>
+
+{f'<div class="callout callout-warn">{future_note}</div>' if future_note else ""}
+{f'<div class="callout">{saturation_note}</div>' if saturation_note else ""}
 
 <div class="prospect-status-row">
   <span class="status-pill status-pill-ok">✅ QB · RB · WR engine validated
@@ -1477,15 +1917,15 @@ where the model and the consensus board disagree.</div>
     <button type="button" class="chip pos-chip" data-pos="TE">TE ⚠️</button>
   </div>
   <div class="chip-row" id="class-chips">
-    <button type="button" class="chip class-chip active" data-class="">All classes</button>
+    <button type="button" class="chip class-chip{all_chip_active}" data-class="" data-class-kind="all">All classes</button>
     {class_chip_html}
   </div>
   <span class="stats" id="stats"></span>
 </div>
 
 <p class="lede" style="font-size:13px;margin-top:6px">KTC snapshot: {ktc_label} ·
-Showing {len(display_prospects)} of {n_prospects_total:,} ranked prospects.
-Click a column header to sort.</p>
+Showing {len(display_prospects)} of {n_prospects_total:,} ranked prospects
+(up to {per_class_limit} per class). Click a column header to sort.</p>
 
 <table id="prospect-table" data-sortable="true">
 <thead><tr>
@@ -1526,6 +1966,10 @@ function update() {{
     if (ok) shown++;
   }});
   stats.textContent = shown + ' / ' + rows.length + ' prospects';
+  if (boardHeading) {{
+    boardHeading.innerHTML = '<strong>Now viewing:</strong> '
+      + describeClass(activeClass) + '.';
+  }}
 }}
 q.addEventListener('input', update);
 document.querySelectorAll('.pos-chip').forEach(c => {{
@@ -1840,11 +2284,15 @@ available.</p>
 
 </div>"""
 
+    # Written to dynasty_site/players/<slug>-prospect.html, so every link
+    # the chrome emits needs SUBDIR_PREFIX. Passing it to BOTH calls is the
+    # point: before this, only _page knew the page was nested, and the nav
+    # _site_header produced 404ed on every prospect page.
     return _page(
         page_title(f"{name} (Prospect)"),
-        _site_header("prospects", latest_ts, label),
+        _site_header("prospects", latest_ts, label, prefix=SUBDIR_PREFIX),
         body,
-        css_href="../assets/style.css",
+        prefix=SUBDIR_PREFIX,
     )
 
 
@@ -2140,11 +2588,14 @@ league's specific scoring + roster rules? Head to
 
 </div>"""
 
+    # Written to dynasty_site/players/<slug>.html. This is the page Phil
+    # reported: every nav tab 404ed here because _site_header emitted bare
+    # filenames while _page had already been given the nested css_href.
     return _page(
         page_title(row["name"]),
-        _site_header("rankings", latest_ts, league_label),
+        _site_header("rankings", latest_ts, league_label, prefix=SUBDIR_PREFIX),
         body,
-        css_href="../assets/style.css",
+        prefix=SUBDIR_PREFIX,
     )
 
 
@@ -2299,13 +2750,60 @@ def generate_site(
 
     (out_root / "assets" / "style.css").write_text(_shared_css(), encoding="utf-8")
 
+    # The current rookie class, from the college-production layer.
+    #
+    # Phil 2026-09-22: the 2026 class was absent from this page and from
+    # Dynasty Rankings. It is read from the prospect artifact rather than
+    # from the engine because the engine genuinely has nothing for them --
+    # the cohort dispatcher in similarity_v1 skips players with 0 completed
+    # NFL seasons, and three weeks into their first season that is all of
+    # them. See dynasty.rookie_rankings for why they render as their own
+    # cohort instead of being merged into the veteran sort (short version:
+    # different estimator, and merging would move every veteran's VORP).
+    #
+    # Computed BEFORE the pages that use it and never allowed to break the
+    # build: a missing or malformed artifact yields no rookie board, which
+    # is exactly the behaviour before this feature existed.
+    _rookie_rows: List[Dict] = []
+    _rookie_cov: Dict = {}
+    try:
+        _prospects_for_rookies = _load_prospects_artifact()
+        _rookie_rows = _rookies.rookie_rows(_prospects_for_rookies)
+        _rookie_cov = _rookies.coverage(_prospects_for_rookies, _rookie_rows)
+        if _rookie_rows:
+            (out_root / "rookie_rankings.json").write_text(
+                json.dumps(
+                    _rookies.artifact_payload(
+                        _prospects_for_rookies, _rookie_rows),
+                    indent=2, default=float),
+                encoding="utf-8",
+            )
+        import logging
+        logging.getLogger(__name__).info(
+            "rookie class %s: %d drafted, %d shown, %d evidence-backed, "
+            "%d on a draft-slot constant",
+            _rookie_cov.get("class_year"), _rookie_cov.get("n_drafted", 0),
+            _rookie_cov.get("n_shown", 0),
+            _rookie_cov.get("n_evidence_backed", 0),
+            _rookie_cov.get("n_draft_slot_constant", 0),
+        )
+    except Exception as exc:  # noqa: BLE001
+        import logging
+        logging.getLogger(__name__).warning(
+            "rookie class board unavailable: %s", exc)
+
     # rankings.html — primary landing page (no index.html distinction needed)
-    rankings_html = _build_rankings(engine, latest_ts, label, team_lookup, limit=limit)
+    rankings_html = _build_rankings(
+        engine, latest_ts, label, team_lookup, limit=limit,
+        rookie_rows=_rookie_rows, rookie_coverage=_rookie_cov,
+    )
     (out_root / "rankings.html").write_text(rankings_html, encoding="utf-8")
     (out_root / "index.html").write_text(rankings_html, encoding="utf-8")
 
     (out_root / "league.html").write_text(
-        _build_league(overlays, latest_ts, label, team_lookup, engine=engine),
+        _build_league(overlays, latest_ts, label, team_lookup, engine=engine,
+                      rookie_rows=_rookie_rows,
+                      rookie_coverage=_rookie_cov),
         encoding="utf-8",
     )
     (out_root / "methodology.html").write_text(
@@ -2314,6 +2812,14 @@ def generate_site(
     )
     (out_root / "sources.html").write_text(
         _build_sources(latest_ts, label),
+        encoding="utf-8",
+    )
+    # GitHub Pages serves this for any unmatched path at any depth. Written
+    # unconditionally and early: it is the fallback for the rest of the
+    # build, so it must exist even if a later step throws. See
+    # ``build_not_found`` for why its links are root-absolute.
+    (out_root / "404.html").write_text(
+        build_not_found(latest_ts, label),
         encoding="utf-8",
     )
     (out_root / "prospects.html").write_text(
@@ -2404,6 +2910,23 @@ def generate_site(
                     _md.detail_dir(Path("data/cross_league")))
                 _corpus["manager_detail"] = _md.publish_manager_details(
                     out_root, _corpus, _details)
+                # Phil 2026-09-22: only list managers whose score can be
+                # explained. Applied AFTER publishing the shards (so a
+                # withheld manager's file still exists for a direct link)
+                # and BEFORE write_corpus_artifact, which is the copy the
+                # page reads. The committed corpus keeps every scored
+                # manager -- see apply_evidence_gate for why gating the
+                # resumption state would drop people permanently.
+                _gate = _md.apply_evidence_gate(_corpus, _details)
+                import logging
+                logging.getLogger(__name__).info(
+                    "manager evidence gate: applied=%s, %s of %s managers "
+                    "shown, %s withheld for lack of drill-down evidence%s",
+                    _gate.get("applied"), _gate.get("n_shown"),
+                    _gate.get("n_scored"), _gate.get("n_withheld"),
+                    (" (e.g. " + ", ".join(_gate.get("withheld_sample") or [])
+                     + ")") if _gate.get("withheld_sample") else "",
+                )
             except Exception as _exc:  # noqa: BLE001
                 import logging
                 logging.getLogger(__name__).warning(
