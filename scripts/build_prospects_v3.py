@@ -761,6 +761,13 @@ def _load_pfr_draft_classes(path: Path) -> Mapping[Tuple[str, str], Dict]:
                 "team": p.get("team"),
                 "college": p.get("college"),
                 "pfr_id": p.get("pfr_id"),
+                # The name on the draft card, kept so a board can show the
+                # name a reader searches for. The corpus is keyed on the
+                # college roster's version, which is sometimes the formal
+                # one: the v3.6 fuzzy join resolves PFR 'KC Concepcion' to
+                # corpus 'Kevin Concepcion', and the rookie board rendered
+                # the latter -- a name nobody was looking for.
+                "player_name": p.get("player_name"),
             }
     log.info("PFR draft picks indexed: %d skill picks across years %s",
              len(out), sorted(by_year.keys()))
@@ -803,18 +810,43 @@ def _attach_ktc_and_rank(records: List[Dict], ktc: Mapping[Tuple[str, str], Dict
     2024 prospect at model_rank=12 means "12th overall by projected
     career_fp at his position, vs. every other prospect in the set".
     """
+    # v3.14 introduced _no_evidence_projection(), whose numeric fields are
+    # all None on purpose (a 0.0 would render as a measured zero). This sort
+    # was never taught about that, so the first un-drafted prospect with no
+    # meaningful comp raised
+    #
+    #     TypeError: '<' not supported between instances of 'NoneType' and 'float'
+    #
+    # which aborted build_prospects_v3.py entirely. No prospects_*.json was
+    # written, so prospects.html fell back to its "cache not yet populated"
+    # placeholder (34,182 bytes, zero rows -- matching the 34,326 bytes the
+    # live site served) and rookie_rankings.json was never created at all
+    # (HTTP 404). One unhandled None took out two pages.
+    #
+    # Ranking is a comparison, and a prospect with no point estimate cannot
+    # be compared -- so they sort last, deterministically by name, and keep
+    # their None. The alternative (coercing to 0.0) would put them below
+    # every real projection while asserting a number nobody measured.
+    # Ascending sort with a negated value rather than reverse=True: reverse
+    # would also flip the has-estimate flag and the name tiebreak, floating
+    # the unranked rows to the top and ordering ties Z->A.
+    def _rank_key(r: Dict) -> Tuple[int, float, str]:
+        fp = (r.get("projection") or {}).get("projected_career_fp")
+        name = str(r.get("name") or "")
+        if fp is None:
+            return (1, 0.0, name)      # no estimate -> tail, A->Z
+        return (0, -float(fp), name)   # estimate -> head, high fp first
+
     by_pos: Dict[str, List[Dict]] = {}
     for r in records:
         by_pos.setdefault(r["position"], []).append(r)
     for pos, rows in by_pos.items():
-        rows.sort(key=lambda r: r["projection"]["projected_career_fp"], reverse=True)
+        rows.sort(key=_rank_key)
         for i, r in enumerate(rows, start=1):
             r["model_pos_rank"] = i
 
     # Overall rank by projected_career_fp (across all positions, all classes).
-    records_sorted = sorted(records,
-                            key=lambda r: r["projection"]["projected_career_fp"],
-                            reverse=True)
+    records_sorted = sorted(records, key=_rank_key)
     for i, r in enumerate(records_sorted, start=1):
         r["model_overall_rank"] = i
 
@@ -1170,6 +1202,14 @@ def build_prospect_records(
                 else:
                     rec = _build_stub_record_for_undiscovered_pick(pick, year)
                 # Stamp the drafted block on every record.
+                #
+                # player_name is the name on the draft card. When the fuzzy
+                # join above resolves a collision it keeps the CORPUS name
+                # on the record (the college roster's), so without this the
+                # rookie board shows "Kevin Concepcion" for the pick every
+                # draft guide calls KC Concepcion. Carrying the PFR name
+                # lets the board display what a reader searches for while
+                # the corpus name stays available as corpus_name.
                 rec["drafted"] = {
                     "year": pick.get("year"),
                     "round": pick.get("rnd"),
@@ -1177,6 +1217,7 @@ def build_prospect_records(
                     "team": pick.get("team"),
                     "college": pick.get("college"),
                     "pfr_id": pick.get("pfr_id"),
+                    "player_name": pick.get("player_name"),
                 }
                 records.append(rec)
         log.info("v3.4 drafted-only mode: %d records across classes %s",
@@ -1208,12 +1249,20 @@ def build_prospect_records(
     # Default sort: by NFL draft pick (ascending). UI can re-sort by
     # model projection. Picks with no draft data (stubs from legacy
     # mode) fall to the bottom.
+    # Same None contract as _rank_key above: an un-drafted prospect with no
+    # meaningful comp has projected_career_fp=None, and negating that raised
+    # "bad operand type for unary -: 'NoneType'". Sort those last within
+    # their pick bucket instead of crashing the build.
+    def _class_sort_key(r: Dict) -> Tuple[int, int, float, str]:
+        fp = (r.get("projection") or {}).get("projected_career_fp")
+        pick = (r.get("drafted") or {}).get("pick") or 10**6
+        name = str(r.get("name") or "")
+        if fp is None:
+            return (pick, 1, 0.0, name)
+        return (pick, 0, -float(fp), name)
+
     for dc, rows in by_class.items():
-        rows.sort(key=lambda r: (
-            (r.get("drafted") or {}).get("pick") or 10**6,
-            -r["projection"]["projected_career_fp"],
-            r["name"],
-        ))
+        rows.sort(key=_class_sort_key)
     return by_class
 
 

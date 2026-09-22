@@ -2157,20 +2157,39 @@ def _build_prospect_page(prospect: Dict, label: str, latest_ts: datetime,
             proj_desc = (
                 f"Projection is the v3.6 baseline FLOOR (30% of the "
                 f"pick-tier baseline). The comp-weighted projection "
-                f"({comp_only:,.0f}) was suppressed because the comp pool "
+                f"({_fmt_or_dash(comp_only, fmt='{:,.0f}')}) was suppressed because the comp pool "
                 f"is dominated by college players who didn't reach the NFL. "
                 f"The NFL spent a real pick on this player, so the floor "
                 f"protects against an obviously-broken projection collapse. "
                 f"{low_conf_warn}"
             )
+        elif proj_source in _pv.NO_ESTIMATE_SOURCES:
+            # v3.14's "we do not know" state: every numeric field is None on
+            # purpose. It reached the blend branch below and raised
+            # "unsupported format string passed to NoneType.__format__" on
+            # the first such prospect, which aborted generate_site after the
+            # engine had already run. Say the thing the None means instead.
+            proj_desc = (
+                "No projection is published for this prospect. He has not "
+                "been drafted, so there is no draft capital to anchor a "
+                "baseline, and none of his college comps went on to a "
+                "meaningful NFL career (≥200 career fp) to anchor a "
+                "comp-weighted estimate. A number here would be a guess "
+                "presented as a measurement, so the page shows none."
+            )
         else:
+            # Defensive: a blend with a missing leg is still describable,
+            # and must not take the build down. _fmt_or_dash renders an
+            # em dash rather than formatting None.
             proj_desc = (
                 f"Projection is a confidence-blend (“{_esc(proj_source)}”). "
                 f"With <strong>{n_meaningful}</strong> meaningful comp NFL careers "
                 f"(≥200 career fp), confidence is "
                 f"<strong>{confidence:.2f}</strong>; we blend the comp-only "
-                f"projection (<strong>{comp_only:,.0f}</strong>) with the "
-                f"pick-tier baseline (<strong>{baseline:,.0f}</strong>). "
+                f"projection (<strong>"
+                f"{_fmt_or_dash(comp_only, fmt='{:,.0f}')}</strong>) with the "
+                f"pick-tier baseline (<strong>"
+                f"{_fmt_or_dash(baseline, fmt='{:,.0f}')}</strong>). "
                 f"{low_conf_warn}"
             )
         proj_callout = (
@@ -2764,33 +2783,60 @@ def generate_site(
     # Computed BEFORE the pages that use it and never allowed to break the
     # build: a missing or malformed artifact yields no rookie board, which
     # is exactly the behaviour before this feature existed.
-    _rookie_rows: List[Dict] = []
-    _rookie_cov: Dict = {}
-    try:
-        _prospects_for_rookies = _load_prospects_artifact()
-        _rookie_rows = _rookies.rookie_rows(_prospects_for_rookies)
-        _rookie_cov = _rookies.coverage(_prospects_for_rookies, _rookie_rows)
-        if _rookie_rows:
-            (out_root / "rookie_rankings.json").write_text(
-                json.dumps(
-                    _rookies.artifact_payload(
-                        _prospects_for_rookies, _rookie_rows),
-                    indent=2, default=float),
-                encoding="utf-8",
-            )
-        import logging
-        logging.getLogger(__name__).info(
-            "rookie class %s: %d drafted, %d shown, %d evidence-backed, "
-            "%d on a draft-slot constant",
-            _rookie_cov.get("class_year"), _rookie_cov.get("n_drafted", 0),
-            _rookie_cov.get("n_shown", 0),
-            _rookie_cov.get("n_evidence_backed", 0),
-            _rookie_cov.get("n_draft_slot_constant", 0),
+    # NO SWALLOWED EXCEPTIONS HERE. This block used to be wrapped in a bare
+    # ``except Exception -> log a warning``, and every failure mode it hid
+    # produced the same visible result: no rookie section, a green build,
+    # and a customer reporting it. On the live site the artifact build had
+    # crashed upstream, _load_prospects_artifact() returned None,
+    # rookie_rows() returned [], the ``if _rookie_rows`` guard skipped the
+    # write, and rookie_rankings.json 404ed for three weeks while CI stayed
+    # green.
+    #
+    # A missing rookie class is now a build failure. The artifact is also
+    # written unconditionally, so "the file exists and is empty" can never
+    # again be indistinguishable from "the file was never written".
+    _prospects_for_rookies = _load_prospects_artifact()
+    _rookie_rows = _rookies.rookie_rows(_prospects_for_rookies)
+    _rookie_cov = _rookies.coverage(_prospects_for_rookies, _rookie_rows)
+
+    import logging
+    _log = logging.getLogger(__name__)
+
+    if not _rookie_rows:
+        _why = (
+            "no prospects artifact could be loaded "
+            "(data/engine_v3/prospects_all.json) -- run "
+            "scripts/build_prospects_v3.py"
+            if not _prospects_for_rookies else
+            "the prospects artifact carries no drafted player for the "
+            "current class (rookie_class_year=%r); check that "
+            "data/pfr/draft_class_<year>.json joined onto the corpus"
+            % (_rookies.rookie_class_year(_prospects_for_rookies),)
         )
-    except Exception as exc:  # noqa: BLE001
-        import logging
-        logging.getLogger(__name__).warning(
-            "rookie class board unavailable: %s", exc)
+        msg = ("rookie class is empty and the rookie board would render "
+               "nothing: " + _why)
+        if os.environ.get("DFM_ALLOW_NO_ROOKIE_CLASS") == "1":
+            # Local/offline builds only. Never set in CI -- daily-refresh
+            # and the PR workflow both leave it unset so this path fails.
+            _log.warning("%s (continuing: DFM_ALLOW_NO_ROOKIE_CLASS=1)", msg)
+        else:
+            raise RuntimeError(msg)
+
+    (out_root / "rookie_rankings.json").write_text(
+        json.dumps(
+            _rookies.artifact_payload(
+                _prospects_for_rookies, _rookie_rows),
+            indent=2, default=float),
+        encoding="utf-8",
+    )
+    _log.info(
+        "rookie class %s: %d drafted, %d shown, %d evidence-backed, "
+        "%d on a draft-slot constant",
+        _rookie_cov.get("class_year"), _rookie_cov.get("n_drafted", 0),
+        _rookie_cov.get("n_shown", 0),
+        _rookie_cov.get("n_evidence_backed", 0),
+        _rookie_cov.get("n_draft_slot_constant", 0),
+    )
 
     # rankings.html — primary landing page (no index.html distinction needed)
     rankings_html = _build_rankings(
@@ -2908,16 +2954,26 @@ def generate_site(
             try:
                 _details = _md.read_league_details(
                     _md.detail_dir(Path("data/cross_league")))
+                # Phil 2026-09-22: only list managers whose score can be
+                # explained -- and "listed" means anywhere a visitor can
+                # reach, not just the server-rendered table.
+                #
+                # ORDER IS LOAD-BEARING. This used to run AFTER
+                # publish_manager_details so a withheld manager's shard
+                # still resolved for a direct link. That published a
+                # drill-down whose own banner says the score cannot be
+                # explained, which is the thing being removed. Gating first
+                # means publish_manager_details iterates the already-gated
+                # leaderboard, so no shard is written for a withheld
+                # manager and there is no URL to reach one at.
+                #
+                # Both calls mutate the in-memory copy only. The committed
+                # data/cross_league/corpus.json -- the crawler's resumption
+                # state -- is never written here, so gating the view cannot
+                # drop a manager from the next crawl.
+                _gate = _md.apply_evidence_gate(_corpus, _details)
                 _corpus["manager_detail"] = _md.publish_manager_details(
                     out_root, _corpus, _details)
-                # Phil 2026-09-22: only list managers whose score can be
-                # explained. Applied AFTER publishing the shards (so a
-                # withheld manager's file still exists for a direct link)
-                # and BEFORE write_corpus_artifact, which is the copy the
-                # page reads. The committed corpus keeps every scored
-                # manager -- see apply_evidence_gate for why gating the
-                # resumption state would drop people permanently.
-                _gate = _md.apply_evidence_gate(_corpus, _details)
                 import logging
                 logging.getLogger(__name__).info(
                     "manager evidence gate: applied=%s, %s of %s managers "

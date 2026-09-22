@@ -123,7 +123,8 @@ def rookie_rows(artifact: Optional[Mapping],
 
         rows.append({
             "rookie_rank": i,
-            "name": p.get("name") or "",
+            "name": _display_name(p),
+            "corpus_name": p.get("name") or "",
             "position": p.get("position") or "",
             "school": p.get("school"),
             "age": p.get("age"),
@@ -155,6 +156,24 @@ def rookie_rows(artifact: Optional[Mapping],
     return rows[:limit] if limit else rows
 
 
+def _display_name(prospect: Mapping) -> str:
+    """The name to show: the draft card's, falling back to the corpus's.
+
+    The corpus is keyed on the college roster, which sometimes carries a
+    player's formal name while every draft board, fantasy site and search
+    box uses the short one. The v3.6 fuzzy join logs the collision it
+    resolved -- ``PFR='KC Concepcion' -> corpus='Kevin Concepcion'`` -- and
+    then the board rendered "Kevin Concepcion", which is correct and
+    useless: a reader looking for the Browns' first-rounder does not find
+    him. ``drafted.player_name`` comes from the committed PFR draft class
+    (``data/pfr/draft_class_2026.json``), so this prefers the name on the
+    pick and keeps the corpus name alongside it as ``corpus_name``.
+    """
+    drafted = prospect.get("drafted") or {}
+    return str(drafted.get("player_name")
+               or prospect.get("name") or "")
+
+
 def _prospect_slug(prospect: Mapping) -> str:
     """Mirror of ``report._prospect_slug``.
 
@@ -163,14 +182,20 @@ def _prospect_slug(prospect: Mapping) -> str:
     checkout. ``test_rookie_rankings`` asserts the two agree on the
     committed fixture, so the duplication cannot drift unnoticed.
     """
-    slug = prospect.get("slug")
-    if slug:
-        return str(slug)
-    name = str(prospect.get("name") or "")
-    pid = str(prospect.get("cfb_player_id") or "")
+    # EXACT mirror of report._prospect_slug. It previously returned the
+    # record's own ``slug`` field when present, which report ignores except
+    # as a fallback id -- so for the stub records that PFR picks with no
+    # corpus match produce (slug "nate-boerkircher-pfr"), the page was
+    # written as "nate-boerkircher-rcher1" and the rookie board linked
+    # "nate-boerkircher-pfr". Four dead links on rankings.html, league.html
+    # and index.html, caught by the link audit against a real build and not
+    # by the agreement test, whose fixture contains no stub record.
     import re
-    base = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
-    return f"{base}-{pid[-6:]}" if pid else base
+    name = prospect.get("name") or "prospect"
+    pid = str(prospect.get("cfb_player_id") or prospect.get("slug") or "")
+    s = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    tail = re.sub(r"[^a-z0-9]+", "", pid.lower())[-6:] or "x"
+    return f"{s}-{tail}"
 
 
 def coverage(artifact: Optional[Mapping], rows: Sequence[Mapping]) -> Dict:
