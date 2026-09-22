@@ -46,6 +46,7 @@ CORPUS_SUBMIT_JS = r"""
  * ============================================================ */
 
 var CS_URL = '__CORPUS_URL__';          /* '' when unconfigured */
+var CS_SUBMIT_ISSUE_URL = '__SUBMIT_ISSUE_URL__';  /* the honest fallback */
 var CS_SCHEMA = 'dfm.corpus.submission.v1';
 var CS_MAX_ORPHAN_ROSTERS = 2;          /* must match the worker */
 
@@ -231,6 +232,28 @@ function csRender(state, detail) {
     cls = 'callout callout-warn';
     html = '<strong>Could not reach the index.</strong> ' + csEsc(detail || '') +
       ' Your score above is unaffected \u2014 it was computed in your browser.';
+  } else if (state === 'off') {
+    /* No backend is deployed. Say so, rather than rendering nothing.
+     *
+     * Rendering nothing was the bug: scoring a league here produces a full
+     * table and a "Score this league" button that visibly did something,
+     * so a visitor reasonably concludes their league was submitted. It was
+     * not, and nothing on the page said otherwise. An owner reported
+     * exactly that -- submitted a league, clicked the button, saw the
+     * score, and nothing was recorded anywhere.
+     *
+     * This is not an error state and must not be styled as one: nothing
+     * failed, the feature simply is not offered here. */
+    html = '<strong>This score was not recorded.</strong> It was computed ' +
+      'in your browser and sent nowhere \u2014 this site has no submission ' +
+      'backend configured, so scoring a league here cannot add it to the ' +
+      '<a href="crossleague.html">cross-league board</a>.' +
+      (CS_SUBMIT_ISSUE_URL
+        ? ' To get this league indexed, <a href="' +
+          csEsc(CS_SUBMIT_ISSUE_URL) + '" target="_blank" rel="noopener">' +
+          'submit its id as a GitHub issue</a>; a daily job validates it ' +
+          'against Sleeper and adds it to the crawl.'
+        : '');
   } else {
     box.style.display = 'none';
     return;
@@ -340,19 +363,32 @@ if (typeof module !== 'undefined' && module.exports) {
 """
 
 
-def corpus_submit_js(corpus_url: str = "") -> str:
-    """Return the submit script with the build-time corpus URL spliced in.
+def corpus_submit_js(corpus_url: str = "", submit_issue_url: str = "") -> str:
+    """Return the submit script with the build-time URLs spliced in.
 
     ``corpus_url`` empty (the default, and what happens when the owner has
-    not deployed the D1 half) yields a script whose ``csEnabled()`` is false:
-    the Manager Score page then behaves exactly as it did before this feature
-    existed, and says nothing about an index that is not there.
+    not deployed the D1 half) yields a script whose ``csEnabled()`` is false.
+    The page then **says so** after scoring a league, which is the change
+    from the original behaviour: it used to render nothing at all.
+
+    Saying nothing was not neutral. The section still scored the league and
+    still drew a full table, so the absence of any statement read as
+    success -- and the one thing a visitor wants to know after clicking
+    "Score this league" is whether the league is now on the board. It was
+    not. ``submit_issue_url`` is what makes the honest message actionable:
+    the issue-template path is the only inbox a static site actually has,
+    and it works today, so the message points at it instead of leaving the
+    visitor with a dead end.
     """
-    url = (corpus_url or "").strip().rstrip("/")
-    if url and not url.startswith(("http://", "https://")):
-        url = ""
-    # The URL is a build-time constant from the owner's own environment, not
-    # user input; it is still quote-stripped so a malformed value cannot break
-    # out of the JS string literal.
-    url = url.replace("\\", "").replace("'", "").replace('"', "")
-    return CORPUS_SUBMIT_JS.replace("__CORPUS_URL__", url)
+    def _clean(value: str) -> str:
+        v = (value or "").strip().rstrip("/")
+        if v and not v.startswith(("http://", "https://")):
+            return ""
+        # Build-time constants from the owner's own environment, not user
+        # input; still quote-stripped so a malformed value cannot break out
+        # of the JS string literal.
+        return v.replace("\\", "").replace("'", "").replace('"', "")
+
+    return (CORPUS_SUBMIT_JS
+            .replace("__CORPUS_URL__", _clean(corpus_url))
+            .replace("__SUBMIT_ISSUE_URL__", _clean(submit_issue_url)))

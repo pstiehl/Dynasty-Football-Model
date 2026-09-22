@@ -492,6 +492,28 @@ def read_league_details(dir_path: Path) -> Dict[str, Dict]:
     return out
 
 
+def retained_league_ids(dir_path: Path) -> set:
+    """League ids that have a retained audit, without parsing the payloads.
+
+    The crawl needs this before it scores anything, purely to decide which
+    leagues to queue for backfill. :func:`read_league_details` would answer
+    the same question by gunzipping and JSON-parsing the whole store --
+    ~8.5 MB at full size -- which is a lot of work to learn a set of ids.
+
+    Deliberately reads the FILENAME only, so it stays O(number of files).
+    That accepts one imprecision: a truncated or schema-stale file counts as
+    retained here but is dropped by ``read_league_details``, so its league
+    would not be re-queued despite still being withheld. The next prune
+    removes such a file and the league returns to the queue, and the cost of
+    the alternative -- parsing the entire store on every run to catch a case
+    that only arises after a partial write -- is not worth paying.
+    """
+    d = Path(dir_path)
+    if not d.is_dir():
+        return set()
+    return {p.name[: -len(".json.gz")] for p in d.glob("*.json.gz")}
+
+
 def prune_league_details(dir_path: Path, keep_league_ids: Iterable[str]) -> int:
     """Drop audits for leagues no longer in the corpus. Returns files removed.
 

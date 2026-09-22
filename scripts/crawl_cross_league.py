@@ -634,6 +634,18 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--new-league-share", type=float, default=0.6,
                     help="share of the scoring budget reserved for leagues "
                          "never scored before (default 0.6)")
+    ap.add_argument("--backfill-share", type=float, default=0.5,
+                    help="share of the per-run league slots reserved for "
+                         "INDEXED leagues whose pick-level audit is missing "
+                         "(default 0.5). These are the only leagues that can "
+                         "move a manager from withheld to published, so they "
+                         "are queued ahead of new discovery. 0 disables.")
+    ap.add_argument("--only-league", action="append", default=None,
+                    metavar="LEAGUE_ID",
+                    help="re-score exactly these league id(s) and nothing "
+                         "else; repeatable. Bypasses the automatic tiers -- "
+                         "the operator handle for recovering one withheld "
+                         "league without waiting for its turn.")
     ap.add_argument("--min-delay", type=float, default=0.12,
                     help="minimum seconds between call starts")
     ap.add_argument("--discover-only", action="store_true",
@@ -739,21 +751,55 @@ def main(argv: Optional[List[str]] = None) -> int:
         print("  ! value artifact unavailable: "
               + "; ".join(values.get("notes") or []), file=sys.stderr)
 
-    # Which leagues does this run pay for? New ones first, against a
-    # reserved share of the budget; then the stalest indexed ones, which the
-    # permanent cache has made cheap. See dynasty.crawl_state.plan_scoring.
-    plan = cs.plan_scoring(
-        state,
-        max_leagues=args.max_leagues,
-        new_league_share=args.new_league_share,
-        scoring_budget=budget.remaining,
-    )
-    queue = plan["new"] + plan["refresh"]
-    if verbose:
-        print(f"  plan: {len(plan['new'])} new + {len(plan['refresh'])} "
-              f"refresh (of {plan['n_never_scored_total']} never scored, "
-              f"{plan['n_previously_scored_total']} indexed); "
-              f"{plan['reserved_for_new']} calls reserved for new")
+    # Which leagues does this run pay for? Backfill first -- indexed leagues
+    # whose audit is missing, because those are the only ones that can move a
+    # manager from withheld to published. Then new ones against a reserved
+    # share of the budget, then the stalest indexed ones, which the permanent
+    # cache has made cheap. See dynasty.crawl_state.plan_scoring.
+    detail_dir_pre = manager_detail.detail_dir(args.corpus.parent)
+    have_detail = manager_detail.retained_league_ids(detail_dir_pre)
+
+    if args.only_league:
+        # Targeted re-score: one or more explicit league ids, ahead of
+        # everything else. This is the operator handle for "this specific
+        # league is withheld and I want it back now" -- it is how league
+        # 1316222126914539520 was recovered -- and it deliberately does not
+        # touch the automatic tiers below.
+        known = state.get("known_dynasty") or {}
+        queue, unknown = [], []
+        for lid in args.only_league:
+            lid = str(lid).strip()
+            if lid in known:
+                queue.append(dict(known[lid]))
+            else:
+                unknown.append(lid)
+                queue.append({"league_id": lid, "name": None})
+        plan = {"backfill": [], "new": [], "refresh": [], "reserved_for_new": 0,
+                "n_never_scored_total": 0, "n_previously_scored_total": 0,
+                "n_missing_audit_total": len(
+                    cs.leagues_missing_audit(state, have_detail)),
+                "n_backfill_slots": 0}
+        if verbose:
+            print(f"  plan: targeted re-score of {len(queue)} league(s)"
+                  + (f" ({len(unknown)} not in crawl state)" if unknown else ""))
+    else:
+        plan = cs.plan_scoring(
+            state,
+            max_leagues=args.max_leagues,
+            new_league_share=args.new_league_share,
+            scoring_budget=budget.remaining,
+            have_detail=have_detail,
+            backfill_share=args.backfill_share,
+        )
+        queue = plan["backfill"] + plan["new"] + plan["refresh"]
+        if verbose:
+            print(f"  plan: {len(plan['backfill'])} backfill + "
+                  f"{len(plan['new'])} new + {len(plan['refresh'])} "
+                  f"refresh (of {plan['n_missing_audit_total']} indexed "
+                  f"leagues missing an audit, "
+                  f"{plan['n_never_scored_total']} never scored, "
+                  f"{plan['n_previously_scored_total']} indexed); "
+                  f"{plan['reserved_for_new']} calls reserved for new")
 
     cache_dir = None if args.no_cache else Path(args.cache_dir)
     scored = score_leagues(
@@ -876,6 +922,21 @@ def main(argv: Optional[List[str]] = None) -> int:
     if n_detail_written or n_detail_pruned:
         print(f"  drill-down detail: {n_detail_written} league(s) written, "
               f"{n_detail_pruned} pruned -> {detail_dir}")
+
+    # Recompute the published crawl summary now that this run's audits are on
+    # disk, so `n_missing_audit` is the backlog a reader would see rather than
+    # the one this run started with. This is the number that predicts the
+    # withheld count, so publishing a stale copy of it would be worse than
+    # not publishing it at all.
+    have_detail_after = manager_detail.retained_league_ids(detail_dir)
+    corpus["crawl"] = cs.state_summary(state, have_detail_after)
+    n_missing_before = len(cs.leagues_missing_audit(state, have_detail))
+    n_missing_after = len(cs.leagues_missing_audit(state, have_detail_after))
+    corpus["crawl"]["n_missing_audit_at_start"] = n_missing_before
+    print(f"  audit backlog: {n_missing_before} indexed league(s) missing an "
+          f"audit at start -> {n_missing_after} now "
+          f"({n_missing_before - n_missing_after} recovered)")
+
     corpus["values"] = scored.get("values") or {}
 
     cov = corpus["coverage"]
