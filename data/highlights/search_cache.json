@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-22T19:51:13.404944+00:00",
-  "entry_count": 228,
+  "updated_at": "2026-09-23T15:26:53.349173+00:00",
+  "entry_count": 268,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -674,6 +674,16 @@
       "video_ids": [],
       "query": "Cordarrelle Patterson week 2 2026 highlights"
     },
+    "2026:2:1646": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Francis week 2 2026 highlights"
+    },
+    "2026:2:1674": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Bouye week 2 2026 highlights"
+    },
     "2026:2:1689": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
@@ -743,6 +753,11 @@
       "video_ids": [],
       "query": "Phillip Dorsett week 2 2026 highlights"
     },
+    "2026:2:2372": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Cann week 2 2026 highlights"
+    },
     "2026:2:2374": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
@@ -758,10 +773,30 @@
       "video_ids": [],
       "query": "Jamison Crowder week 2 2026 highlights"
     },
+    "2026:2:2446": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "MyCole Pruitt week 2 2026 highlights"
+    },
+    "2026:2:2460": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "C.J. Uzomah week 2 2026 highlights"
+    },
+    "2026:2:2503": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Derby week 2 2026 highlights"
+    },
     "2026:2:2505": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
       "query": "Darren Waller week 2 2026 highlights"
+    },
+    "2026:2:2545": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Geoff Swaim week 2 2026 highlights"
     },
     "2026:2:2549": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
@@ -793,6 +828,11 @@
       "video_ids": [],
       "query": "Chris Manhertz week 2 2026 highlights"
     },
+    "2026:2:3155": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Laquon Treadwell week 2 2026 highlights"
+    },
     "2026:2:3161": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [
@@ -821,6 +861,11 @@
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
       "query": "Hunter Henry week 2 2026 highlights"
+    },
+    "2026:2:3218": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A'Shawn Robinson week 2 2026 highlights"
     },
     "2026:2:3225": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
@@ -858,6 +903,16 @@
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
       "query": "Tyreek Hill week 2 2026 highlights"
+    },
+    "2026:2:3357": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Brandon Allen week 2 2026 highlights"
+    },
+    "2026:2:3362": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Jeff Driskel week 2 2026 highlights"
     },
     "2026:2:3423": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
@@ -924,6 +979,11 @@
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
       "query": "JuJu Smith-Schuster week 2 2026 highlights"
+    },
+    "2026:2:4054": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Mo Alie-Cox week 2 2026 highlights"
     },
     "2026:2:4066": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
@@ -1013,6 +1073,16 @@
       "video_ids": [],
       "query": "Eric Saubert week 2 2026 highlights"
     },
+    "2026:2:4197": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Isaiah McKenzie week 2 2026 highlights"
+    },
+    "2026:2:4198": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Jamal Agnew week 2 2026 highlights"
+    },
     "2026:2:4199": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [
@@ -1020,6 +1090,11 @@
         "ptj64CwIqfg"
       ],
       "query": "Aaron Jones week 2 2026 highlights"
+    },
+    "2026:2:4218": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Trent Taylor week 2 2026 highlights"
     },
     "2026:2:4219": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
@@ -1041,6 +1116,11 @@
       "video_ids": [],
       "query": "Johnny Mundt week 2 2026 highlights"
     },
+    "2026:2:4319": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Zach Pascal week 2 2026 highlights"
+    },
     "2026:2:4351": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
@@ -1050,6 +1130,11 @@
       "searched_at": "2026-09-22T19:51:13.404944+00:00",
       "video_ids": [],
       "query": "Taysom Hill week 2 2026 highlights"
+    },
+    "2026:2:4435": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Anthony Firkser week 2 2026 highlights"
     },
     "2026:2:4443": {
       "searched_at": "2026-09-22T19:33:56.735130+00:00",
@@ -1072,6 +1157,11 @@
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
       "query": "Cooper Rush week 2 2026 highlights"
+    },
+    "2026:2:4602": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Robert Tonyan week 2 2026 highlights"
     },
     "2026:2:4663": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
@@ -1155,10 +1245,20 @@
       "video_ids": [],
       "query": "Mike Gesicki week 2 2026 highlights"
     },
+    "2026:2:4995": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Ian Thomas week 2 2026 highlights"
+    },
     "2026:2:5000": {
       "searched_at": "2026-09-22T15:30:41.659853+00:00",
       "video_ids": [],
       "query": "Chase Edmonds week 2 2026 highlights"
+    },
+    "2026:2:5008": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Durham Smythe week 2 2026 highlights"
     },
     "2026:2:5010": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
@@ -1180,6 +1280,11 @@
       "video_ids": [],
       "query": "Dallas Goedert week 2 2026 highlights"
     },
+    "2026:2:5026": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Tre'Quan Smith week 2 2026 highlights"
+    },
     "2026:2:5032": {
       "searched_at": "2026-09-22T15:30:41.659853+00:00",
       "video_ids": [],
@@ -1189,6 +1294,11 @@
       "searched_at": "2026-09-22T19:33:56.735130+00:00",
       "video_ids": [],
       "query": "Royce Freeman week 2 2026 highlights"
+    },
+    "2026:2:5076": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "John Kelly week 2 2026 highlights"
     },
     "2026:2:5086": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
@@ -1205,6 +1315,16 @@
       "video_ids": [],
       "query": "Ryan Izzo week 2 2026 highlights"
     },
+    "2026:2:5096": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Ray-Ray McCloud week 2 2026 highlights"
+    },
+    "2026:2:5101": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Deon Cain week 2 2026 highlights"
+    },
     "2026:2:5110": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
@@ -1215,35 +1335,105 @@
       "video_ids": [],
       "query": "Braxton Berrios week 2 2026 highlights"
     },
+    "2026:2:5122": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Boston Scott week 2 2026 highlights"
+    },
+    "2026:2:5127": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Kyle Allen week 2 2026 highlights"
+    },
     "2026:2:5128": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
       "query": "Logan Woodside week 2 2026 highlights"
+    },
+    "2026:2:5134": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Keith Kirkwood week 2 2026 highlights"
+    },
+    "2026:2:5154": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Trent Sherfield week 2 2026 highlights"
     },
     "2026:2:5185": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
       "video_ids": [],
       "query": "Allen Lazard week 2 2026 highlights"
     },
+    "2026:2:5209": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Mike Boone week 2 2026 highlights"
+    },
     "2026:2:5248": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
       "query": "Gus Edwards week 2 2026 highlights"
+    },
+    "2026:2:5257": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Tim Boyle week 2 2026 highlights"
     },
     "2026:2:5284": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
       "query": "Jeff Wilson week 2 2026 highlights"
     },
+    "2026:2:5285": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Ross Dwelley week 2 2026 highlights"
+    },
+    "2026:2:5323": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Equanimeous St. Brown week 2 2026 highlights"
+    },
     "2026:2:5347": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
       "query": "Nyheim Miller-Hines week 2 2026 highlights"
     },
+    "2026:2:5374": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Justin Watson week 2 2026 highlights"
+    },
     "2026:2:5409": {
       "searched_at": "2026-09-22T13:14:18.714331+00:00",
       "video_ids": [],
       "query": "Tanner Hudson week 2 2026 highlights"
+    },
+    "2026:2:5695": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Brandon Powell week 2 2026 highlights"
+    },
+    "2026:2:5773": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "KhaDarel Hodge week 2 2026 highlights"
+    },
+    "2026:2:5781": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "Malik Turner week 2 2026 highlights"
+    },
+    "2026:2:5859": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Brown week 2 2026 highlights"
+    },
+    "2026:2:6802": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Epenesa week 2 2026 highlights"
     },
     "2026:2:827": {
       "searched_at": "2026-09-22T11:39:17.576562+00:00",
@@ -1254,6 +1444,16 @@
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
       "video_ids": [],
       "query": "Andy Dalton week 2 2026 highlights"
+    },
+    "2026:2:8320": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.Hansford Hansford week 2 2026 highlights"
+    },
+    "2026:2:8505": {
+      "searched_at": "2026-09-23T15:26:53.349173+00:00",
+      "video_ids": [],
+      "query": "A.J. Arcuri week 2 2026 highlights"
     },
     "2026:2:96": {
       "searched_at": "2026-09-22T11:31:10.605573+00:00",
