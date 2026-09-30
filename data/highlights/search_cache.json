@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-09-29T20:28:01.317364+00:00",
-  "entry_count": 548,
+  "updated_at": "2026-09-30T16:47:10.950766+00:00",
+  "entry_count": 588,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -2613,6 +2613,11 @@
       "video_ids": [],
       "query": "Amari Cooper week 3 2026 highlights"
     },
+    "2026:3:2325": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Nelson Agholor week 3 2026 highlights"
+    },
     "2026:3:2359": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
@@ -2632,6 +2637,11 @@
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Jamison Crowder week 3 2026 highlights"
+    },
+    "2026:3:2446": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "MyCole Pruitt week 3 2026 highlights"
     },
     "2026:3:2549": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
@@ -2654,6 +2664,21 @@
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "DeAndre Carter week 3 2026 highlights"
+    },
+    "2026:3:2755": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Eric Tomlinson week 3 2026 highlights"
+    },
+    "2026:3:3048": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Chris Manhertz week 3 2026 highlights"
+    },
+    "2026:3:3155": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Laquon Treadwell week 3 2026 highlights"
     },
     "2026:3:3161": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
@@ -2689,6 +2714,11 @@
       "video_ids": [],
       "query": "Tyler Boyd week 3 2026 highlights"
     },
+    "2026:3:3258": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Nick Vannett week 3 2026 highlights"
+    },
     "2026:3:3269": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
@@ -2716,6 +2746,11 @@
       "video_ids": [],
       "query": "Robbie Chosen week 3 2026 highlights"
     },
+    "2026:3:3433": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Alex Erickson week 3 2026 highlights"
+    },
     "2026:3:3976": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
       "video_ids": [],
@@ -2736,10 +2771,20 @@
       "video_ids": [],
       "query": "David Njoku week 3 2026 highlights"
     },
+    "2026:3:4038": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "John Ross week 3 2026 highlights"
+    },
     "2026:3:4040": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
       "video_ids": [],
       "query": "JuJu Smith-Schuster week 3 2026 highlights"
+    },
+    "2026:3:4054": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Mo Alie-Cox week 3 2026 highlights"
     },
     "2026:3:4066": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
@@ -2771,6 +2816,11 @@
       "video_ids": [],
       "query": "Kareem Hunt week 3 2026 highlights"
     },
+    "2026:3:4111": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "D'Onta Foreman week 3 2026 highlights"
+    },
     "2026:3:4127": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
@@ -2801,6 +2851,26 @@
       "video_ids": [],
       "query": "Josh Reynolds week 3 2026 highlights"
     },
+    "2026:3:4179": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Joshua Dobbs week 3 2026 highlights"
+    },
+    "2026:3:4183": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Nathan Peterman week 3 2026 highlights"
+    },
+    "2026:3:4189": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Eric Saubert week 3 2026 highlights"
+    },
+    "2026:3:4198": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Jamal Agnew week 3 2026 highlights"
+    },
     "2026:3:4219": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
@@ -2811,6 +2881,11 @@
       "video_ids": [],
       "query": "Noah Brown week 3 2026 highlights"
     },
+    "2026:3:4274": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "David Moore week 3 2026 highlights"
+    },
     "2026:3:4314": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
@@ -2820,6 +2895,21 @@
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Tim Patrick week 3 2026 highlights"
+    },
+    "2026:3:4381": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Taysom Hill week 3 2026 highlights"
+    },
+    "2026:3:4435": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Anthony Firkser week 3 2026 highlights"
+    },
+    "2026:3:4443": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Pharaoh Brown week 3 2026 highlights"
     },
     "2026:3:4454": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
@@ -2838,6 +2928,11 @@
       "video_ids": [],
       "query": "Cooper Rush week 3 2026 highlights"
     },
+    "2026:3:4602": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Robert Tonyan week 3 2026 highlights"
+    },
     "2026:3:4663": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
       "video_ids": [
@@ -2849,6 +2944,11 @@
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Dare Ogunbowale week 3 2026 highlights"
+    },
+    "2026:3:4854": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "River Cracraft week 3 2026 highlights"
     },
     "2026:3:4866": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
@@ -2891,10 +2991,20 @@
       ],
       "query": "Nick Chubb week 3 2026 highlights"
     },
+    "2026:3:4992": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Dante Pettis week 3 2026 highlights"
+    },
     "2026:3:4993": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Mike Gesicki week 3 2026 highlights"
+    },
+    "2026:3:4995": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Ian Thomas week 3 2026 highlights"
     },
     "2026:3:5001": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
@@ -2906,6 +3016,11 @@
       "video_ids": [],
       "query": "Will Dissly week 3 2026 highlights"
     },
+    "2026:3:5013": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Anthony Miller week 3 2026 highlights"
+    },
     "2026:3:5022": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
       "video_ids": [
@@ -2913,30 +3028,115 @@
       ],
       "query": "Dallas Goedert week 3 2026 highlights"
     },
+    "2026:3:5026": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Tre'Quan Smith week 3 2026 highlights"
+    },
+    "2026:3:5032": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Jordan Akins week 3 2026 highlights"
+    },
+    "2026:3:5076": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "John Kelly week 3 2026 highlights"
+    },
     "2026:3:5086": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Marquez Valdes-Scantling week 3 2026 highlights"
+    },
+    "2026:3:5089": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Mike White week 3 2026 highlights"
+    },
+    "2026:3:5094": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Ryan Izzo week 3 2026 highlights"
+    },
+    "2026:3:5096": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Ray-Ray McCloud week 3 2026 highlights"
     },
     "2026:3:5110": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Russell Gage week 3 2026 highlights"
     },
+    "2026:3:5121": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Braxton Berrios week 3 2026 highlights"
+    },
+    "2026:3:5127": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Kyle Allen week 3 2026 highlights"
+    },
     "2026:3:5128": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Logan Woodside week 3 2026 highlights"
+    },
+    "2026:3:5154": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Trent Sherfield week 3 2026 highlights"
     },
     "2026:3:5185": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Allen Lazard week 3 2026 highlights"
     },
+    "2026:3:5248": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Gus Edwards week 3 2026 highlights"
+    },
+    "2026:3:5257": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Tim Boyle week 3 2026 highlights"
+    },
+    "2026:3:5284": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Jeff Wilson week 3 2026 highlights"
+    },
+    "2026:3:5285": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Ross Dwelley week 3 2026 highlights"
+    },
+    "2026:3:5347": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Nyheim Miller-Hines week 3 2026 highlights"
+    },
+    "2026:3:5374": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Justin Watson week 3 2026 highlights"
+    },
     "2026:3:5409": {
       "searched_at": "2026-09-29T20:28:01.317364+00:00",
       "video_ids": [],
       "query": "Tanner Hudson week 3 2026 highlights"
+    },
+    "2026:3:5773": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "KhaDarel Hodge week 3 2026 highlights"
+    },
+    "2026:3:5781": {
+      "searched_at": "2026-09-30T16:47:10.950766+00:00",
+      "video_ids": [],
+      "query": "Malik Turner week 3 2026 highlights"
     },
     "2026:3:827": {
       "searched_at": "2026-09-29T16:53:21.995232+00:00",
