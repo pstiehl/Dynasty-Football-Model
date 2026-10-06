@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-10-06T17:06:09.245548+00:00",
-  "entry_count": 828,
+  "updated_at": "2026-10-06T20:47:47.787485+00:00",
+  "entry_count": 868,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -4218,6 +4218,13 @@
       "video_ids": [],
       "query": "Russell Wilson week 4 2026 highlights"
     },
+    "2026:4:1339": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [
+        "kyMkgKPdvC8"
+      ],
+      "query": "Zach Ertz week 4 2026 highlights"
+    },
     "2026:4:1352": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
@@ -4228,15 +4235,36 @@
       "video_ids": [],
       "query": "DeAndre Hopkins week 4 2026 highlights"
     },
+    "2026:4:1466": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [
+        "jpljOJU-FN0"
+      ],
+      "query": "Travis Kelce week 4 2026 highlights"
+    },
     "2026:4:1479": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Keenan Allen week 4 2026 highlights"
     },
+    "2026:4:1535": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Cordarrelle Patterson week 4 2026 highlights"
+    },
     "2026:4:1689": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Adam Thielen week 4 2026 highlights"
+    },
+    "2026:4:1737": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [
+        "8ra8tu9Zc8s",
+        "mhjx0L6j9h8",
+        "SlIsQN27ku4"
+      ],
+      "query": "Case Keenum week 4 2026 highlights"
     },
     "2026:4:1800": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
@@ -4245,10 +4273,20 @@
       ],
       "query": "Jordan Matthews week 4 2026 highlights"
     },
+    "2026:4:1837": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Jimmy Garoppolo week 4 2026 highlights"
+    },
     "2026:4:19": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Joe Flacco week 4 2026 highlights"
+    },
+    "2026:4:1992": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Allen Robinson week 4 2026 highlights"
     },
     "2026:4:2028": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
@@ -4277,10 +4315,45 @@
       "video_ids": [],
       "query": "Amari Cooper week 4 2026 highlights"
     },
+    "2026:4:2359": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Ameer Abdullah week 4 2026 highlights"
+    },
     "2026:4:2374": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Tyler Lockett week 4 2026 highlights"
+    },
+    "2026:4:2381": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Chris Conley week 4 2026 highlights"
+    },
+    "2026:4:2410": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Jamison Crowder week 4 2026 highlights"
+    },
+    "2026:4:2549": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Trevor Siemian week 4 2026 highlights"
+    },
+    "2026:4:2711": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Taylor Heinicke week 4 2026 highlights"
+    },
+    "2026:4:2749": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Raheem Mostert week 4 2026 highlights"
+    },
+    "2026:4:2750": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "DeAndre Carter week 4 2026 highlights"
     },
     "2026:4:3161": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
@@ -4297,10 +4370,25 @@
       "video_ids": [],
       "query": "Sterling Shepard week 4 2026 highlights"
     },
+    "2026:4:3202": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Austin Hooper week 4 2026 highlights"
+    },
     "2026:4:3225": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Tyler Boyd week 4 2026 highlights"
+    },
+    "2026:4:3269": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Chris Moore week 4 2026 highlights"
+    },
+    "2026:4:3286": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Demarcus Robinson week 4 2026 highlights"
     },
     "2026:4:331": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
@@ -4360,20 +4448,103 @@
       "video_ids": [],
       "query": "Mike Williams week 4 2026 highlights"
     },
+    "2026:4:4080": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Zay Jones week 4 2026 highlights"
+    },
+    "2026:4:4082": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Curtis Samuel week 4 2026 highlights"
+    },
     "2026:4:4098": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Kareem Hunt week 4 2026 highlights"
+    },
+    "2026:4:4127": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "C.J. Beathard week 4 2026 highlights"
     },
     "2026:4:4137": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "James Conner week 4 2026 highlights"
     },
+    "2026:4:4144": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Jonnu Smith week 4 2026 highlights"
+    },
+    "2026:4:4147": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Samaje Perine week 4 2026 highlights"
+    },
+    "2026:4:4149": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Jamaal Williams week 4 2026 highlights"
+    },
+    "2026:4:4171": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Josh Reynolds week 4 2026 highlights"
+    },
+    "2026:4:4177": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [
+        "O3QK0lyyejs",
+        "M0t3vGqQbWk"
+      ],
+      "query": "Mack Hollins week 4 2026 highlights"
+    },
+    "2026:4:4189": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Eric Saubert week 4 2026 highlights"
+    },
+    "2026:4:4219": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Jeremy McNichols week 4 2026 highlights"
+    },
+    "2026:4:4234": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Noah Brown week 4 2026 highlights"
+    },
+    "2026:4:4314": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Johnny Mundt week 4 2026 highlights"
+    },
+    "2026:4:4351": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Tim Patrick week 4 2026 highlights"
+    },
+    "2026:4:4454": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Kendrick Bourne week 4 2026 highlights"
+    },
+    "2026:4:4464": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Nick Mullens week 4 2026 highlights"
+    },
     "2026:4:4574": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Cooper Rush week 4 2026 highlights"
+    },
+    "2026:4:4718": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Dare Ogunbowale week 4 2026 highlights"
     },
     "2026:4:4892": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
@@ -4387,10 +4558,20 @@
       "video_ids": [],
       "query": "Christian Kirk week 4 2026 highlights"
     },
+    "2026:4:4951": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "DJ Chark week 4 2026 highlights"
+    },
     "2026:4:4972": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Mason Rudolph week 4 2026 highlights"
+    },
+    "2026:4:4973": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Hayden Hurst week 4 2026 highlights"
     },
     "2026:4:4981": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
@@ -4412,10 +4593,40 @@
       "video_ids": [],
       "query": "Dalton Schultz week 4 2026 highlights"
     },
+    "2026:4:5010": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Will Dissly week 4 2026 highlights"
+    },
     "2026:4:5022": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
       "video_ids": [],
       "query": "Dallas Goedert week 4 2026 highlights"
+    },
+    "2026:4:5086": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Marquez Valdes-Scantling week 4 2026 highlights"
+    },
+    "2026:4:5110": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Russell Gage week 4 2026 highlights"
+    },
+    "2026:4:5128": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Logan Woodside week 4 2026 highlights"
+    },
+    "2026:4:5185": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Allen Lazard week 4 2026 highlights"
+    },
+    "2026:4:5409": {
+      "searched_at": "2026-10-06T20:47:47.787485+00:00",
+      "video_ids": [],
+      "query": "Tanner Hudson week 4 2026 highlights"
     },
     "2026:4:827": {
       "searched_at": "2026-10-06T17:06:09.245548+00:00",
