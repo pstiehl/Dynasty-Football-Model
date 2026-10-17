@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-10-16T15:18:24.967480+00:00",
-  "entry_count": 1308,
+  "updated_at": "2026-10-17T14:08:46.093839+00:00",
+  "entry_count": 1348,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -5900,10 +5900,25 @@
       "video_ids": [],
       "query": "A.T. Perry week 5 2026 highlights"
     },
+    "2026:5:11074": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abraham Beauplan week 5 2026 highlights"
+    },
     "2026:5:1122": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "Aaron Brewer week 5 2026 highlights"
+    },
+    "2026:5:11289": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Maddox week 5 2026 highlights"
+    },
+    "2026:5:11492": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Ace Eley week 5 2026 highlights"
     },
     "2026:5:11548": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
@@ -5939,6 +5954,16 @@
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
       "video_ids": [],
       "query": "Russell Wilson week 5 2026 highlights"
+    },
+    "2026:5:12574": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abdul Carter week 5 2026 highlights"
+    },
+    "2026:5:13148": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Smith week 5 2026 highlights"
     },
     "2026:5:13309": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
@@ -5985,6 +6010,11 @@
       "video_ids": [],
       "query": "DeAndre Hopkins week 5 2026 highlights"
     },
+    "2026:5:1450": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Ace Sanders week 5 2026 highlights"
+    },
     "2026:5:1452": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
@@ -6012,6 +6042,11 @@
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
       "video_ids": [],
       "query": "A.J. Francis week 5 2026 highlights"
+    },
+    "2026:5:1663": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abry Jones week 5 2026 highlights"
     },
     "2026:5:1674": {
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
@@ -6048,6 +6083,11 @@
       "video_ids": [],
       "query": "Allen Robinson week 5 2026 highlights"
     },
+    "2026:5:2019": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Murray week 5 2026 highlights"
+    },
     "2026:5:2028": {
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
       "video_ids": [],
@@ -6064,6 +6104,18 @@
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
       "video_ids": [],
       "query": "Teddy Bridgewater week 5 2026 highlights"
+    },
+    "2026:5:2197": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [
+        "2ZlBOofisoo"
+      ],
+      "query": "Brandin Cooks week 5 2026 highlights"
+    },
+    "2026:5:2259": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Lynch week 5 2026 highlights"
     },
     "2026:5:2307": {
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
@@ -6135,6 +6187,11 @@
       "video_ids": [],
       "query": "Darren Waller week 5 2026 highlights"
     },
+    "2026:5:2507": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Ripkowski week 5 2026 highlights"
+    },
     "2026:5:2545": {
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
       "video_ids": [],
@@ -6155,6 +6212,11 @@
       "video_ids": [],
       "query": "A.J. Hawk week 5 2026 highlights"
     },
+    "2026:5:2698": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abou Toure week 5 2026 highlights"
+    },
     "2026:5:2711": {
       "searched_at": "2026-10-13T21:01:42.287510+00:00",
       "video_ids": [],
@@ -6174,6 +6236,11 @@
       "searched_at": "2026-10-14T15:48:17.224211+00:00",
       "video_ids": [],
       "query": "Eric Tomlinson week 5 2026 highlights"
+    },
+    "2026:5:28": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Ross week 5 2026 highlights"
     },
     "2026:5:3048": {
       "searched_at": "2026-10-14T15:48:17.224211+00:00",
@@ -6259,6 +6326,11 @@
       "video_ids": [],
       "query": "Aaron Burbridge week 5 2026 highlights"
     },
+    "2026:5:3377": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Wallace week 5 2026 highlights"
+    },
     "2026:5:3423": {
       "searched_at": "2026-10-14T15:48:17.224211+00:00",
       "video_ids": [],
@@ -6274,6 +6346,16 @@
       "video_ids": [],
       "query": "Aaron Green week 5 2026 highlights"
     },
+    "2026:5:3631": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Neary week 5 2026 highlights"
+    },
+    "2026:5:3709": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Adairius Barnes week 5 2026 highlights"
+    },
     "2026:5:3758": {
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
       "video_ids": [],
@@ -6288,6 +6370,11 @@
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
       "video_ids": [],
       "query": "Mitchell Trubisky week 5 2026 highlights"
+    },
+    "2026:5:3990": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Adam Bighill week 5 2026 highlights"
     },
     "2026:5:4018": {
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
@@ -6441,6 +6528,11 @@
       "video_ids": [],
       "query": "Noah Brown week 5 2026 highlights"
     },
+    "2026:5:4260": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Adam Bisnowaty week 5 2026 highlights"
+    },
     "2026:5:4274": {
       "searched_at": "2026-10-14T15:48:17.224211+00:00",
       "video_ids": [],
@@ -6468,6 +6560,16 @@
       "video_ids": [],
       "query": "Taysom Hill week 5 2026 highlights"
     },
+    "2026:5:4384": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Peck week 5 2026 highlights"
+    },
+    "2026:5:4415": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Adam Butler week 5 2026 highlights"
+    },
     "2026:5:4435": {
       "searched_at": "2026-10-14T15:48:17.224211+00:00",
       "video_ids": [],
@@ -6482,6 +6584,11 @@
       "searched_at": "2026-10-13T21:01:42.287510+00:00",
       "video_ids": [],
       "query": "Nick Mullens week 5 2026 highlights"
+    },
+    "2026:5:4487": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Taylor week 5 2026 highlights"
     },
     "2026:5:4498": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
@@ -6507,6 +6614,11 @@
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "Aaron Bailey week 5 2026 highlights"
+    },
+    "2026:5:4687": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abner Logan week 5 2026 highlights"
     },
     "2026:5:4718": {
       "searched_at": "2026-10-13T21:01:42.287510+00:00",
@@ -6781,6 +6893,11 @@
       "video_ids": [],
       "query": "Tanner Hudson week 5 2026 highlights"
     },
+    "2026:5:5636": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abdullah Anderson week 5 2026 highlights"
+    },
     "2026:5:5656": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
@@ -6790,6 +6907,11 @@
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
       "video_ids": [],
       "query": "A.J. Moore week 5 2026 highlights"
+    },
+    "2026:5:5668": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Stinnie week 5 2026 highlights"
     },
     "2026:5:5695": {
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
@@ -6816,15 +6938,35 @@
       "video_ids": [],
       "query": "A.J. Brown week 5 2026 highlights"
     },
+    "2026:5:6187": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aca'Cedric Ware week 5 2026 highlights"
+    },
+    "2026:5:6242": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Wade week 5 2026 highlights"
+    },
     "2026:5:6373": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "A.J. Richardson week 5 2026 highlights"
     },
+    "2026:5:6491": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Adam Choice week 5 2026 highlights"
+    },
     "2026:5:6544": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "Aaron Adeoye week 5 2026 highlights"
+    },
+    "2026:5:6572": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Monteiro week 5 2026 highlights"
     },
     "2026:5:6580": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
@@ -6835,6 +6977,16 @@
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "A.J. Ouellette week 5 2026 highlights"
+    },
+    "2026:5:6675": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abraham Wallace week 5 2026 highlights"
+    },
+    "2026:5:6709": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abdul Beecham week 5 2026 highlights"
     },
     "2026:5:6802": {
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
@@ -6861,6 +7013,11 @@
       "video_ids": [],
       "query": "A.J. Hines week 5 2026 highlights"
     },
+    "2026:5:7091": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Parker week 5 2026 highlights"
+    },
     "2026:5:7194": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
@@ -6871,20 +7028,50 @@
       "video_ids": [],
       "query": "Aaron Brewer week 5 2026 highlights"
     },
+    "2026:5:7512": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Smith week 5 2026 highlights"
+    },
+    "2026:5:7519": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Patrick week 5 2026 highlights"
+    },
     "2026:5:7654": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "Aaron Banks week 5 2026 highlights"
+    },
+    "2026:5:7668": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Robinson week 5 2026 highlights"
     },
     "2026:5:7918": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "A.J. Rose week 5 2026 highlights"
     },
+    "2026:5:800": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Williams week 5 2026 highlights"
+    },
     "2026:5:8032": {
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "Aaron Donkor week 5 2026 highlights"
+    },
+    "2026:5:8080": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aashari Crosswell week 5 2026 highlights"
+    },
+    "2026:5:8190": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abram Smith week 5 2026 highlights"
     },
     "2026:5:827": {
       "searched_at": "2026-10-13T18:03:44.186991+00:00",
@@ -6906,6 +7093,11 @@
       "video_ids": [],
       "query": "A.Hansford Hansford week 5 2026 highlights"
     },
+    "2026:5:8457": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abraham Lucas week 5 2026 highlights"
+    },
     "2026:5:8505": {
       "searched_at": "2026-10-15T15:35:38.323888+00:00",
       "video_ids": [],
@@ -6915,6 +7107,16 @@
       "searched_at": "2026-10-16T15:18:24.967480+00:00",
       "video_ids": [],
       "query": "A.J. Thomas week 5 2026 highlights"
+    },
+    "2026:5:8809": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Aaron Shampklin week 5 2026 highlights"
+    },
+    "2026:5:8877": {
+      "searched_at": "2026-10-17T14:08:46.093839+00:00",
+      "video_ids": [],
+      "query": "Abu Daramy-Swaray week 5 2026 highlights"
     }
   }
 }
