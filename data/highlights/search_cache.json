@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-11-05T18:37:27.281105+00:00",
-  "entry_count": 2228,
+  "updated_at": "2026-11-06T17:53:34.861488+00:00",
+  "entry_count": 2268,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -10818,10 +10818,55 @@
       "video_ids": [],
       "query": "Adrian Clayborn week 7 2026 highlights"
     },
+    "2026:8:1011": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.Q. Shipley week 8 2026 highlights"
+    },
+    "2026:8:10863": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.T. Perry week 8 2026 highlights"
+    },
+    "2026:8:1122": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Brewer week 8 2026 highlights"
+    },
+    "2026:8:11548": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Dykes week 8 2026 highlights"
+    },
+    "2026:8:12049": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Beasley week 8 2026 highlights"
+    },
+    "2026:8:12060": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Casey week 8 2026 highlights"
+    },
+    "2026:8:12305": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Frost week 8 2026 highlights"
+    },
+    "2026:8:12330": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Brule week 8 2026 highlights"
+    },
     "2026:8:1234": {
       "searched_at": "2026-11-03T18:21:46.617949+00:00",
       "video_ids": [],
       "query": "Russell Wilson week 8 2026 highlights"
+    },
+    "2026:8:13309": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Anderson week 8 2026 highlights"
     },
     "2026:8:13384": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
@@ -10838,10 +10883,40 @@
       "video_ids": [],
       "query": "Robert Woods week 8 2026 highlights"
     },
+    "2026:8:1365": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Dobson week 8 2026 highlights"
+    },
+    "2026:8:13683": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aamil Wagner week 8 2026 highlights"
+    },
+    "2026:8:13706": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Hall week 8 2026 highlights"
+    },
+    "2026:8:13732": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Graves week 8 2026 highlights"
+    },
+    "2026:8:13740": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aamaris Brown week 8 2026 highlights"
+    },
     "2026:8:1426": {
       "searched_at": "2026-11-03T18:21:46.617949+00:00",
       "video_ids": [],
       "query": "DeAndre Hopkins week 8 2026 highlights"
+    },
+    "2026:8:1452": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Hester week 8 2026 highlights"
     },
     "2026:8:1535": {
       "searched_at": "2026-11-03T21:31:20.839083+00:00",
@@ -10888,6 +10963,11 @@
       "video_ids": [],
       "query": "Joe Flacco week 8 2026 highlights"
     },
+    "2026:8:1982": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Colvin week 8 2026 highlights"
+    },
     "2026:8:1992": {
       "searched_at": "2026-11-03T21:31:20.839083+00:00",
       "video_ids": [],
@@ -10922,6 +11002,13 @@
       "searched_at": "2026-11-03T18:21:46.617949+00:00",
       "video_ids": [],
       "query": "Mike Evans week 8 2026 highlights"
+    },
+    "2026:8:2227": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [
+        "WXIMSY4lyDg"
+      ],
+      "query": "Aaron Donald week 8 2026 highlights"
     },
     "2026:8:2306": {
       "searched_at": "2026-11-03T18:21:46.617949+00:00",
@@ -10998,6 +11085,11 @@
       "video_ids": [],
       "query": "Trevor Siemian week 8 2026 highlights"
     },
+    "2026:8:2558": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Tarpley week 8 2026 highlights"
+    },
     "2026:8:261": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
@@ -11027,6 +11119,11 @@
       "searched_at": "2026-11-04T18:33:51.004832+00:00",
       "video_ids": [],
       "query": "Chris Manhertz week 8 2026 highlights"
+    },
+    "2026:8:3149": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Grymes week 8 2026 highlights"
     },
     "2026:8:3155": {
       "searched_at": "2026-11-04T18:33:51.004832+00:00",
@@ -11108,6 +11205,11 @@
       "video_ids": [],
       "query": "Jeff Driskel week 8 2026 highlights"
     },
+    "2026:8:3368": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Burbridge week 8 2026 highlights"
+    },
     "2026:8:3423": {
       "searched_at": "2026-11-04T18:33:51.004832+00:00",
       "video_ids": [],
@@ -11118,10 +11220,20 @@
       "video_ids": [],
       "query": "Alex Erickson week 8 2026 highlights"
     },
+    "2026:8:3471": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Green week 8 2026 highlights"
+    },
     "2026:8:3758": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
       "query": "A.J. Hendy week 8 2026 highlights"
+    },
+    "2026:8:3844": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Epps week 8 2026 highlights"
     },
     "2026:8:3976": {
       "searched_at": "2026-11-03T18:21:46.617949+00:00",
@@ -11323,6 +11435,11 @@
       "video_ids": [],
       "query": "Nick Mullens week 8 2026 highlights"
     },
+    "2026:8:4498": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aarion Penton week 8 2026 highlights"
+    },
     "2026:8:4574": {
       "searched_at": "2026-11-03T21:31:20.839083+00:00",
       "video_ids": [],
@@ -11332,6 +11449,11 @@
       "searched_at": "2026-11-04T18:33:51.004832+00:00",
       "video_ids": [],
       "query": "Robert Tonyan week 8 2026 highlights"
+    },
+    "2026:8:4683": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Bailey week 8 2026 highlights"
     },
     "2026:8:4718": {
       "searched_at": "2026-11-03T21:31:20.839083+00:00",
@@ -11503,10 +11625,20 @@
       "video_ids": [],
       "query": "Trent Sherfield week 8 2026 highlights"
     },
+    "2026:8:516": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Hernandez week 8 2026 highlights"
+    },
     "2026:8:5160": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
       "query": "A.J. Howard week 8 2026 highlights"
+    },
+    "2026:8:5177": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Davis week 8 2026 highlights"
     },
     "2026:8:5185": {
       "searched_at": "2026-11-03T21:31:20.839083+00:00",
@@ -11558,6 +11690,16 @@
       "video_ids": [],
       "query": "Tanner Hudson week 8 2026 highlights"
     },
+    "2026:8:5656": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Evans week 8 2026 highlights"
+    },
+    "2026:8:5662": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Moore week 8 2026 highlights"
+    },
     "2026:8:5695": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
@@ -11580,20 +11722,75 @@
       ],
       "query": "A.J. Brown week 8 2026 highlights"
     },
+    "2026:8:6373": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Richardson week 8 2026 highlights"
+    },
+    "2026:8:6544": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Adeoye week 8 2026 highlights"
+    },
+    "2026:8:6580": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.T. Hall week 8 2026 highlights"
+    },
+    "2026:8:6664": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Ouellette week 8 2026 highlights"
+    },
     "2026:8:6802": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
       "query": "A.J. Epenesa week 8 2026 highlights"
+    },
+    "2026:8:6836": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Terrell Jr. week 8 2026 highlights"
     },
     "2026:8:6876": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
       "query": "A.J. Green week 8 2026 highlights"
     },
+    "2026:8:6967": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Fuller week 8 2026 highlights"
+    },
     "2026:8:7074": {
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
       "query": "A.J. Hines week 8 2026 highlights"
+    },
+    "2026:8:7194": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Crawford week 8 2026 highlights"
+    },
+    "2026:8:7440": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Brewer week 8 2026 highlights"
+    },
+    "2026:8:7654": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Banks week 8 2026 highlights"
+    },
+    "2026:8:7918": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Rose week 8 2026 highlights"
+    },
+    "2026:8:8032": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "Aaron Donkor week 8 2026 highlights"
     },
     "2026:8:827": {
       "searched_at": "2026-11-03T18:21:46.617949+00:00",
@@ -11619,6 +11816,11 @@
       "searched_at": "2026-11-05T18:37:27.281105+00:00",
       "video_ids": [],
       "query": "A.J. Arcuri week 8 2026 highlights"
+    },
+    "2026:8:8719": {
+      "searched_at": "2026-11-06T17:53:34.861488+00:00",
+      "video_ids": [],
+      "query": "A.J. Thomas week 8 2026 highlights"
     }
   }
 }
