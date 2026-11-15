@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-11-14T16:55:52.053922+00:00",
-  "entry_count": 2628,
+  "updated_at": "2026-11-15T17:38:21.641546+00:00",
+  "entry_count": 2668,
   "entries": {
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
@@ -12440,6 +12440,11 @@
       "video_ids": [],
       "query": "A.T. Perry week 9 2026 highlights"
     },
+    "2026:9:10957": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adetomiwa Adebawore week 9 2026 highlights"
+    },
     "2026:9:11074": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
@@ -12455,6 +12460,11 @@
       "video_ids": [],
       "query": "Aaron Maddox week 9 2026 highlights"
     },
+    "2026:9:11465": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Plant week 9 2026 highlights"
+    },
     "2026:9:11492": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
@@ -12464,6 +12474,21 @@
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
       "query": "Aaron Dykes week 9 2026 highlights"
+    },
+    "2026:9:1168": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Gettis week 9 2026 highlights"
+    },
+    "2026:9:11722": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adisa Isaac week 9 2026 highlights"
+    },
+    "2026:9:120": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Vinatieri week 9 2026 highlights"
     },
     "2026:9:12049": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
@@ -12495,10 +12520,27 @@
       "video_ids": [],
       "query": "Abdul Carter week 9 2026 highlights"
     },
+    "2026:9:12867": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Addison West week 9 2026 highlights"
+    },
+    "2026:9:13104": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [
+        "X2joA-SAjjc"
+      ],
+      "query": "Adin Huntington week 9 2026 highlights"
+    },
     "2026:9:13148": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
       "query": "Aaron Smith week 9 2026 highlights"
+    },
+    "2026:9:13302": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Randall week 9 2026 highlights"
     },
     "2026:9:13309": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
@@ -12544,6 +12586,11 @@
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
       "query": "Aamaris Brown week 9 2026 highlights"
+    },
+    "2026:9:13777": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Ademola Faleye week 9 2026 highlights"
     },
     "2026:9:1426": {
       "searched_at": "2026-11-10T18:33:50.484574+00:00",
@@ -12610,6 +12657,11 @@
       "video_ids": [],
       "query": "Joe Flacco week 9 2026 highlights"
     },
+    "2026:9:192": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Hayward week 9 2026 highlights"
+    },
     "2026:9:1982": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
@@ -12644,6 +12696,11 @@
       "searched_at": "2026-11-10T18:33:50.484574+00:00",
       "video_ids": [],
       "query": "Teddy Bridgewater week 9 2026 highlights"
+    },
+    "2026:9:2190": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adarius Taylor week 9 2026 highlights"
     },
     "2026:9:2197": {
       "searched_at": "2026-11-10T21:40:26.478422+00:00",
@@ -12706,6 +12763,11 @@
       "searched_at": "2026-11-10T21:40:26.478422+00:00",
       "video_ids": [],
       "query": "Jamison Crowder week 9 2026 highlights"
+    },
+    "2026:9:2445": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adrian Amos week 9 2026 highlights"
     },
     "2026:9:2446": {
       "searched_at": "2026-11-12T18:48:35.493915+00:00",
@@ -12777,10 +12839,25 @@
       "video_ids": [],
       "query": "Aaron Ross week 9 2026 highlights"
     },
+    "2026:9:2822": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Humphries week 9 2026 highlights"
+    },
+    "2026:9:3033": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Drake week 9 2026 highlights"
+    },
     "2026:9:3048": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
       "video_ids": [],
       "query": "Chris Manhertz week 9 2026 highlights"
+    },
+    "2026:9:3094": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Gase week 9 2026 highlights"
     },
     "2026:9:3149": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
@@ -12828,6 +12905,16 @@
       "searched_at": "2026-11-10T18:33:50.484574+00:00",
       "video_ids": [],
       "query": "Tyler Boyd week 9 2026 highlights"
+    },
+    "2026:9:3232": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Gotsis week 9 2026 highlights"
+    },
+    "2026:9:3249": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adolphus Washington week 9 2026 highlights"
     },
     "2026:9:3257": {
       "searched_at": "2026-11-10T18:33:50.484574+00:00",
@@ -12902,6 +12989,11 @@
       "video_ids": [],
       "query": "Aaron Green week 9 2026 highlights"
     },
+    "2026:9:3590": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Redmond week 9 2026 highlights"
+    },
     "2026:9:3631": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
@@ -12916,6 +13008,11 @@
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
       "query": "Adairius Barnes week 9 2026 highlights"
+    },
+    "2026:9:3712": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Fuehne week 9 2026 highlights"
     },
     "2026:9:3758": {
       "searched_at": "2026-11-12T18:48:35.493915+00:00",
@@ -12991,6 +13088,11 @@
       "video_ids": [],
       "query": "Mike Williams week 9 2026 highlights"
     },
+    "2026:9:4078": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adoree' Jackson week 9 2026 highlights"
+    },
     "2026:9:4080": {
       "searched_at": "2026-11-10T21:40:26.478422+00:00",
       "video_ids": [],
@@ -13000,6 +13102,11 @@
       "searched_at": "2026-11-10T21:40:26.478422+00:00",
       "video_ids": [],
       "query": "Curtis Samuel week 9 2026 highlights"
+    },
+    "2026:9:4085": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Shaheen week 9 2026 highlights"
     },
     "2026:9:4089": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
@@ -13098,6 +13205,11 @@
       "video_ids": [],
       "query": "David Moore week 9 2026 highlights"
     },
+    "2026:9:4277": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adrian Colbert week 9 2026 highlights"
+    },
     "2026:9:4314": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
       "video_ids": [],
@@ -13118,10 +13230,20 @@
       "video_ids": [],
       "query": "Taysom Hill week 9 2026 highlights"
     },
+    "2026:9:4383": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Pankey week 9 2026 highlights"
+    },
     "2026:9:4384": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
       "query": "Aaron Peck week 9 2026 highlights"
+    },
+    "2026:9:4415": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Butler week 9 2026 highlights"
     },
     "2026:9:4435": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
@@ -13182,6 +13304,11 @@
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
       "query": "A.J. Jefferson week 9 2026 highlights"
+    },
+    "2026:9:4768": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Zaruba week 9 2026 highlights"
     },
     "2026:9:4854": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
@@ -13351,6 +13478,11 @@
       "video_ids": [],
       "query": "Logan Woodside week 9 2026 highlights"
     },
+    "2026:9:5129": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adonis Jennings week 9 2026 highlights"
+    },
     "2026:9:5134": {
       "searched_at": "2026-11-12T18:48:35.493915+00:00",
       "video_ids": [],
@@ -13411,6 +13543,11 @@
       "video_ids": [],
       "query": "Equanimeous St. Brown week 9 2026 highlights"
     },
+    "2026:9:5336": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Ade Aruna week 9 2026 highlights"
+    },
     "2026:9:5347": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
       "video_ids": [],
@@ -13451,6 +13588,11 @@
       "video_ids": [],
       "query": "Brandon Powell week 9 2026 highlights"
     },
+    "2026:9:5767": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adonis Alexander week 9 2026 highlights"
+    },
     "2026:9:5772": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
@@ -13461,10 +13603,20 @@
       "video_ids": [],
       "query": "KhaDarel Hodge week 9 2026 highlights"
     },
+    "2026:9:5780": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Reth week 9 2026 highlights"
+    },
     "2026:9:5781": {
       "searched_at": "2026-11-11T18:29:57.063336+00:00",
       "video_ids": [],
       "query": "Malik Turner week 9 2026 highlights"
+    },
+    "2026:9:5813": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adarius Taylor week 9 2026 highlights"
     },
     "2026:9:5859": {
       "searched_at": "2026-11-12T18:48:35.493915+00:00",
@@ -13476,6 +13628,11 @@
       "video_ids": [],
       "query": "Aca'Cedric Ware week 9 2026 highlights"
     },
+    "2026:9:6228": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adarius Pickett week 9 2026 highlights"
+    },
     "2026:9:6242": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
@@ -13486,10 +13643,20 @@
       "video_ids": [],
       "query": "A.J. Richardson week 9 2026 highlights"
     },
+    "2026:9:6491": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Choice week 9 2026 highlights"
+    },
     "2026:9:6544": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
       "query": "Aaron Adeoye week 9 2026 highlights"
+    },
+    "2026:9:657": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Jones week 9 2026 highlights"
     },
     "2026:9:6572": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
@@ -13526,6 +13693,11 @@
       "video_ids": [],
       "query": "A.J. Terrell Jr. week 9 2026 highlights"
     },
+    "2026:9:6869": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Trautman week 9 2026 highlights"
+    },
     "2026:9:6876": {
       "searched_at": "2026-11-12T18:48:35.493915+00:00",
       "video_ids": [],
@@ -13545,6 +13717,11 @@
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
       "query": "Aaron Parker week 9 2026 highlights"
+    },
+    "2026:9:7167": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Shuler week 9 2026 highlights"
     },
     "2026:9:7194": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
@@ -13576,6 +13753,11 @@
       "video_ids": [],
       "query": "Aaron Robinson week 9 2026 highlights"
     },
+    "2026:9:7810": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Ade Ogundeji week 9 2026 highlights"
+    },
     "2026:9:7918": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
@@ -13586,10 +13768,20 @@
       "video_ids": [],
       "query": "Aaron Williams week 9 2026 highlights"
     },
+    "2026:9:8025": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Prentice week 9 2026 highlights"
+    },
     "2026:9:8032": {
       "searched_at": "2026-11-13T18:29:40.996228+00:00",
       "video_ids": [],
       "query": "Aaron Donkor week 9 2026 highlights"
+    },
+    "2026:9:8069": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adam Coon week 9 2026 highlights"
     },
     "2026:9:8080": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
@@ -13641,6 +13833,11 @@
       "video_ids": [],
       "query": "Aaron Shampklin week 9 2026 highlights"
     },
+    "2026:9:8821": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adedayo Odeleye week 9 2026 highlights"
+    },
     "2026:9:8877": {
       "searched_at": "2026-11-14T16:55:52.053922+00:00",
       "video_ids": [],
@@ -13652,6 +13849,11 @@
         "SHDEzZIskEo"
       ],
       "query": "Aaron Rodgers week 9 2026 highlights"
+    },
+    "2026:9:961": {
+      "searched_at": "2026-11-15T17:38:21.641546+00:00",
+      "video_ids": [],
+      "query": "Adrian Clayborn week 9 2026 highlights"
     }
   }
 }
