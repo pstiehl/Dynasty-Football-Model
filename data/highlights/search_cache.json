@@ -16,13 +16,18 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-11-18T19:20:09.296905+00:00",
-  "entry_count": 2828,
+  "updated_at": "2026-11-19T19:27:27.428309+00:00",
+  "entry_count": 2868,
   "entries": {
     "2026:10:1234": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
       "video_ids": [],
       "query": "Russell Wilson week 10 2026 highlights"
+    },
+    "2026:10:13384": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Haulcy week 10 2026 highlights"
     },
     "2026:10:1339": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
@@ -48,6 +53,16 @@
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
       "query": "Cordarrelle Patterson week 10 2026 highlights"
+    },
+    "2026:10:1646": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Francis week 10 2026 highlights"
+    },
+    "2026:10:1674": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Bouye week 10 2026 highlights"
     },
     "2026:10:1689": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
@@ -133,10 +148,20 @@
       "video_ids": [],
       "query": "Nelson Agholor week 10 2026 highlights"
     },
+    "2026:10:2334": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Phillip Dorsett week 10 2026 highlights"
+    },
     "2026:10:2359": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
       "query": "Ameer Abdullah week 10 2026 highlights"
+    },
+    "2026:10:2372": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Cann week 10 2026 highlights"
     },
     "2026:10:2374": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
@@ -153,10 +178,35 @@
       "video_ids": [],
       "query": "Jamison Crowder week 10 2026 highlights"
     },
+    "2026:10:2446": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "MyCole Pruitt week 10 2026 highlights"
+    },
+    "2026:10:2460": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "C.J. Uzomah week 10 2026 highlights"
+    },
+    "2026:10:2503": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Derby week 10 2026 highlights"
+    },
+    "2026:10:2545": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Geoff Swaim week 10 2026 highlights"
+    },
     "2026:10:2549": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
       "query": "Trevor Siemian week 10 2026 highlights"
+    },
+    "2026:10:261": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Hawk week 10 2026 highlights"
     },
     "2026:10:2711": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
@@ -215,10 +265,20 @@
       "video_ids": [],
       "query": "Hunter Henry week 10 2026 highlights"
     },
+    "2026:10:3218": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A'Shawn Robinson week 10 2026 highlights"
+    },
     "2026:10:3225": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
       "video_ids": [],
       "query": "Tyler Boyd week 10 2026 highlights"
+    },
+    "2026:10:3258": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Nick Vannett week 10 2026 highlights"
     },
     "2026:10:3269": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
@@ -242,15 +302,35 @@
       ],
       "query": "Tyreek Hill week 10 2026 highlights"
     },
+    "2026:10:3357": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Brandon Allen week 10 2026 highlights"
+    },
+    "2026:10:3362": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Jeff Driskel week 10 2026 highlights"
+    },
     "2026:10:3423": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
       "query": "Robbie Chosen week 10 2026 highlights"
     },
+    "2026:10:3433": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Alex Erickson week 10 2026 highlights"
+    },
     "2026:10:3634": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
       "query": "Kalif Raymond week 10 2026 highlights"
+    },
+    "2026:10:3758": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Hendy week 10 2026 highlights"
     },
     "2026:10:3976": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
@@ -367,6 +447,21 @@
       "video_ids": [],
       "query": "Eric Saubert week 10 2026 highlights"
     },
+    "2026:10:4197": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Isaiah McKenzie week 10 2026 highlights"
+    },
+    "2026:10:4198": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Jamal Agnew week 10 2026 highlights"
+    },
+    "2026:10:4218": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Trent Taylor week 10 2026 highlights"
+    },
     "2026:10:4219": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
@@ -386,6 +481,11 @@
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
       "query": "Johnny Mundt week 10 2026 highlights"
+    },
+    "2026:10:4319": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Zach Pascal week 10 2026 highlights"
     },
     "2026:10:4351": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
@@ -503,10 +603,27 @@
       ],
       "query": "Mike Gesicki week 10 2026 highlights"
     },
+    "2026:10:4995": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [
+        "Wp8KdVYo00Y"
+      ],
+      "query": "Ian Thomas week 10 2026 highlights"
+    },
+    "2026:10:5000": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Chase Edmonds week 10 2026 highlights"
+    },
     "2026:10:5001": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
       "video_ids": [],
       "query": "Dalton Schultz week 10 2026 highlights"
+    },
+    "2026:10:5008": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Durham Smythe week 10 2026 highlights"
     },
     "2026:10:5010": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
@@ -538,6 +655,11 @@
       "video_ids": [],
       "query": "Courtland Sutton week 10 2026 highlights"
     },
+    "2026:10:5046": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Royce Freeman week 10 2026 highlights"
+    },
     "2026:10:5076": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
@@ -563,6 +685,11 @@
       "video_ids": [],
       "query": "Ray-Ray McCloud week 10 2026 highlights"
     },
+    "2026:10:5101": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Deon Cain week 10 2026 highlights"
+    },
     "2026:10:5110": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
@@ -572,6 +699,11 @@
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
       "query": "Braxton Berrios week 10 2026 highlights"
+    },
+    "2026:10:5122": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Boston Scott week 10 2026 highlights"
     },
     "2026:10:5127": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
@@ -583,15 +715,30 @@
       "video_ids": [],
       "query": "Logan Woodside week 10 2026 highlights"
     },
+    "2026:10:5134": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Keith Kirkwood week 10 2026 highlights"
+    },
     "2026:10:5154": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
       "query": "Trent Sherfield week 10 2026 highlights"
     },
+    "2026:10:5160": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Howard week 10 2026 highlights"
+    },
     "2026:10:5185": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
       "query": "Allen Lazard week 10 2026 highlights"
+    },
+    "2026:10:5209": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Mike Boone week 10 2026 highlights"
     },
     "2026:10:5248": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
@@ -608,20 +755,60 @@
       "video_ids": [],
       "query": "Jeff Wilson week 10 2026 highlights"
     },
+    "2026:10:5285": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Ross Dwelley week 10 2026 highlights"
+    },
+    "2026:10:5323": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Equanimeous St. Brown week 10 2026 highlights"
+    },
     "2026:10:5347": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
       "query": "Nyheim Miller-Hines week 10 2026 highlights"
+    },
+    "2026:10:5374": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Justin Watson week 10 2026 highlights"
     },
     "2026:10:5409": {
       "searched_at": "2026-11-18T19:20:09.296905+00:00",
       "video_ids": [],
       "query": "Tanner Hudson week 10 2026 highlights"
     },
+    "2026:10:5695": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Brandon Powell week 10 2026 highlights"
+    },
     "2026:10:5773": {
       "searched_at": "2026-11-17T23:20:14.333315+00:00",
       "video_ids": [],
       "query": "KhaDarel Hodge week 10 2026 highlights"
+    },
+    "2026:10:5781": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "Malik Turner week 10 2026 highlights"
+    },
+    "2026:10:6802": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Epenesa week 10 2026 highlights"
+    },
+    "2026:10:6876": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Green week 10 2026 highlights"
+    },
+    "2026:10:7074": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Hines week 10 2026 highlights"
     },
     "2026:10:827": {
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
@@ -632,6 +819,21 @@
       "searched_at": "2026-11-17T19:42:00.973282+00:00",
       "video_ids": [],
       "query": "Andy Dalton week 10 2026 highlights"
+    },
+    "2026:10:830": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Green week 10 2026 highlights"
+    },
+    "2026:10:8320": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.Hansford Hansford week 10 2026 highlights"
+    },
+    "2026:10:8505": {
+      "searched_at": "2026-11-19T19:27:27.428309+00:00",
+      "video_ids": [],
+      "query": "A.J. Arcuri week 10 2026 highlights"
     },
     "2026:1:1166": {
       "searched_at": "2026-09-21T18:28:20.608070+00:00",
