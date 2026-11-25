@@ -16,8 +16,8 @@
     "100 searches asking the same question again."
   ],
   "version": 1,
-  "updated_at": "2026-11-25T00:21:31.908398+00:00",
-  "entry_count": 3108,
+  "updated_at": "2026-11-25T20:27:52.821395+00:00",
+  "entry_count": 3148,
   "entries": {
     "2026:10:1011": {
       "searched_at": "2026-11-20T19:03:00.406146+00:00",
@@ -1754,6 +1754,11 @@
       "video_ids": [],
       "query": "Amari Cooper week 11 2026 highlights"
     },
+    "2026:11:2325": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Nelson Agholor week 11 2026 highlights"
+    },
     "2026:11:2359": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
@@ -1798,6 +1803,23 @@
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "DeAndre Carter week 11 2026 highlights"
+    },
+    "2026:11:2755": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Eric Tomlinson week 11 2026 highlights"
+    },
+    "2026:11:3048": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Chris Manhertz week 11 2026 highlights"
+    },
+    "2026:11:3155": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [
+        "zKA6UnFbQMY"
+      ],
+      "query": "Laquon Treadwell week 11 2026 highlights"
     },
     "2026:11:3164": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
@@ -1851,6 +1873,11 @@
       "video_ids": [],
       "query": "Tyreek Hill week 11 2026 highlights"
     },
+    "2026:11:3423": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Robbie Chosen week 11 2026 highlights"
+    },
     "2026:11:3634": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
@@ -1891,6 +1918,11 @@
       "video_ids": [],
       "query": "Chris Godwin Jr. week 11 2026 highlights"
     },
+    "2026:11:4038": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "John Ross week 11 2026 highlights"
+    },
     "2026:11:4039": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
@@ -1900,6 +1932,11 @@
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "JuJu Smith-Schuster week 11 2026 highlights"
+    },
+    "2026:11:4054": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Mo Alie-Cox week 11 2026 highlights"
     },
     "2026:11:4068": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
@@ -1916,10 +1953,20 @@
       "video_ids": [],
       "query": "Curtis Samuel week 11 2026 highlights"
     },
+    "2026:11:4089": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Gerald Everett week 11 2026 highlights"
+    },
     "2026:11:4098": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "Kareem Hunt week 11 2026 highlights"
+    },
+    "2026:11:4111": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "D'Onta Foreman week 11 2026 highlights"
     },
     "2026:11:4127": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
@@ -1941,20 +1988,75 @@
       "video_ids": [],
       "query": "Jamaal Williams week 11 2026 highlights"
     },
+    "2026:11:4171": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Josh Reynolds week 11 2026 highlights"
+    },
     "2026:11:4177": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Mack Hollins week 11 2026 highlights"
+    },
+    "2026:11:4179": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Joshua Dobbs week 11 2026 highlights"
+    },
+    "2026:11:4183": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Nathan Peterman week 11 2026 highlights"
+    },
+    "2026:11:4189": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Eric Saubert week 11 2026 highlights"
     },
     "2026:11:421": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "Matthew Stafford week 11 2026 highlights"
     },
+    "2026:11:4219": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Jeremy McNichols week 11 2026 highlights"
+    },
+    "2026:11:4234": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Noah Brown week 11 2026 highlights"
+    },
+    "2026:11:4274": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "David Moore week 11 2026 highlights"
+    },
+    "2026:11:4314": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Johnny Mundt week 11 2026 highlights"
+    },
     "2026:11:4351": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Tim Patrick week 11 2026 highlights"
+    },
+    "2026:11:4381": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Taysom Hill week 11 2026 highlights"
+    },
+    "2026:11:4435": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Anthony Firkser week 11 2026 highlights"
+    },
+    "2026:11:4443": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Pharaoh Brown week 11 2026 highlights"
     },
     "2026:11:4454": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
@@ -1971,10 +2073,20 @@
       "video_ids": [],
       "query": "Cooper Rush week 11 2026 highlights"
     },
+    "2026:11:4602": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Robert Tonyan week 11 2026 highlights"
+    },
     "2026:11:4718": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Dare Ogunbowale week 11 2026 highlights"
+    },
+    "2026:11:4854": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "River Cracraft week 11 2026 highlights"
     },
     "2026:11:4881": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
@@ -2001,15 +2113,30 @@
       "video_ids": [],
       "query": "Mason Rudolph week 11 2026 highlights"
     },
+    "2026:11:4973": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Hayden Hurst week 11 2026 highlights"
+    },
     "2026:11:4988": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "Nick Chubb week 11 2026 highlights"
     },
+    "2026:11:4992": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Dante Pettis week 11 2026 highlights"
+    },
     "2026:11:5001": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "Dalton Schultz week 11 2026 highlights"
+    },
+    "2026:11:5010": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Will Dissly week 11 2026 highlights"
     },
     "2026:11:5012": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
@@ -2018,35 +2145,110 @@
       ],
       "query": "Mark Andrews week 11 2026 highlights"
     },
+    "2026:11:5013": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Anthony Miller week 11 2026 highlights"
+    },
     "2026:11:5022": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "Dallas Goedert week 11 2026 highlights"
+    },
+    "2026:11:5026": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Tre'Quan Smith week 11 2026 highlights"
+    },
+    "2026:11:5032": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Jordan Akins week 11 2026 highlights"
     },
     "2026:11:5045": {
       "searched_at": "2026-11-24T21:05:13.774990+00:00",
       "video_ids": [],
       "query": "Courtland Sutton week 11 2026 highlights"
     },
+    "2026:11:5076": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "John Kelly week 11 2026 highlights"
+    },
     "2026:11:5086": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Marquez Valdes-Scantling week 11 2026 highlights"
+    },
+    "2026:11:5089": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Mike White week 11 2026 highlights"
+    },
+    "2026:11:5094": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Ryan Izzo week 11 2026 highlights"
+    },
+    "2026:11:5096": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Ray-Ray McCloud week 11 2026 highlights"
     },
     "2026:11:5110": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Russell Gage week 11 2026 highlights"
     },
+    "2026:11:5121": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Braxton Berrios week 11 2026 highlights"
+    },
     "2026:11:5127": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Kyle Allen week 11 2026 highlights"
     },
+    "2026:11:5128": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Logan Woodside week 11 2026 highlights"
+    },
+    "2026:11:5154": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Trent Sherfield week 11 2026 highlights"
+    },
     "2026:11:5185": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
       "video_ids": [],
       "query": "Allen Lazard week 11 2026 highlights"
+    },
+    "2026:11:5248": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Gus Edwards week 11 2026 highlights"
+    },
+    "2026:11:5257": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Tim Boyle week 11 2026 highlights"
+    },
+    "2026:11:5284": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Jeff Wilson week 11 2026 highlights"
+    },
+    "2026:11:5347": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Nyheim Miller-Hines week 11 2026 highlights"
+    },
+    "2026:11:5409": {
+      "searched_at": "2026-11-25T20:27:52.821395+00:00",
+      "video_ids": [],
+      "query": "Tanner Hudson week 11 2026 highlights"
     },
     "2026:11:5773": {
       "searched_at": "2026-11-25T00:21:31.908398+00:00",
